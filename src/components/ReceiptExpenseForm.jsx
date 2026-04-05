@@ -319,8 +319,16 @@ export default function ReceiptExpenseForm({
               lines.map((l) => {
                 const lt = lineTotal(l.unitPrice, l.quantity);
                 const qty = Math.max(1, parseInt(String(l.quantity), 10) || 1);
+                const allocSum = selectedList.reduce(
+                  (s, p) => s + (l.allocations[p.id] || 0),
+                  0
+                );
+                const rowIncomplete = allocSum !== qty;
                 return (
-                  <tr key={l.id}>
+                  <tr
+                    key={l.id}
+                    className={rowIncomplete ? 'receipt-row-incomplete' : ''}
+                  >
                     <td className="receipt-sticky-col">
                       <input
                         className="input input-table"

@@ -1,6 +1,6 @@
 # Evenly
 
-A small **bill-splitting** web app: groups, participants, **quick expenses** (equal / exact / percent / by quantity) or **receipt mode** (line items with per-person unit counts, like [Rece](https://github.com/iKrushYou/rece-web-2)), proportional **tax & tip**, net balances, **minimum-transfer settle-up**, optional **Venmo** deep links when people add their @handle. Data lives in **localStorage** (no server).
+A small **bill-splitting** web app with a **Rece-inspired** UI: Material-style **app bar**, **Roboto**, **FAB** + modal for new groups, **uppercase tabs** (Items / People / Settle), list rows and receipt table with **highlighted incomplete lines** (like Rece’s row fill state). Features: **quick expenses** (equal / exact / percent / by quantity), **receipt mode** (line items + unit grid, [Rece](https://github.com/iKrushYou/rece-web-2)), proportional **tax & tip**, balances, **minimum-transfer settle-up**, optional **Venmo** links. Data: **localStorage** (no server).
 
 ## Stack
 
@@ -49,7 +49,7 @@ src/
   index.css         # theme tokens + reset
   styles.css        # layout / components
   types.js          # JSDoc typedefs
-  components/       # Header, Dashboard, GroupView, ExpenseForm, ReceiptExpenseForm
+  components/       # Dashboard (FAB + modal), GroupView (Rece-style tabs), Modal, forms
   hooks/            # useAppState, useLocalStorage, useTheme
   lib/              # balances, settlement (+ tests)
 ```

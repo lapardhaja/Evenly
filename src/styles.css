@@ -1,10 +1,68 @@
-.app {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 1rem 1rem 1.25rem;
+/* —— Layout (Rece-style shell) —— */
+.app-shell {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  background: var(--bg);
+}
+
+.rece-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--appbar-bg);
+  color: var(--appbar-fg);
+  box-shadow: var(--elevation-bar);
+}
+
+.rece-appbar-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 8px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rece-appbar-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.rece-appbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rece-appbar .btn-ghost {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.rece-appbar .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.rece-appbar-back {
+  min-width: 40px;
+  padding: 8px;
+}
+
+.rece-appbar-spacer {
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.rece-container {
+  flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 16px 88px;
 }
 
 .app-main {
@@ -12,89 +70,74 @@
 }
 
 .app-footer {
-  margin-top: 2rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
+  margin-top: auto;
+  padding: 16px;
   text-align: center;
+  border-top: 1px solid var(--divider);
+  background: var(--surface);
 }
 
 .app-footer p {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
-  letter-spacing: 0.02em;
 }
 
-.header {
+/* —— MUI-like tabs —— */
+.rece-tabs {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin: 0 0 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 1.35rem;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.55rem 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+.rece-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.875rem;
   font-weight: 500;
-  font-size: 0.9rem;
-  transition: background var(--transition), border-color var(--transition),
-    transform 0.1s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
 }
 
-.btn:active {
-  transform: scale(0.98);
+.rece-tab:hover {
+  background: var(--accent-soft);
+  color: var(--text);
 }
 
-.btn-primary {
+.rece-tab.active {
+  color: var(--accent);
+}
+
+.rece-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
   background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
 }
 
-.btn-ghost {
-  background: transparent;
-}
-
-.btn-danger {
-  border-color: var(--owe);
-  color: var(--owe);
-  background: transparent;
-}
-
-.btn-sm {
-  padding: 0.35rem 0.65rem;
-  font-size: 0.8rem;
-}
-
+/* —— Paper / cards —— */
+.rece-paper,
 .card {
   background: var(--surface);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
-  padding: 1.1rem 1.15rem;
-  margin-bottom: 1rem;
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
 .card-elevated {
@@ -102,26 +145,222 @@
 }
 
 .card h2,
-.card h3 {
-  margin: 0 0 0.75rem;
+.card h3,
+.rece-paper h2,
+.rece-paper h3 {
+  margin: 0 0 12px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 
+.rece-section-title {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* —— Buttons —— */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background var(--transition);
+  min-height: 36px;
+}
+
+.btn:hover {
+  background: var(--accent-soft);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-ghost {
+  color: var(--text-muted);
+}
+
+.btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme='dark'] .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.btn-danger {
+  color: var(--owe);
+}
+
+.btn-danger:hover {
+  background: var(--owe-bg);
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  min-height: 32px;
+  font-size: 0.8125rem;
+}
+
+/* —— FAB —— */
+.rece-fab-wrap {
+  position: fixed;
+  right: 16px;
+  bottom: 24px;
+  z-index: 30;
+}
+
+.rece-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--appbar-bg);
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--fab-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rece-fab:hover {
+  transform: scale(1.04);
+}
+
+.rece-fab:active {
+  transform: scale(0.98);
+}
+
+/* —— Modal —— */
+.rece-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.rece-modal-panel {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 400px;
+  max-height: 90dvh;
+  overflow: auto;
+}
+
+.rece-modal-title {
+  margin: 0;
+  padding: 20px 24px 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.rece-modal-body {
+  padding: 16px 24px;
+}
+
+.rece-modal-footer {
+  padding: 8px 16px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* —— List rows —— */
+.rece-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rece-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
+  text-align: left;
+  width: 100%;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rece-list-item:last-child {
+  border-bottom: none;
+}
+
+.rece-list-item:hover {
+  background: var(--accent-soft);
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: var(--radius);
+}
+
+.rece-list-primary {
+  font-weight: 400;
+  font-size: 1rem;
+}
+
+.rece-list-secondary {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.rece-list-amount {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* —— Forms —— */
 .muted {
   color: var(--text-muted);
   font-size: 0.875rem;
 }
 
 .field {
-  margin-bottom: 0.85rem;
+  margin-bottom: 12px;
 }
 
 .field label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  margin-bottom: 0.35rem;
+  margin-bottom: 6px;
   color: var(--text-muted);
 }
 
@@ -129,9 +368,10 @@
 .select,
 .textarea {
   width: 100%;
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
+  border-bottom-width: 2px;
   background: var(--input-bg);
   transition: border-color var(--transition);
 }
@@ -150,7 +390,7 @@
 
 .row {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: flex-end;
 }
@@ -168,88 +408,63 @@
 }
 
 .group-link {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
   width: 100%;
-  text-align: left;
-  padding: 1rem 1.1rem;
-  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 8px;
   border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 0.65rem;
   cursor: pointer;
-  transition: box-shadow var(--transition), border-color var(--transition);
+  transition: box-shadow var(--transition);
 }
 
 .group-link:hover {
   box-shadow: var(--shadow);
-  border-color: var(--accent-soft);
 }
 
 .group-link-title {
-  font-weight: 600;
-  margin: 0 0 0.25rem;
-}
-
-.badge-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
-}
-
-.badge {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.2rem 0.45rem;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.badge-owe {
-  background: var(--owe-bg);
-  color: var(--owe);
-}
-
-.badge-owed {
-  background: var(--owed-bg);
-  color: var(--owed);
+  font-weight: 500;
+  margin: 0 0 4px;
+  font-size: 1rem;
 }
 
 .balance-pill {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.65rem 0.85rem;
-  border-radius: var(--radius-sm);
-  margin-bottom: 0.45rem;
-  font-size: 0.9rem;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+  border: 1px solid transparent;
 }
 
 .balance-pill.owe {
   background: var(--owe-bg);
-  border: 1px solid transparent;
 }
 
 .balance-pill.owed {
   background: var(--owed-bg);
-  border: 1px solid transparent;
 }
 
 .balance-pill.neutral {
   background: var(--input-bg);
-  border: 1px solid var(--border);
+  border-color: var(--border);
 }
 
 .amount-strong {
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .expense-item {
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--divider);
 }
 
 .expense-item:last-child {
@@ -259,23 +474,23 @@
 .expense-head {
   display: flex;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 8px;
   align-items: baseline;
 }
 
 .expense-meta {
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: var(--text-muted);
-  margin-top: 0.25rem;
+  margin-top: 4px;
 }
 
 .settle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 0;
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--divider);
   flex-wrap: wrap;
 }
 
@@ -290,35 +505,41 @@
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: 10px;
+  font-size: 0.875rem;
   cursor: pointer;
 }
 
 .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: none;
   border: none;
-  padding: 0;
+  padding: 8px 0 16px;
   color: var(--accent);
   font-weight: 500;
-  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
 }
 
 .split-grid {
   display: grid;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .split-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .split-row span {
   flex: 1;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .split-row input {
@@ -328,55 +549,56 @@
 
 .error-text {
   color: var(--owe);
-  font-size: 0.8rem;
-  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  margin-top: 8px;
 }
 
 .empty {
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 32px 16px;
   color: var(--text-muted);
 }
 
-@media (min-width: 640px) {
-  .app {
-    padding: 1.5rem 1.5rem 4rem;
-  }
-}
-
+/* —— Entry tabs (quick / receipt) —— */
 .entry-tabs {
   display: flex;
-  gap: 0.35rem;
-  margin-bottom: 0.75rem;
-  padding: 0.2rem;
-  background: var(--input-bg);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  gap: 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .entry-tab {
   flex: 1;
-  padding: 0.5rem 0.65rem;
+  padding: 10px 12px;
   border: none;
-  border-radius: 8px;
-  background: transparent;
+  background: none;
   color: var(--text-muted);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  transition: background var(--transition), color var(--transition);
+  position: relative;
 }
 
 .entry-tab.active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
+  color: var(--accent);
+}
+
+.entry-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
 }
 
 .settle-row-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .venmo-link {
@@ -385,44 +607,61 @@
 }
 
 .input-inline {
-  padding: 0.35rem 0.5rem;
-  font-size: 0.8rem;
+  padding: 6px 8px;
+  font-size: 0.8125rem;
+  max-width: 120px;
 }
 
+/* —— Receipt table —— */
 .receipt-scroll {
   overflow-x: auto;
-  margin: 0.75rem -0.15rem 0;
+  margin: 12px -4px 0;
   -webkit-overflow-scrolling: touch;
+  background: var(--table-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .receipt-table {
   width: max-content;
   min-width: 100%;
   border-collapse: collapse;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
+  background: var(--table-bg);
 }
 
 .receipt-table th,
 .receipt-table td {
-  padding: 0.35rem 0.4rem;
-  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--divider);
   vertical-align: middle;
   text-align: left;
 }
 
 .receipt-table th {
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   white-space: nowrap;
+}
+
+.receipt-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .receipt-sticky-col {
   position: sticky;
   left: 0;
   z-index: 1;
-  background: var(--surface);
-  box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.12);
+  background: var(--table-bg);
+  box-shadow: 4px 0 8px -4px rgba(0, 0, 0, 0.15);
   min-width: 120px;
+}
+
+.receipt-row-incomplete .receipt-sticky-col {
+  background: var(--highlight-row);
 }
 
 .receipt-person-col {
@@ -433,8 +672,8 @@
 }
 
 .input-table {
-  padding: 0.35rem 0.45rem;
-  font-size: 0.8rem;
+  padding: 6px 8px;
+  font-size: 0.8125rem;
 }
 
 .input-narrow {
@@ -444,7 +683,7 @@
 
 .receipt-line-total {
   white-space: nowrap;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 
 .receipt-alloc-cell {
@@ -460,38 +699,84 @@
 .receipt-stepper {
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 2px;
 }
 
 .receipt-stepper-val {
-  min-width: 1.1rem;
+  min-width: 1.25rem;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 
 .btn-tiny {
-  padding: 0.15rem 0.35rem;
-  min-width: 1.6rem;
+  padding: 2px 6px;
+  min-width: 28px;
+  min-height: 28px;
   font-size: 1rem;
   line-height: 1;
+  border-radius: var(--radius);
 }
 
 .receipt-summary {
-  margin-top: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: var(--radius-sm);
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
   background: var(--input-bg);
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 6px;
   font-size: 0.875rem;
 }
 
 .receipt-grand {
-  padding-top: 0.35rem;
-  margin-top: 0.15rem;
+  padding-top: 8px;
+  margin-top: 4px;
   border-top: 1px dashed var(--border);
   font-size: 1rem;
+  font-weight: 500;
+}
+
+.rece-people-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.rece-people-row:last-child {
+  border-bottom: none;
+}
+
+.rece-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.rece-people-name {
+  flex: 1;
+  min-width: 80px;
+  font-weight: 400;
+}
+
+@media (min-width: 600px) {
+  .rece-container {
+    padding: 24px 24px 96px;
+  }
+
+  .rece-appbar-inner {
+    padding: 0 16px;
+  }
 }
