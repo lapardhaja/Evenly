@@ -38,4 +38,30 @@ describe('expenseShares units', () => {
     assert.equal(s.a, 100);
     assert.equal(s.b, 0);
   });
+
+  it('receipt mode sums lines + tax + tip', () => {
+    const ids = ['a', 'b'];
+    const e = {
+      id: '1',
+      amount: 115,
+      paidById: 'a',
+      splitMode: 'receipt',
+      splitParticipantIds: ids,
+      receiptLines: [
+        {
+          id: 'l1',
+          name: 'x',
+          unitPrice: 50,
+          quantity: 2,
+          allocations: { a: 1, b: 1 },
+        },
+      ],
+      taxAmount: 5,
+      tipAmount: 10,
+      createdAt: '',
+    };
+    const s = expenseShares(e, ids);
+    const sum = roundMoney(s.a + s.b);
+    assert.equal(sum, 115);
+  });
 });

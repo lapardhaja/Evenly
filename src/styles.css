@@ -343,3 +343,155 @@
     padding: 1.5rem 1.5rem 4rem;
   }
 }
+
+.entry-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding: 0.2rem;
+  background: var(--input-bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.entry-tab {
+  flex: 1;
+  padding: 0.5rem 0.65rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.entry-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.settle-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.venmo-link {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.input-inline {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.receipt-scroll {
+  overflow-x: auto;
+  margin: 0.75rem -0.15rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.receipt-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.receipt-table th,
+.receipt-table td {
+  padding: 0.35rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  text-align: left;
+}
+
+.receipt-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.receipt-sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.12);
+  min-width: 120px;
+}
+
+.receipt-person-col {
+  text-align: center;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.input-table {
+  padding: 0.35rem 0.45rem;
+  font-size: 0.8rem;
+}
+
+.input-narrow {
+  width: 4rem;
+  min-width: 3.25rem;
+}
+
+.receipt-line-total {
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.receipt-alloc-cell {
+  text-align: center;
+}
+
+.receipt-check-wrap {
+  display: flex;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.receipt-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.receipt-stepper-val {
+  min-width: 1.1rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+
+.btn-tiny {
+  padding: 0.15rem 0.35rem;
+  min-width: 1.6rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.receipt-summary {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+}
+
+.receipt-grand {
+  padding-top: 0.35rem;
+  margin-top: 0.15rem;
+  border-top: 1px dashed var(--border);
+  font-size: 1rem;
+}

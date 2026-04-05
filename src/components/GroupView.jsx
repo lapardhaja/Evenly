@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import { computeBalances } from '../lib/balances.js';
 import { findMeParticipantId } from '../lib/me.js';
 import { minimizeTransactions, roundMoney } from '../lib/settlement.js';
+import { venmoPayUrl } from '../lib/receiptSplit.js';
 import ExpenseForm from './ExpenseForm.jsx';
+import ReceiptExpenseForm from './ReceiptExpenseForm.jsx';
 
 function formatMoney(n) {
   const x = roundMoney(n);
@@ -30,6 +32,7 @@ export default function GroupView({ app, groupId, onBack }) {
   const group = app.groups.find((g) => g.id === groupId);
   const [participantName, setParticipantName] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [entryTab, setEntryTab] = useState('quick');
 
   const participantIds = useMemo(
     () => group?.participants.map((p) => p.id) ?? [],
@@ -73,6 +76,8 @@ export default function GroupView({ app, groupId, onBack }) {
   const editingExpense = editingId
     ? group.expenses.find((e) => e.id === editingId) ?? null
     : null;
+
+  const isEditingReceipt = editingExpense?.splitMode === 'receipt';
 
   return (
     <>
@@ -143,6 +148,8 @@ export default function GroupView({ app, groupId, onBack }) {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.35rem',
                   padding: '0.45rem 0',
                   borderBottom: '1px solid var(--border)',
                 }}
@@ -155,6 +162,17 @@ export default function GroupView({ app, groupId, onBack }) {
                     </span>
                   ) : null}
                 </span>
+                <input
+                  className="input input-inline"
+                  type="text"
+                  placeholder="Venmo @"
+                  aria-label={`Venmo for ${p.name}`}
+                  value={p.venmo ?? ''}
+                  onChange={(e) =>
+                    app.updateParticipantVenmo(group.id, p.id, e.target.value)
+                  }
+                  style={{ maxWidth: '120px' }}
+                />
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -170,20 +188,65 @@ export default function GroupView({ app, groupId, onBack }) {
 
       {group.participants.length > 0 ? (
         <>
-          <ExpenseForm
-            participants={group.participants}
-            newId={app.newId}
-            initial={editingExpense}
-            onCancel={editingId ? () => setEditingId(null) : undefined}
-            onSubmit={(exp) => {
-              if (editingId) {
+          {editingId && isEditingReceipt ? (
+            <ReceiptExpenseForm
+              participants={group.participants}
+              newId={app.newId}
+              initial={editingExpense}
+              onCancel={() => setEditingId(null)}
+              onSubmit={(exp) => {
                 app.updateExpense(group.id, editingId, exp);
                 setEditingId(null);
-              } else {
-                app.addExpense(group.id, exp);
-              }
-            }}
-          />
+              }}
+            />
+          ) : editingId && !isEditingReceipt ? (
+            <ExpenseForm
+              participants={group.participants}
+              newId={app.newId}
+              initial={editingExpense}
+              onCancel={() => setEditingId(null)}
+              onSubmit={(exp) => {
+                app.updateExpense(group.id, editingId, exp);
+                setEditingId(null);
+              }}
+            />
+          ) : (
+            <>
+              <div className="entry-tabs" role="tablist" aria-label="Expense type">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={entryTab === 'quick'}
+                  className={`entry-tab${entryTab === 'quick' ? ' active' : ''}`}
+                  onClick={() => setEntryTab('quick')}
+                >
+                  Quick expense
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={entryTab === 'receipt'}
+                  className={`entry-tab${entryTab === 'receipt' ? ' active' : ''}`}
+                  onClick={() => setEntryTab('receipt')}
+                >
+                  Receipt (line items)
+                </button>
+              </div>
+              {entryTab === 'quick' ? (
+                <ExpenseForm
+                  participants={group.participants}
+                  newId={app.newId}
+                  onSubmit={(exp) => app.addExpense(group.id, exp)}
+                />
+              ) : (
+                <ReceiptExpenseForm
+                  participants={group.participants}
+                  newId={app.newId}
+                  onSubmit={(exp) => app.addExpense(group.id, exp)}
+                />
+              )}
+            </>
+          )}
 
           <div className="card">
             <h3>Balances</h3>
@@ -258,6 +321,9 @@ export default function GroupView({ app, groupId, onBack }) {
                 const fromP = group.participants.find((p) => p.id === t.from);
                 const toP = group.participants.find((p) => p.id === t.to);
                 const done = isSettled(group, t);
+                const venmo =
+                  toP?.venmo &&
+                  venmoPayUrl(toP.venmo, t.amount, `${group.name} · Evenly`);
                 return (
                   <div key={transferKey(t)} className={`settle-row${done ? ' done' : ''}`}>
                     <label className="checkbox-label">
@@ -272,7 +338,17 @@ export default function GroupView({ app, groupId, onBack }) {
                         <strong>{toP?.name ?? t.to}</strong>
                       </span>
                     </label>
-                    <span className="amount-strong">{formatMoney(t.amount)}</span>
+                    <span className="settle-row-actions">
+                      <span className="amount-strong">{formatMoney(t.amount)}</span>
+                      {venmo ? (
+                        <a
+                          className="btn btn-ghost btn-sm venmo-link"
+                          href={venmo}
+                        >
+                          Venmo
+                        </a>
+                      ) : null}
+                    </span>
                   </div>
                 );
               })
@@ -289,13 +365,15 @@ export default function GroupView({ app, groupId, onBack }) {
               group.expenses.map((e) => {
                 const payer = group.participants.find((p) => p.id === e.paidById);
                 const mode =
-                  e.splitMode === 'equal'
-                    ? 'Equal split'
-                    : e.splitMode === 'custom'
-                      ? 'Exact amounts'
-                      : e.splitMode === 'percent'
-                        ? 'Percent'
-                        : 'By quantity';
+                  e.splitMode === 'receipt'
+                    ? 'Receipt'
+                    : e.splitMode === 'equal'
+                      ? 'Equal split'
+                      : e.splitMode === 'custom'
+                        ? 'Exact amounts'
+                        : e.splitMode === 'percent'
+                          ? 'Percent'
+                          : 'By quantity';
                 return (
                   <div key={e.id} className="expense-item">
                     <div className="expense-head">
@@ -305,6 +383,9 @@ export default function GroupView({ app, groupId, onBack }) {
                     <div className="expense-meta">
                       Paid by {payer?.name ?? '?'} · {mode} ·{' '}
                       {e.splitParticipantIds.length} people
+                      {e.splitMode === 'receipt' && e.receiptLines?.length
+                        ? ` · ${e.receiptLines.length} lines`
+                        : ''}
                     </div>
                     <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.35rem' }}>
                       <button
