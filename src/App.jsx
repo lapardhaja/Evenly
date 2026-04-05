@@ -16,11 +16,16 @@ export default function App() {
   return (
     <div className="app">
       <Header theme={theme} onToggleTheme={toggle} />
-      {openGroupId ? (
-        <GroupView app={app} groupId={openGroupId} onBack={onBack} />
-      ) : (
-        <Dashboard app={app} onOpenGroup={onOpenGroup} />
-      )}
+      <main className="app-main">
+        {openGroupId ? (
+          <GroupView app={app} groupId={openGroupId} onBack={onBack} />
+        ) : (
+          <Dashboard app={app} onOpenGroup={onOpenGroup} />
+        )}
+      </main>
+      <footer className="app-footer">
+        <p>By Sevi &amp; Amanda™</p>
+      </footer>
     </div>
   );
 }
