@@ -23,6 +23,12 @@ npm run build
 npm run preview
 ```
 
+Production builds use a **relative asset base** (`./`) so the app works on **GitHub project Pages** (`https://<user>.github.io/<repo>/`). Without that, JS/CSS load from the site root and the page stays blank.
+
+### GitHub Pages
+
+After merging, enable **Settings → Pages → Build and deployment → GitHub Actions**. The workflow `.github/workflows/pages.yml` builds with `npm ci` and deploys `dist/`.
+
 ## Tests
 
 ```bash
