@@ -1,4 +1,5 @@
 import { roundMoney } from './settlement.js';
+import { computeReceiptBreakdown } from './receiptSplit.js';
 
 /**
  * Net balance per participant: positive = world owes them (they should receive).
@@ -62,6 +63,20 @@ export function expenseShares(e, participantIds) {
 
   if (e.splitMode === 'units') {
     return unitWeightedSplit(amount, ids, e.unitQuantities || {});
+  }
+
+  if (e.splitMode === 'receipt') {
+    const { foodByPerson, taxByPerson, tipByPerson } = computeReceiptBreakdown(
+      e,
+      ids
+    );
+    const out = {};
+    for (const id of ids) {
+      out[id] = roundMoney(
+        foodByPerson[id] + taxByPerson[id] + tipByPerson[id]
+      );
+    }
+    return out;
   }
 
   return equalSplit(amount, ids);

@@ -47,6 +47,26 @@ export function useAppState() {
     [setRaw]
   );
 
+  const updateParticipantVenmo = useCallback(
+    (groupId, participantId, venmo) => {
+      const v = venmo.replace(/^@/, '').trim();
+      setRaw((s) => ({
+        ...s,
+        groups: s.groups.map((g) =>
+          g.id === groupId
+            ? {
+                ...g,
+                participants: g.participants.map((p) =>
+                  p.id === participantId ? { ...p, venmo: v || undefined } : p
+                ),
+              }
+            : g
+        ),
+      }));
+    },
+    [setRaw]
+  );
+
   const removeParticipant = useCallback(
     (groupId, participantId) => {
       setRaw((s) => ({
@@ -78,6 +98,13 @@ export function useAppState() {
                     if (e.unitQuantities) {
                       next.unitQuantities = { ...e.unitQuantities };
                       delete next.unitQuantities[participantId];
+                    }
+                    if (e.splitMode === 'receipt' && e.receiptLines) {
+                      next.receiptLines = e.receiptLines.map((line) => {
+                        const allocations = { ...line.allocations };
+                        delete allocations[participantId];
+                        return { ...line, allocations };
+                      });
                     }
                     return next;
                   }),
@@ -206,6 +233,7 @@ export function useAppState() {
       toggleSettled,
       clearGroupSettled,
       deleteGroup,
+      updateParticipantVenmo,
       newId,
     }),
     [
@@ -213,6 +241,7 @@ export function useAppState() {
       setMeName,
       addGroup,
       addParticipant,
+      updateParticipantVenmo,
       removeParticipant,
       addExpense,
       updateExpense,

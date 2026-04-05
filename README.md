@@ -1,11 +1,11 @@
 # Evenly
 
-A small **bill-splitting** web app: groups, participants, expenses (equal / exact / percent splits), net balances, **minimum-transfer settle-up**, and marking payments settled. Data lives in **localStorage** (no server).
+A small **bill-splitting** web app: groups, participants, **quick expenses** (equal / exact / percent / by quantity) or **receipt mode** (line items with per-person unit counts, like [Rece](https://github.com/iKrushYou/rece-web-2)), proportional **tax & tip**, net balances, **minimum-transfer settle-up**, optional **Venmo** deep links when people add their @handle. Data lives in **localStorage** (no server).
 
 ## Stack
 
 - React 18 (hooks) + Vite 6
-- Modular helpers: `src/lib/balances.js`, `src/lib/settlement.js`
+- Modular helpers: `src/lib/balances.js`, `src/lib/settlement.js`, `src/lib/receiptSplit.js`
 
 ## Run locally
 
@@ -49,7 +49,7 @@ src/
   index.css         # theme tokens + reset
   styles.css        # layout / components
   types.js          # JSDoc typedefs
-  components/       # Header, Dashboard, GroupView, ExpenseForm
+  components/       # Header, Dashboard, GroupView, ExpenseForm, ReceiptExpenseForm
   hooks/            # useAppState, useLocalStorage, useTheme
   lib/              # balances, settlement (+ tests)
 ```
