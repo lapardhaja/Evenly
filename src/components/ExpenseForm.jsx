@@ -4,6 +4,7 @@ import { roundMoney } from '../lib/settlement.js';
 
 const emptyCustom = (ids) => Object.fromEntries(ids.map((id) => [id, '']));
 const emptyPercent = (ids) => Object.fromEntries(ids.map((id) => [id, '']));
+const emptyUnits = (ids) => Object.fromEntries(ids.map((id) => [id, '']));
 
 /**
  * @param {{
@@ -28,6 +29,7 @@ export default function ExpenseForm({
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [custom, setCustom] = useState({});
   const [percents, setPercents] = useState({});
+  const [units, setUnits] = useState({});
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -57,6 +59,16 @@ export default function ExpenseForm({
             )
           : emptyPercent(initial.splitParticipantIds)
       );
+      setUnits(
+        initial.splitMode === 'units'
+          ? Object.fromEntries(
+              initial.splitParticipantIds.map((id) => [
+                id,
+                String(initial.unitQuantities?.[id] ?? ''),
+              ])
+            )
+          : emptyUnits(initial.splitParticipantIds)
+      );
     } else {
       setDescription('');
       setAmount('');
@@ -66,6 +78,7 @@ export default function ExpenseForm({
       setSelectedIds(all);
       setCustom(emptyCustom(participants.map((p) => p.id)));
       setPercents(emptyPercent(participants.map((p) => p.id)));
+      setUnits(emptyUnits(participants.map((p) => p.id)));
       setError('');
     }
   }, [initial, participants]);
@@ -118,6 +131,8 @@ export default function ExpenseForm({
     let customAmounts = {};
     /** @type {Record<string, number>} */
     let percentMap = {};
+    /** @type {Record<string, number>} */
+    let unitMap = {};
 
     if (splitMode === 'custom') {
       for (const id of splitParticipantIds) {
@@ -155,6 +170,23 @@ export default function ExpenseForm({
       }
     }
 
+    if (splitMode === 'units') {
+      for (const id of splitParticipantIds) {
+        const raw = String(units[id] ?? '').trim();
+        const v = parseFloat(raw);
+        if (raw === '' || !Number.isFinite(v) || v < 0) {
+          setError('Each person needs a non-negative quantity (0 is ok).');
+          return;
+        }
+        unitMap[id] = v;
+      }
+      const sumU = splitParticipantIds.reduce((s, id) => s + unitMap[id], 0);
+      if (sumU <= 0) {
+        setError('At least one person must have a quantity greater than 0.');
+        return;
+      }
+    }
+
     const draft = {
       id: initial?.id ?? newId(),
       description: desc,
@@ -164,6 +196,7 @@ export default function ExpenseForm({
       splitParticipantIds,
       customAmounts: splitMode === 'custom' ? customAmounts : undefined,
       percents: splitMode === 'percent' ? percentMap : undefined,
+      unitQuantities: splitMode === 'units' ? unitMap : undefined,
       createdAt: initial?.createdAt ?? new Date().toISOString(),
     };
 
@@ -231,6 +264,7 @@ export default function ExpenseForm({
           onChange={(e) => setSplitMode(e.target.value)}
         >
           <option value="equal">Equal</option>
+          <option value="units">By quantity (units)</option>
           <option value="custom">Exact amounts</option>
           <option value="percent">Percent</option>
         </select>
@@ -288,6 +322,31 @@ export default function ExpenseForm({
             </div>
           ))}
         </div>
+      )}
+
+      {splitMode === 'units' && (
+        <>
+          <p className="muted" style={{ margin: '0 0 0.5rem' }}>
+            Total bill is split in proportion to units (e.g. drinks). 0 = didn&apos;t
+            consume.
+          </p>
+          <div className="split-grid">
+            {selectedList.map((p) => (
+              <div key={p.id} className="split-row">
+                <span>{p.name}</span>
+                <input
+                  className="input"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={units[p.id] ?? ''}
+                  onChange={(e) =>
+                    setUnits((c) => ({ ...c, [p.id]: e.target.value }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {error ? <p className="error-text">{error}</p> : null}

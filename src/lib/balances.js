@@ -60,7 +60,42 @@ export function expenseShares(e, participantIds) {
     return fixRoundingDrift(out, amount);
   }
 
+  if (e.splitMode === 'units') {
+    return unitWeightedSplit(amount, ids, e.unitQuantities || {});
+  }
+
   return equalSplit(amount, ids);
+}
+
+/**
+ * Split total by consumption counts (e.g. drinks). Zero-quantity people owe $0.
+ * @param {number} amount
+ * @param {string[]} ids
+ * @param {Record<string, number>} quantities
+ */
+function unitWeightedSplit(amount, ids, quantities) {
+  const positives = ids.filter((id) => (Number(quantities[id]) || 0) > 0);
+  if (positives.length === 0) return equalSplit(amount, ids);
+
+  const sumQ = positives.reduce(
+    (s, id) => s + (Number(quantities[id]) || 0),
+    0
+  );
+  if (sumQ <= 0) return equalSplit(amount, ids);
+
+  /** @type {Record<string, number>} */
+  const out = Object.fromEntries(ids.map((id) => [id, 0]));
+  let allocated = 0;
+  for (let i = 0; i < positives.length - 1; i++) {
+    const id = positives[i];
+    const q = Number(quantities[id]) || 0;
+    const share = roundMoney((amount * q) / sumQ);
+    out[id] = share;
+    allocated = roundMoney(allocated + share);
+  }
+  const last = positives[positives.length - 1];
+  out[last] = roundMoney(amount - allocated);
+  return out;
 }
 
 function equalSplit(amount, ids) {
