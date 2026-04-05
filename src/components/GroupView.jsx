@@ -293,7 +293,9 @@ export default function GroupView({ app, groupId, onBack }) {
                     ? 'Equal split'
                     : e.splitMode === 'custom'
                       ? 'Exact amounts'
-                      : 'Percent';
+                      : e.splitMode === 'percent'
+                        ? 'Percent'
+                        : 'By quantity';
                 return (
                   <div key={e.id} className="expense-item">
                     <div className="expense-head">
