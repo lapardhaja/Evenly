@@ -3,6 +3,7 @@ import { computeBalances } from '../lib/balances.js';
 import { findMeParticipantId } from '../lib/me.js';
 import { minimizeTransactions, roundMoney } from '../lib/settlement.js';
 import { venmoPayUrl } from '../lib/receiptSplit.js';
+import { nameToInitials } from '../lib/utils.js';
 import ExpenseForm from './ExpenseForm.jsx';
 import ReceiptExpenseForm from './ReceiptExpenseForm.jsx';
 
@@ -26,13 +27,14 @@ function isSettled(group, t) {
 }
 
 /**
- * @param {{ app: ReturnType<import('../hooks/useAppState.js').useAppState>, groupId: string, onBack: () => void }} props
+ * @param {{ app: ReturnType<import('../hooks/useAppState.js').useAppState>, groupId: string }} props
  */
-export default function GroupView({ app, groupId, onBack }) {
+export default function GroupView({ app, groupId }) {
   const group = app.groups.find((g) => g.id === groupId);
   const [participantName, setParticipantName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [entryTab, setEntryTab] = useState('quick');
+  const [groupTab, setGroupTab] = useState('items');
 
   const participantIds = useMemo(
     () => group?.participants.map((p) => p.id) ?? [],
@@ -56,11 +58,11 @@ export default function GroupView({ app, groupId, onBack }) {
 
   if (!group) {
     return (
-      <div className="card">
+      <div className="rece-paper">
         <p className="muted">Group not found.</p>
-        <button type="button" className="btn" onClick={onBack}>
-          Back
-        </button>
+        <p className="muted" style={{ marginBottom: 0 }}>
+          Use the back arrow in the app bar.
+        </p>
       </div>
     );
   }
@@ -81,24 +83,22 @@ export default function GroupView({ app, groupId, onBack }) {
 
   return (
     <>
-      <button type="button" className="back-link" onClick={onBack}>
-        ← Groups
-      </button>
-
-      <div className="card card-elevated">
+      <div className="rece-paper card-elevated" style={{ marginBottom: 12 }}>
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            gap: '0.75rem',
+            gap: 12,
             flexWrap: 'wrap',
           }}
         >
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{group.name}</h2>
-            <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-              Balances and settle-up update as you add expenses.
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 500 }}>
+              {group.name}
+            </h2>
+            <p className="muted" style={{ margin: '6px 0 0' }}>
+              Receipt-style splits, balances, minimum transfers to settle.
             </p>
           </div>
           <button
@@ -120,73 +120,114 @@ export default function GroupView({ app, groupId, onBack }) {
         </div>
       </div>
 
-      <div className="card">
-        <h3>People</h3>
-        <form onSubmit={handleAddParticipant} className="row" style={{ marginBottom: '0.75rem' }}>
-          <div className="field" style={{ flex: 2, minWidth: '160px' }}>
-            <label htmlFor="p-name">Add participant</label>
-            <input
-              id="p-name"
-              className="input"
-              placeholder="Name"
-              value={participantName}
-              onChange={(e) => setParticipantName(e.target.value)}
-            />
-          </div>
-          <button type="submit" className="btn btn-primary" style={{ marginBottom: '0' }}>
-            Add
-          </button>
-        </form>
-        {group.participants.length === 0 ? (
-          <p className="muted">Add at least one person to log expenses.</p>
-        ) : (
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {group.participants.map((p) => (
-              <li
-                key={p.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '0.35rem',
-                  padding: '0.45rem 0',
-                  borderBottom: '1px solid var(--border)',
-                }}
-              >
-                <span>
-                  {p.name}
-                  {meId === p.id ? (
-                    <span className="muted" style={{ marginLeft: '0.35rem' }}>
-                      (you)
-                    </span>
-                  ) : null}
-                </span>
-                <input
-                  className="input input-inline"
-                  type="text"
-                  placeholder="Venmo @"
-                  aria-label={`Venmo for ${p.name}`}
-                  value={p.venmo ?? ''}
-                  onChange={(e) =>
-                    app.updateParticipantVenmo(group.id, p.id, e.target.value)
-                  }
-                  style={{ maxWidth: '120px' }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => app.removeParticipant(group.id, p.id)}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <nav className="rece-tabs" role="tablist" aria-label="Group sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={groupTab === 'items'}
+          className={`rece-tab${groupTab === 'items' ? ' active' : ''}`}
+          onClick={() => setGroupTab('items')}
+        >
+          Items
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={groupTab === 'people'}
+          className={`rece-tab${groupTab === 'people' ? ' active' : ''}`}
+          onClick={() => setGroupTab('people')}
+        >
+          People
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={groupTab === 'settle'}
+          className={`rece-tab${groupTab === 'settle' ? ' active' : ''}`}
+          onClick={() => setGroupTab('settle')}
+        >
+          Settle
+        </button>
+      </nav>
 
-      {group.participants.length > 0 ? (
+      {groupTab === 'people' ? (
+        <div className="rece-paper">
+          <h3 style={{ marginTop: 0 }}>Who&apos;s in this group</h3>
+          <form
+            onSubmit={handleAddParticipant}
+            className="row"
+            style={{ marginBottom: 12 }}
+          >
+            <div className="field" style={{ flex: 2, minWidth: '160px' }}>
+              <label htmlFor="p-name">Add person</label>
+              <input
+                id="p-name"
+                className="input"
+                placeholder="Name"
+                value={participantName}
+                onChange={(e) => setParticipantName(e.target.value)}
+              />
+            </div>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ marginBottom: 0 }}
+            >
+              Add
+            </button>
+          </form>
+          {group.participants.length === 0 ? (
+            <p className="muted" style={{ marginBottom: 0 }}>
+              Add everyone who&apos;ll split bills here. Then use Items to log
+              expenses or receipts.
+            </p>
+          ) : (
+            <div>
+              {group.participants.map((p) => (
+                <div key={p.id} className="rece-people-row">
+                  <div className="rece-avatar" aria-hidden>
+                    {nameToInitials(p.name)}
+                  </div>
+                  <div className="rece-people-name">
+                    {p.name}
+                    {meId === p.id ? (
+                      <span className="muted" style={{ marginLeft: 6 }}>
+                        (you)
+                      </span>
+                    ) : null}
+                  </div>
+                  <input
+                    className="input input-inline"
+                    type="text"
+                    placeholder="@venmo"
+                    aria-label={`Venmo for ${p.name}`}
+                    value={p.venmo ?? ''}
+                    onChange={(e) =>
+                      app.updateParticipantVenmo(group.id, p.id, e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => app.removeParticipant(group.id, p.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {groupTab === 'items' && group.participants.length === 0 ? (
+        <div className="rece-paper empty">
+          Add people in the <strong>People</strong> tab first, then come back to
+          log expenses.
+        </div>
+      ) : null}
+
+      {groupTab === 'items' && group.participants.length > 0 ? (
         <>
           {editingId && isEditingReceipt ? (
             <ReceiptExpenseForm
@@ -220,7 +261,7 @@ export default function GroupView({ app, groupId, onBack }) {
                   className={`entry-tab${entryTab === 'quick' ? ' active' : ''}`}
                   onClick={() => setEntryTab('quick')}
                 >
-                  Quick expense
+                  Quick
                 </button>
                 <button
                   type="button"
@@ -229,7 +270,7 @@ export default function GroupView({ app, groupId, onBack }) {
                   className={`entry-tab${entryTab === 'receipt' ? ' active' : ''}`}
                   onClick={() => setEntryTab('receipt')}
                 >
-                  Receipt (line items)
+                  Receipt
                 </button>
               </div>
               {entryTab === 'quick' ? (
@@ -248,115 +289,8 @@ export default function GroupView({ app, groupId, onBack }) {
             </>
           )}
 
-          <div className="card">
-            <h3>Balances</h3>
-            <p className="muted" style={{ marginTop: '-0.5rem' }}>
-              Positive = should receive; negative = should pay (net after all expenses).
-            </p>
-            {group.participants.map((p) => {
-              const b = roundMoney(balances[p.id] ?? 0);
-              let cls = 'balance-pill neutral';
-              let label = 'Settled';
-              if (b > 0.02) {
-                cls = 'balance-pill owed';
-                label = 'Gets back';
-              } else if (b < -0.02) {
-                cls = 'balance-pill owe';
-                label = 'Owes';
-              }
-              const isMe = meId === p.id;
-              return (
-                <div key={p.id} className={cls}>
-                  <span>
-                    {p.name}
-                    {isMe ? (
-                      <span className="muted" style={{ marginLeft: '0.35rem' }}>
-                        {b < -0.02
-                          ? '(you owe)'
-                          : b > 0.02
-                            ? "(you're owed)"
-                            : '(you)'}
-                      </span>
-                    ) : null}
-                    <span className="muted" style={{ marginLeft: '0.35rem', fontSize: '0.8rem' }}>
-                      {label}
-                    </span>
-                  </span>
-                  <span className="amount-strong">{formatMoney(b)}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="card">
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '0.5rem',
-                flexWrap: 'wrap',
-              }}
-            >
-              <h3 style={{ margin: 0 }}>Settle up</h3>
-              {group.settled.length > 0 ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => app.clearGroupSettled(group.id)}
-                >
-                  Clear settled marks
-                </button>
-              ) : null}
-            </div>
-            <p className="muted" style={{ marginTop: '0.35rem' }}>
-              Minimum transfers (greedy on net balances). Check off when paid.
-            </p>
-            {transfers.length === 0 ? (
-              <p className="muted" style={{ marginBottom: 0 }}>
-                Nothing to settle — all square.
-              </p>
-            ) : (
-              transfers.map((t) => {
-                const fromP = group.participants.find((p) => p.id === t.from);
-                const toP = group.participants.find((p) => p.id === t.to);
-                const done = isSettled(group, t);
-                const venmo =
-                  toP?.venmo &&
-                  venmoPayUrl(toP.venmo, t.amount, `${group.name} · Evenly`);
-                return (
-                  <div key={transferKey(t)} className={`settle-row${done ? ' done' : ''}`}>
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={done}
-                        onChange={() => app.toggleSettled(group.id, t)}
-                      />
-                      <span>
-                        <strong>{fromP?.name ?? t.from}</strong>
-                        <span className="muted"> pays </span>
-                        <strong>{toP?.name ?? t.to}</strong>
-                      </span>
-                    </label>
-                    <span className="settle-row-actions">
-                      <span className="amount-strong">{formatMoney(t.amount)}</span>
-                      {venmo ? (
-                        <a
-                          className="btn btn-ghost btn-sm venmo-link"
-                          href={venmo}
-                        >
-                          Venmo
-                        </a>
-                      ) : null}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="card">
-            <h3>Expenses</h3>
+          <div className="rece-paper">
+            <h3 style={{ marginTop: 0 }}>Activity</h3>
             {group.expenses.length === 0 ? (
               <p className="muted" style={{ marginBottom: 0 }}>
                 No expenses yet.
@@ -368,12 +302,12 @@ export default function GroupView({ app, groupId, onBack }) {
                   e.splitMode === 'receipt'
                     ? 'Receipt'
                     : e.splitMode === 'equal'
-                      ? 'Equal split'
+                      ? 'Equal'
                       : e.splitMode === 'custom'
-                        ? 'Exact amounts'
+                        ? 'Exact'
                         : e.splitMode === 'percent'
                           ? 'Percent'
-                          : 'By quantity';
+                          : 'Units';
                 return (
                   <div key={e.id} className="expense-item">
                     <div className="expense-head">
@@ -381,13 +315,13 @@ export default function GroupView({ app, groupId, onBack }) {
                       <span className="amount-strong">{formatMoney(e.amount)}</span>
                     </div>
                     <div className="expense-meta">
-                      Paid by {payer?.name ?? '?'} · {mode} ·{' '}
+                      {payer?.name ?? '?'} paid · {mode} ·{' '}
                       {e.splitParticipantIds.length} people
                       {e.splitMode === 'receipt' && e.receiptLines?.length
                         ? ` · ${e.receiptLines.length} lines`
                         : ''}
                     </div>
-                    <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.35rem' }}>
+                    <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
@@ -406,6 +340,131 @@ export default function GroupView({ app, groupId, onBack }) {
                         Delete
                       </button>
                     </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      ) : null}
+
+      {groupTab === 'settle' && group.participants.length === 0 ? (
+        <div className="rece-paper empty">
+          Add people in the <strong>People</strong> tab to see balances and
+          settle up.
+        </div>
+      ) : null}
+
+      {groupTab === 'settle' && group.participants.length > 0 ? (
+        <>
+          <div className="rece-paper">
+            <h3 style={{ marginTop: 0 }}>Balances</h3>
+            <p className="muted" style={{ marginTop: -6 }}>
+              Positive = gets money back; negative = owes.
+            </p>
+            {group.participants.map((p) => {
+              const b = roundMoney(balances[p.id] ?? 0);
+              let cls = 'balance-pill neutral';
+              let label = 'Even';
+              if (b > 0.02) {
+                cls = 'balance-pill owed';
+                label = 'Owed';
+              } else if (b < -0.02) {
+                cls = 'balance-pill owe';
+                label = 'Owes';
+              }
+              const isMe = meId === p.id;
+              return (
+                <div key={p.id} className={cls}>
+                  <span>
+                    {p.name}
+                    {isMe ? (
+                      <span className="muted" style={{ marginLeft: 6 }}>
+                        {b < -0.02
+                          ? '(you owe)'
+                          : b > 0.02
+                            ? "(you're owed)"
+                            : '(you)'}
+                      </span>
+                    ) : null}
+                    <span
+                      className="muted"
+                      style={{ marginLeft: 6, fontSize: '0.75rem' }}
+                    >
+                      {label}
+                    </span>
+                  </span>
+                  <span className="amount-strong">{formatMoney(b)}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="rece-paper">
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              <h3 style={{ margin: 0 }}>Settle up</h3>
+              {group.settled.length > 0 ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => app.clearGroupSettled(group.id)}
+                >
+                  Clear checks
+                </button>
+              ) : null}
+            </div>
+            <p className="muted" style={{ marginTop: 6 }}>
+              Fewest payments. Check when done; Venmo uses creditor&apos;s @
+              from People.
+            </p>
+            {transfers.length === 0 ? (
+              <p className="muted" style={{ marginBottom: 0 }}>
+                All square.
+              </p>
+            ) : (
+              transfers.map((t) => {
+                const fromP = group.participants.find((p) => p.id === t.from);
+                const toP = group.participants.find((p) => p.id === t.to);
+                const done = isSettled(group, t);
+                const venmo =
+                  toP?.venmo &&
+                  venmoPayUrl(toP.venmo, t.amount, `${group.name} · Evenly`);
+                return (
+                  <div
+                    key={transferKey(t)}
+                    className={`settle-row${done ? ' done' : ''}`}
+                  >
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={done}
+                        onChange={() => app.toggleSettled(group.id, t)}
+                      />
+                      <span>
+                        <strong>{fromP?.name ?? t.from}</strong>
+                        <span className="muted"> → </span>
+                        <strong>{toP?.name ?? t.to}</strong>
+                      </span>
+                    </label>
+                    <span className="settle-row-actions">
+                      <span className="amount-strong">{formatMoney(t.amount)}</span>
+                      {venmo ? (
+                        <a
+                          className="btn btn-ghost btn-sm venmo-link"
+                          href={venmo}
+                        >
+                          Venmo
+                        </a>
+                      ) : null}
+                    </span>
                   </div>
                 );
               })
