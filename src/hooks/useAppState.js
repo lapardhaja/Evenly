@@ -62,12 +62,25 @@ export function useAppState() {
                       e.paidById !== participantId &&
                       !e.splitParticipantIds.includes(participantId)
                   )
-                  .map((e) => ({
-                    ...e,
-                    splitParticipantIds: e.splitParticipantIds.filter(
+                  .map((e) => {
+                    const splitParticipantIds = e.splitParticipantIds.filter(
                       (id) => id !== participantId
-                    ),
-                  })),
+                    );
+                    const next = { ...e, splitParticipantIds };
+                    if (e.customAmounts) {
+                      next.customAmounts = { ...e.customAmounts };
+                      delete next.customAmounts[participantId];
+                    }
+                    if (e.percents) {
+                      next.percents = { ...e.percents };
+                      delete next.percents[participantId];
+                    }
+                    if (e.unitQuantities) {
+                      next.unitQuantities = { ...e.unitQuantities };
+                      delete next.unitQuantities[participantId];
+                    }
+                    return next;
+                  }),
                 settled: g.settled.filter(
                   (x) => x.from !== participantId && x.to !== participantId
                 ),
