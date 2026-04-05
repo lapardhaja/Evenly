@@ -24,7 +24,7 @@ export default function App() {
         )}
       </main>
       <footer className="app-footer">
-        <p>By Sevi &amp; Amanda™</p>
+        <p>By Sevi & Amanda™</p>
       </footer>
     </div>
   );
