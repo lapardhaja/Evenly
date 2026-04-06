@@ -6,47 +6,47 @@ import { useTheme } from './hooks/useTheme.js';
 
 export default function App() {
   const app = useAppState();
-  const { theme, toggle } = useTheme();
+  useTheme();
   const [openGroupId, setOpenGroupId] = useState(null);
 
   const onOpenGroup = useCallback((id) => setOpenGroupId(id), []);
   const onBack = useCallback(() => setOpenGroupId(null), []);
+  const activeGroup = app.groups.find((group) => group.id === openGroupId) ?? null;
 
   return (
     <div className="app-shell">
       <header className="rece-appbar">
         <div className="rece-appbar-inner">
-          {openGroupId ? (
-            <button
-              type="button"
-              className="btn btn-ghost rece-appbar-back"
-              onClick={onBack}
-              aria-label="Back to groups"
-            >
-              ←
-            </button>
-          ) : (
-            <span className="rece-appbar-spacer" aria-hidden />
-          )}
-          <button
-            type="button"
-            className="rece-appbar-title rece-appbar-home"
-            onClick={onBack}
-            aria-label="Home — all groups"
-          >
-            Evenly
-          </button>
-          <div className="rece-appbar-actions">
-            <button
-              type="button"
-              className="btn btn-ghost rece-appbar-theme"
-              onClick={toggle}
-              aria-label={
-                theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
-              }
-            >
-              {theme === 'dark' ? 'Light' : 'Dark'}
-            </button>
+          <div className="rece-appbar-leading">
+            {openGroupId ? (
+              <button
+                type="button"
+                className="btn btn-ghost rece-appbar-back"
+                onClick={onBack}
+                aria-label="Back to groups"
+              >
+                Back
+              </button>
+            ) : (
+              <span className="rece-appbar-spacer" aria-hidden />
+            )}
+            <div className="rece-appbar-title-block">
+              <h1 className="rece-appbar-title rece-appbar-title-line">
+                <button
+                  type="button"
+                  className="rece-appbar-home"
+                  onClick={onBack}
+                  aria-label="Home — all groups"
+                >
+                  Evenly
+                </button>
+              </h1>
+              <p className="rece-appbar-subtitle">
+                {activeGroup
+                  ? `${activeGroup.name} workspace`
+                  : 'Shared expenses, handled cleanly'}
+              </p>
+            </div>
           </div>
         </div>
       </header>
@@ -62,7 +62,7 @@ export default function App() {
       </div>
 
       <footer className="app-footer">
-        <p>Sevi & Amanda™</p>
+        <p>Copyright Evenly 2026 Designed by Servet Lapardhaja.</p>
       </footer>
     </div>
   );

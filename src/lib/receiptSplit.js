@@ -5,8 +5,8 @@ import { roundMoney } from './settlement.js';
  */
 
 /**
- * Per-person food subtotal, tax, tip, and total for a receipt expense.
- * Each line's total cost is split across people by their unit allocations (Rece-style).
+ * Per-person food subtotal, tax, tip, and total for an itemized receipt.
+ * Each line's total cost is split across people by their unit allocations.
  *
  * @param {import('../types.js').Expense} e
  * @param {string[]} participantIds - people in scope for this expense

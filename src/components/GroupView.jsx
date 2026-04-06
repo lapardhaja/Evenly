@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { computeBalances } from '../lib/balances.js';
 import { findMeParticipantId } from '../lib/me.js';
 import { minimizeTransactions, roundMoney } from '../lib/settlement.js';
@@ -15,6 +15,64 @@ function formatMoney(n) {
 
 function transferKey(t) {
   return `${t.from}|${t.to}|${t.amount.toFixed(2)}`;
+}
+
+function navLabel(tab) {
+  if (tab === 'items') return 'Expenses';
+  if (tab === 'people') return 'People';
+  return 'Settle';
+}
+
+function NavIconExpenses() {
+  return (
+    <svg className="rece-mobile-nav-svg" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"
+      />
+    </svg>
+  );
+}
+
+function NavIconPeople() {
+  return (
+    <svg className="rece-mobile-nav-svg" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
+      />
+    </svg>
+  );
+}
+
+function NavIconSettle() {
+  return (
+    <svg className="rece-mobile-nav-svg" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+      />
+    </svg>
+  );
+}
+
+function formatDate(value) {
+  if (!value) return 'No date';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return 'No date';
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function modeLabel(expense) {
+  if (expense.splitMode === 'receipt') return 'Receipt';
+  if (expense.splitMode === 'equal') return 'Equal';
+  if (expense.splitMode === 'custom') return 'Exact';
+  if (expense.splitMode === 'percent') return 'Percent';
+  return 'Units';
 }
 
 function isSettled(group, t) {
@@ -35,6 +93,9 @@ export default function GroupView({ app, groupId, onBack }) {
   const [editingId, setEditingId] = useState(null);
   const [entryTab, setEntryTab] = useState('quick');
   const [groupTab, setGroupTab] = useState('items');
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [renameMode, setRenameMode] = useState(false);
+  const [groupNameDraft, setGroupNameDraft] = useState(group?.name ?? '');
 
   const participantIds = useMemo(
     () => group?.participants.map((p) => p.id) ?? [],
@@ -56,6 +117,14 @@ export default function GroupView({ app, groupId, onBack }) {
     [group, app.meName]
   );
 
+  useEffect(() => {
+    setGroupNameDraft(group?.name ?? '');
+  }, [group?.name]);
+
+  useEffect(() => {
+    if (editingId) setComposerOpen(true);
+  }, [editingId]);
+
   if (!group) {
     return (
       <div className="rece-paper">
@@ -69,10 +138,41 @@ export default function GroupView({ app, groupId, onBack }) {
 
   function handleAddParticipant(e) {
     e.preventDefault();
-    const n = participantName.trim();
-    if (!n) return;
-    app.addParticipant(group.id, n);
+    const names = participantName
+      .split(/[\n,]+/)
+      .map((name) => name.trim())
+      .filter(Boolean);
+    if (names.length === 0) return;
+    const existing = new Set(
+      group.participants.map((person) => person.name.trim().toLowerCase())
+    );
+    names.forEach((name) => {
+      const normalized = name.toLowerCase();
+      if (!existing.has(normalized)) {
+        app.addParticipant(group.id, name);
+        existing.add(normalized);
+      }
+    });
     setParticipantName('');
+  }
+
+  function handleRenameGroup(e) {
+    e.preventDefault();
+    const next = groupNameDraft.trim();
+    if (!next) return;
+    app.renameGroup(group.id, next);
+    setRenameMode(false);
+  }
+
+  function handleStartComposer(nextTab) {
+    setEditingId(null);
+    setEntryTab(nextTab);
+    setComposerOpen(true);
+  }
+
+  function handleCloseComposer() {
+    setEditingId(null);
+    setComposerOpen(false);
   }
 
   const editingExpense = editingId
@@ -80,52 +180,182 @@ export default function GroupView({ app, groupId, onBack }) {
     : null;
 
   const isEditingReceipt = editingExpense?.splitMode === 'receipt';
+  const totalSpent = roundMoney(
+    group.expenses.reduce((sum, expense) => sum + expense.amount, 0)
+  );
+  const outstandingCount = group.participants.filter(
+    (participant) => Math.abs(balances[participant.id] ?? 0) > 0.02
+  ).length;
+  const myBalance = meId ? roundMoney(balances[meId] ?? 0) : 0;
+  const mySummary =
+    meId == null
+      ? 'Add your name in the home screen to highlight your balance here.'
+      : myBalance < -0.02
+        ? `You currently owe ${formatMoney(Math.abs(myBalance))}.`
+        : myBalance > 0.02
+          ? `You should get back ${formatMoney(myBalance)}.`
+          : 'You are even in this group right now.';
+  const latestExpense = group.expenses[0]?.createdAt ?? '';
+
+  const composer = editingId ? (
+    isEditingReceipt ? (
+      <ReceiptExpenseForm
+        participants={group.participants}
+        newId={app.newId}
+        initial={editingExpense}
+        onCancel={handleCloseComposer}
+        onSubmit={(exp) => {
+          app.updateExpense(group.id, editingId, exp);
+          handleCloseComposer();
+        }}
+      />
+    ) : (
+      <ExpenseForm
+        participants={group.participants}
+        newId={app.newId}
+        initial={editingExpense}
+        onCancel={handleCloseComposer}
+        onSubmit={(exp) => {
+          app.updateExpense(group.id, editingId, exp);
+          handleCloseComposer();
+        }}
+      />
+    )
+  ) : entryTab === 'quick' ? (
+    <ExpenseForm
+      participants={group.participants}
+      newId={app.newId}
+      onSubmit={(exp) => {
+        app.addExpense(group.id, exp);
+        setComposerOpen(false);
+      }}
+      onCancel={handleCloseComposer}
+    />
+  ) : (
+    <ReceiptExpenseForm
+      participants={group.participants}
+      newId={app.newId}
+      onSubmit={(exp) => {
+        app.addExpense(group.id, exp);
+        setComposerOpen(false);
+      }}
+      onCancel={handleCloseComposer}
+    />
+  );
 
   return (
-    <>
-      <div className="rece-paper card-elevated" style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: 12,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 500 }}>
-              {group.name}
-            </h2>
-            <p className="muted" style={{ margin: '6px 0 0' }}>
-              Receipt-style splits, balances, minimum transfers to settle.
-            </p>
+    <div className="group-page">
+      <section className="group-hero rece-paper card-elevated">
+        <div className="group-hero-top">
+          <div className="group-hero-copy">
+            <p className="rece-section-title">Group workspace</p>
+            {renameMode ? (
+              <form className="group-rename-form" onSubmit={handleRenameGroup}>
+                <input
+                  className="input"
+                  value={groupNameDraft}
+                  onChange={(e) => setGroupNameDraft(e.target.value)}
+                  aria-label="Group name"
+                  autoFocus
+                />
+                <button type="submit" className="btn btn-primary btn-sm">
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => {
+                    setRenameMode(false);
+                    setGroupNameDraft(group.name);
+                  }}
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <>
+                <h2 className="group-title">{group.name}</h2>
+                <p className="group-subtitle">
+                  Track shared spending, itemized receipts, and settlement in one
+                  organized workspace.
+                </p>
+              </>
+            )}
           </div>
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            onClick={() => {
-              if (
-                !confirm(
-                  `Delete group "${group.name}"? This cannot be undone.`
-                )
-              )
-                return;
-              app.deleteGroup(group.id);
-              onBack();
-            }}
-          >
-            Delete group
-          </button>
-        </div>
-      </div>
 
-      <nav className="rece-seg-tabs" role="tablist" aria-label="Group sections">
+          {!renameMode ? (
+            <div className="group-hero-actions">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setRenameMode(true)}
+              >
+                Rename
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={() => {
+                  if (
+                    !confirm(
+                      `Delete group "${group.name}"? This cannot be undone.`
+                    )
+                  )
+                    return;
+                  app.deleteGroup(group.id);
+                  onBack();
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="summary-grid">
+          <article className="summary-card">
+            <span className="summary-label">Tracked total</span>
+            <strong className="summary-value">{formatMoney(totalSpent)}</strong>
+            <span className="muted">
+              {group.expenses.length} entries across simple and itemized flows
+            </span>
+          </article>
+          <article className="summary-card">
+            <span className="summary-label">People</span>
+            <strong className="summary-value">{group.participants.length}</strong>
+            <span className="muted">
+              {outstandingCount > 0
+                ? `${outstandingCount} balances still open`
+                : 'Everybody is settled'}
+            </span>
+          </article>
+          <article className="summary-card">
+            <span className="summary-label">Your status</span>
+            <strong className="summary-value">
+              {meId == null ? 'Not linked' : formatMoney(myBalance)}
+            </strong>
+            <span className="muted">{mySummary}</span>
+          </article>
+          <article className="summary-card">
+            <span className="summary-label">Last activity</span>
+            <strong className="summary-value">{formatDate(latestExpense)}</strong>
+            <span className="muted">
+              Add a receipt to keep the timeline and settle view fresh
+            </span>
+          </article>
+        </div>
+      </section>
+
+      <nav
+        className="rece-tabs rece-tabs-desktop"
+        role="tablist"
+        aria-label="Group sections"
+      >
         <button
           type="button"
           role="tab"
           aria-selected={groupTab === 'items'}
-          className={`rece-seg-tab${groupTab === 'items' ? ' active' : ''}`}
+          className={`rece-tab${groupTab === 'items' ? ' active' : ''}`}
           onClick={() => setGroupTab('items')}
         >
           Expenses
@@ -134,7 +364,7 @@ export default function GroupView({ app, groupId, onBack }) {
           type="button"
           role="tab"
           aria-selected={groupTab === 'people'}
-          className={`rece-seg-tab${groupTab === 'people' ? ' active' : ''}`}
+          className={`rece-tab${groupTab === 'people' ? ' active' : ''}`}
           onClick={() => setGroupTab('people')}
         >
           People
@@ -143,209 +373,303 @@ export default function GroupView({ app, groupId, onBack }) {
           type="button"
           role="tab"
           aria-selected={groupTab === 'settle'}
-          className={`rece-seg-tab${groupTab === 'settle' ? ' active' : ''}`}
+          className={`rece-tab${groupTab === 'settle' ? ' active' : ''}`}
           onClick={() => setGroupTab('settle')}
         >
           Settle
         </button>
       </nav>
 
-      {groupTab === 'people' ? (
-        <div className="rece-paper">
-          <h3 style={{ marginTop: 0 }}>Who&apos;s in this group</h3>
-          <form
-            onSubmit={handleAddParticipant}
-            className="row"
-            style={{ marginBottom: 12 }}
-          >
-            <div className="field" style={{ flex: 2, minWidth: '160px' }}>
-              <label htmlFor="p-name">Add person</label>
-              <input
-                id="p-name"
-                className="input"
-                placeholder="Name"
-                value={participantName}
-                onChange={(e) => setParticipantName(e.target.value)}
-              />
-            </div>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              style={{ marginBottom: 0 }}
-            >
-              Add
-            </button>
-          </form>
-          {group.participants.length === 0 ? (
-            <p className="muted" style={{ marginBottom: 0 }}>
-              Add everyone who&apos;ll split bills here. Then use Expenses to log
-              expenses or receipts.
-            </p>
-          ) : (
-            <div>
-              {group.participants.map((p) => (
-                <div key={p.id} className="rece-people-row">
-                  <div className="rece-avatar" aria-hidden>
-                    {nameToInitials(p.name)}
-                  </div>
-                  <div className="rece-people-name">
-                    {p.name}
-                    {meId === p.id ? (
-                      <span className="muted" style={{ marginLeft: 6 }}>
-                        (you)
-                      </span>
-                    ) : null}
-                  </div>
-                  <input
-                    className="input input-inline"
-                    type="text"
-                    placeholder="@venmo"
-                    aria-label={`Venmo for ${p.name}`}
-                    value={p.venmo ?? ''}
-                    onChange={(e) =>
-                      app.updateParticipantVenmo(group.id, p.id, e.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => app.removeParticipant(group.id, p.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : null}
-
       {groupTab === 'items' && group.participants.length === 0 ? (
         <div className="rece-paper empty">
           Add people in the <strong>People</strong> tab first, then come back to
-          Expenses to log spending.
+          <strong> Expenses</strong> to log spending.
         </div>
       ) : null}
 
       {groupTab === 'items' && group.participants.length > 0 ? (
-        <>
-          {editingId && isEditingReceipt ? (
-            <ReceiptExpenseForm
-              participants={group.participants}
-              newId={app.newId}
-              initial={editingExpense}
-              onCancel={() => setEditingId(null)}
-              onSubmit={(exp) => {
-                app.updateExpense(group.id, editingId, exp);
-                setEditingId(null);
-              }}
-            />
-          ) : editingId && !isEditingReceipt ? (
-            <ExpenseForm
-              participants={group.participants}
-              newId={app.newId}
-              initial={editingExpense}
-              onCancel={() => setEditingId(null)}
-              onSubmit={(exp) => {
-                app.updateExpense(group.id, editingId, exp);
-                setEditingId(null);
-              }}
-            />
-          ) : (
-            <>
-              <div className="entry-tabs" role="tablist" aria-label="Expense type">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={entryTab === 'quick'}
-                  className={`entry-tab${entryTab === 'quick' ? ' active' : ''}`}
-                  onClick={() => setEntryTab('quick')}
-                >
-                  Quick
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={entryTab === 'receipt'}
-                  className={`entry-tab${entryTab === 'receipt' ? ' active' : ''}`}
-                  onClick={() => setEntryTab('receipt')}
-                >
-                  Receipt
-                </button>
+        <section className="workspace-grid">
+          <div className="workspace-main">
+            <div className="rece-paper workspace-toolbar">
+              <div>
+                <p className="rece-section-title">Entry</p>
+                <h3 className="workspace-title">Log a new split</h3>
+                <p className="muted" style={{ margin: 0 }}>
+                  Start with a simple expense or switch to itemized bill entry.
+                </p>
               </div>
-              {entryTab === 'quick' ? (
-                <ExpenseForm
-                  participants={group.participants}
-                  newId={app.newId}
-                  onSubmit={(exp) => app.addExpense(group.id, exp)}
-                />
-              ) : (
-                <ReceiptExpenseForm
-                  participants={group.participants}
-                  newId={app.newId}
-                  onSubmit={(exp) => app.addExpense(group.id, exp)}
-                />
-              )}
-            </>
-          )}
+              <div className="workspace-toolbar-actions">
+                <button
+                  type="button"
+                  className={`btn btn-sm workspace-action-btn ${
+                    entryTab === 'quick' ? 'btn-primary' : 'btn-ghost'
+                  }`}
+                  onClick={() => handleStartComposer('quick')}
+                >
+                  Quick expense
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm workspace-action-btn ${
+                    entryTab === 'receipt' ? 'btn-primary' : 'btn-ghost'
+                  }`}
+                  onClick={() => handleStartComposer('receipt')}
+                >
+                  Itemized bill
+                </button>
+                {composerOpen ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm workspace-action-btn"
+                    onClick={handleCloseComposer}
+                  >
+                    Hide form
+                  </button>
+                ) : null}
+              </div>
+            </div>
 
-          <div className="rece-paper">
-            <h3 style={{ marginTop: 0 }}>Activity</h3>
-            {group.expenses.length === 0 ? (
-              <p className="muted" style={{ marginBottom: 0 }}>
-                No expenses yet.
-              </p>
+            {composerOpen ? (
+              <div className="composer-shell">
+                <div className="entry-tabs" role="tablist" aria-label="Expense type">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={entryTab === 'quick'}
+                    className={`entry-tab${entryTab === 'quick' ? ' active' : ''}`}
+                    onClick={() => setEntryTab('quick')}
+                    disabled={Boolean(editingId)}
+                  >
+                    Quick
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={entryTab === 'receipt'}
+                    className={`entry-tab${entryTab === 'receipt' ? ' active' : ''}`}
+                    onClick={() => setEntryTab('receipt')}
+                    disabled={Boolean(editingId)}
+                  >
+                    Itemized
+                  </button>
+                </div>
+                {composer}
+              </div>
             ) : (
-              group.expenses.map((e) => {
-                const payer = group.participants.find((p) => p.id === e.paidById);
-                const mode =
-                  e.splitMode === 'receipt'
-                    ? 'Receipt'
-                    : e.splitMode === 'equal'
-                      ? 'Equal'
-                      : e.splitMode === 'custom'
-                        ? 'Exact'
-                        : e.splitMode === 'percent'
-                          ? 'Percent'
-                          : 'Units';
-                return (
-                  <div key={e.id} className="expense-item">
-                    <div className="expense-head">
-                      <strong>{e.description}</strong>
-                      <span className="amount-strong">{formatMoney(e.amount)}</span>
-                    </div>
-                    <div className="expense-meta">
-                      {payer?.name ?? '?'} paid · {mode} ·{' '}
-                      {e.splitParticipantIds.length} people
-                      {e.splitMode === 'receipt' && e.receiptLines?.length
-                        ? ` · ${e.receiptLines.length} lines`
-                        : ''}
-                    </div>
-                    <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setEditingId(e.id)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          if (confirm('Delete this expense?'))
-                            app.deleteExpense(group.id, e.id);
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
+              <div className="rece-paper workspace-cta">
+                <p className="muted" style={{ margin: 0 }}>
+                  Keep the timeline clean: open the composer only when you need it.
+                </p>
+              </div>
             )}
+
+            <div className="rece-paper">
+              <div className="section-header-row">
+                <div>
+                  <p className="rece-section-title">Timeline</p>
+                  <h3 className="workspace-title">Activity</h3>
+                </div>
+                <span className="muted">
+                  {group.expenses.length} {group.expenses.length === 1 ? 'entry' : 'entries'}
+                </span>
+              </div>
+              {group.expenses.length === 0 ? (
+                <p className="muted" style={{ marginBottom: 0 }}>
+                  No expenses yet. Start with a quick split or add a full receipt.
+                </p>
+              ) : (
+                <div className="activity-list">
+                  {group.expenses.map((expense) => {
+                    const payer = group.participants.find(
+                      (person) => person.id === expense.paidById
+                    );
+                    return (
+                      <article key={expense.id} className="activity-card">
+                        <div className="activity-card-top">
+                          <div>
+                            <div className="activity-card-title-row">
+                              <strong>{expense.description}</strong>
+                              <span className="activity-type-badge">
+                                {modeLabel(expense)}
+                              </span>
+                            </div>
+                            <p className="activity-card-meta">
+                              {payer?.name ?? 'Unknown'} paid on{' '}
+                              {formatDate(expense.createdAt)}
+                            </p>
+                          </div>
+                          <span className="amount-strong">
+                            {formatMoney(expense.amount)}
+                          </span>
+                        </div>
+                        <div className="activity-card-stats">
+                          <span>{expense.splitParticipantIds.length} people included</span>
+                          {expense.splitMode === 'receipt' &&
+                          expense.receiptLines?.length ? (
+                            <span>{expense.receiptLines.length} line items</span>
+                          ) : null}
+                        </div>
+                        <div className="activity-card-actions">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => {
+                              setEditingId(expense.id);
+                              setEntryTab(
+                                expense.splitMode === 'receipt' ? 'receipt' : 'quick'
+                              );
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => {
+                              if (confirm('Delete this expense?')) {
+                                app.deleteExpense(group.id, expense.id);
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </>
+
+          <aside className="workspace-rail">
+            <div className="rece-paper">
+              <p className="rece-section-title">Guide</p>
+              <h3 className="workspace-title">How this stays fast</h3>
+              <ul className="compact-list">
+                <li>Use quick expense for simple equal or exact splits.</li>
+                <li>Use itemized bills when each line belongs to specific people.</li>
+                <li>Jump to Settle when you only care about the final transfers.</li>
+              </ul>
+            </div>
+            <div className="rece-paper">
+              <p className="rece-section-title">Snapshot</p>
+              <h3 className="workspace-title">Current state</h3>
+              <div className="rail-metric">
+                <span className="muted">Tracked</span>
+                <strong>{formatMoney(totalSpent)}</strong>
+              </div>
+              <div className="rail-metric">
+                <span className="muted">Open transfers</span>
+                <strong>{transfers.length}</strong>
+              </div>
+              <div className="rail-metric">
+                <span className="muted">Last update</span>
+                <strong>{formatDate(latestExpense)}</strong>
+              </div>
+            </div>
+          </aside>
+        </section>
+      ) : null}
+
+      {groupTab === 'people' ? (
+        <section className="workspace-grid">
+          <div className="workspace-main">
+            <div className="rece-paper">
+              <div className="section-header-row">
+                <div>
+                  <p className="rece-section-title">People</p>
+                  <h3 className="workspace-title">Who&apos;s in this group</h3>
+                </div>
+                {app.meName.trim() && !meId ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => app.addParticipant(group.id, app.meName)}
+                  >
+                    Add me
+                  </button>
+                ) : null}
+              </div>
+
+              <form onSubmit={handleAddParticipant} className="people-form">
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label htmlFor="p-name">Add people</label>
+                  <textarea
+                    id="p-name"
+                    className="textarea"
+                    placeholder="Type one name, or paste Alice, Bob, Carol"
+                    value={participantName}
+                    onChange={(e) => setParticipantName(e.target.value)}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary">
+                  Add people
+                </button>
+              </form>
+
+              {group.participants.length === 0 ? (
+                <p className="muted" style={{ marginBottom: 0 }}>
+                  Add everyone who&apos;ll split bills here. Then jump back to
+                  Expenses to log spending or receipts.
+                </p>
+              ) : (
+                <div className="people-list">
+                  {group.participants.map((person) => (
+                    <article key={person.id} className="person-card">
+                      <div className="rece-avatar" aria-hidden>
+                        {nameToInitials(person.name)}
+                      </div>
+                      <div className="person-card-main">
+                        <div className="person-card-name-row">
+                          <strong>{person.name}</strong>
+                          {meId === person.id ? (
+                            <span className="status-chip neutral">You</span>
+                          ) : null}
+                        </div>
+                        <label className="person-card-label">
+                          <span className="muted">Venmo handle</span>
+                          <input
+                            className="input input-inline-wide"
+                            type="text"
+                            placeholder="@venmo"
+                            aria-label={`Venmo for ${person.name}`}
+                            value={person.venmo ?? ''}
+                            onChange={(e) =>
+                              app.updateParticipantVenmo(
+                                group.id,
+                                person.id,
+                                e.target.value
+                              )
+                            }
+                          />
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => app.removeParticipant(group.id, person.id)}
+                      >
+                        Remove
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <aside className="workspace-rail">
+            <div className="rece-paper">
+              <p className="rece-section-title">Tip</p>
+              <h3 className="workspace-title">Paste a list</h3>
+              <p className="muted" style={{ marginBottom: 0 }}>
+                The add field accepts commas or new lines, so you can paste a whole
+                guest list from messages in one shot.
+              </p>
+            </div>
+          </aside>
+        </section>
       ) : null}
 
       {groupTab === 'settle' && group.participants.length === 0 ? (
@@ -356,122 +680,172 @@ export default function GroupView({ app, groupId, onBack }) {
       ) : null}
 
       {groupTab === 'settle' && group.participants.length > 0 ? (
-        <>
-          <div className="rece-paper">
-            <h3 style={{ marginTop: 0 }}>Balances</h3>
-            <p className="muted" style={{ marginTop: -6 }}>
-              Positive = gets money back; negative = owes.
-            </p>
-            {group.participants.map((p) => {
-              const b = roundMoney(balances[p.id] ?? 0);
-              let cls = 'balance-pill neutral';
-              let label = 'Even';
-              if (b > 0.02) {
-                cls = 'balance-pill owed';
-                label = 'Owed';
-              } else if (b < -0.02) {
-                cls = 'balance-pill owe';
-                label = 'Owes';
-              }
-              const isMe = meId === p.id;
-              return (
-                <div key={p.id} className={cls}>
-                  <span>
-                    {p.name}
-                    {isMe ? (
-                      <span className="muted" style={{ marginLeft: 6 }}>
-                        {b < -0.02
-                          ? '(you owe)'
-                          : b > 0.02
-                            ? "(you're owed)"
-                            : '(you)'}
-                      </span>
-                    ) : null}
-                    <span
-                      className="muted"
-                      style={{ marginLeft: 6, fontSize: '0.75rem' }}
-                    >
-                      {label}
-                    </span>
-                  </span>
-                  <span className="amount-strong">{formatMoney(b)}</span>
+        <section className="workspace-grid">
+          <div className="workspace-main">
+            <div className="rece-paper settle-hero">
+              <p className="rece-section-title">Settle</p>
+              <h3 className="workspace-title">Fastest path to zero</h3>
+              <p className="muted" style={{ marginBottom: 0 }}>
+                {mySummary} {transfers.length > 0
+                  ? `There are ${transfers.length} recommended transfers left.`
+                  : 'No payments are needed right now.'}
+              </p>
+            </div>
+
+            <div className="rece-paper">
+              <div className="section-header-row">
+                <div>
+                  <p className="rece-section-title">Balances</p>
+                  <h3 className="workspace-title">Per person</h3>
                 </div>
-              );
-            })}
+              </div>
+              <div className="balance-card-grid">
+                {group.participants.map((person) => {
+                  const balance = roundMoney(balances[person.id] ?? 0);
+                  const tone =
+                    balance > 0.02 ? 'owed' : balance < -0.02 ? 'owe' : 'neutral';
+                  const label =
+                    balance > 0.02 ? 'Gets back' : balance < -0.02 ? 'Owes' : 'Even';
+                  return (
+                    <article
+                      key={person.id}
+                      className={`balance-card balance-card-${tone}`}
+                    >
+                      <div>
+                        <strong>{person.name}</strong>
+                        <p className="muted" style={{ margin: '4px 0 0' }}>
+                          {meId === person.id ? `${label} - you` : label}
+                        </p>
+                      </div>
+                      <span className="amount-strong">{formatMoney(balance)}</span>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rece-paper">
+              <div className="section-header-row">
+                <div>
+                  <p className="rece-section-title">Transfers</p>
+                  <h3 className="workspace-title">Recommended payments</h3>
+                </div>
+                {group.settled.length > 0 ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => app.clearGroupSettled(group.id)}
+                  >
+                    Clear checks
+                  </button>
+                ) : null}
+              </div>
+              {transfers.length === 0 ? (
+                <p className="muted" style={{ marginBottom: 0 }}>
+                  All square.
+                </p>
+              ) : (
+                <div className="transfer-list">
+                  {transfers.map((transfer) => {
+                    const fromPerson = group.participants.find(
+                      (person) => person.id === transfer.from
+                    );
+                    const toPerson = group.participants.find(
+                      (person) => person.id === transfer.to
+                    );
+                    const done = isSettled(group, transfer);
+                    const venmo =
+                      toPerson?.venmo &&
+                      venmoPayUrl(
+                        toPerson.venmo,
+                        transfer.amount,
+                        `${group.name} · Evenly`
+                      );
+                    return (
+                      <article
+                        key={transferKey(transfer)}
+                        className={`transfer-card${done ? ' done' : ''}`}
+                      >
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={done}
+                            onChange={() => app.toggleSettled(group.id, transfer)}
+                          />
+                          <span>
+                            <strong>{fromPerson?.name ?? transfer.from}</strong>
+                            <span className="muted"> pays </span>
+                            <strong>{toPerson?.name ?? transfer.to}</strong>
+                          </span>
+                        </label>
+                        <div className="transfer-card-actions">
+                          <span className="amount-strong">
+                            {formatMoney(transfer.amount)}
+                          </span>
+                          {venmo ? (
+                            <a className="btn btn-ghost btn-sm venmo-link" href={venmo}>
+                              Venmo
+                            </a>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="rece-paper">
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 8,
-                flexWrap: 'wrap',
-              }}
-            >
-              <h3 style={{ margin: 0 }}>Settle up</h3>
-              {group.settled.length > 0 ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => app.clearGroupSettled(group.id)}
-                >
-                  Clear checks
-                </button>
-              ) : null}
-            </div>
-            <p className="muted" style={{ marginTop: 6 }}>
-              Fewest payments. Check when done; Venmo uses creditor&apos;s @
-              from People.
-            </p>
-            {transfers.length === 0 ? (
+          <aside className="workspace-rail">
+            <div className="rece-paper">
+              <p className="rece-section-title">Why these transfers</p>
               <p className="muted" style={{ marginBottom: 0 }}>
-                All square.
+                Evenly pairs the largest debtor with the largest creditor first, so
+                you get the minimum number of payments needed to settle the group.
               </p>
-            ) : (
-              transfers.map((t) => {
-                const fromP = group.participants.find((p) => p.id === t.from);
-                const toP = group.participants.find((p) => p.id === t.to);
-                const done = isSettled(group, t);
-                const venmo =
-                  toP?.venmo &&
-                  venmoPayUrl(toP.venmo, t.amount, `${group.name} · Evenly`);
-                return (
-                  <div
-                    key={transferKey(t)}
-                    className={`settle-row${done ? ' done' : ''}`}
-                  >
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={done}
-                        onChange={() => app.toggleSettled(group.id, t)}
-                      />
-                      <span>
-                        <strong>{fromP?.name ?? t.from}</strong>
-                        <span className="muted"> → </span>
-                        <strong>{toP?.name ?? t.to}</strong>
-                      </span>
-                    </label>
-                    <span className="settle-row-actions">
-                      <span className="amount-strong">{formatMoney(t.amount)}</span>
-                      {venmo ? (
-                        <a
-                          className="btn btn-ghost btn-sm venmo-link"
-                          href={venmo}
-                        >
-                          Venmo
-                        </a>
-                      ) : null}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </>
+            </div>
+          </aside>
+        </section>
       ) : null}
-    </>
+
+      <nav
+        className={`rece-mobile-nav${groupTab === 'items' && composerOpen ? ' is-hidden' : ''}`}
+        aria-label="Group mobile navigation"
+      >
+        <button
+          type="button"
+          className={`rece-mobile-nav-item${groupTab === 'items' ? ' active' : ''}`}
+          onClick={() => setGroupTab('items')}
+          aria-label="Open expenses tab"
+        >
+          <span className="rece-mobile-nav-icon" aria-hidden>
+            <NavIconExpenses />
+          </span>
+          <span className="rece-mobile-nav-label">{navLabel('items')}</span>
+        </button>
+        <button
+          type="button"
+          className={`rece-mobile-nav-item${groupTab === 'people' ? ' active' : ''}`}
+          onClick={() => setGroupTab('people')}
+          aria-label="Open people tab"
+        >
+          <span className="rece-mobile-nav-icon" aria-hidden>
+            <NavIconPeople />
+          </span>
+          <span className="rece-mobile-nav-label">{navLabel('people')}</span>
+        </button>
+        <button
+          type="button"
+          className={`rece-mobile-nav-item${groupTab === 'settle' ? ' active' : ''}`}
+          onClick={() => setGroupTab('settle')}
+          aria-label="Open settle tab"
+        >
+          <span className="rece-mobile-nav-icon" aria-hidden>
+            <NavIconSettle />
+          </span>
+          <span className="rece-mobile-nav-label">{navLabel('settle')}</span>
+        </button>
+      </nav>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { computeReceiptBreakdown, venmoPayUrl } from './receiptSplit.js';
 import { roundMoney } from './settlement.js';
 
 describe('computeReceiptBreakdown', () => {
-  it('allocates line cost by units like Rece', () => {
+  it('allocates line cost by item quantities', () => {
     const e = {
       splitMode: 'receipt',
       receiptLines: [
