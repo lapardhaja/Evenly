@@ -35,7 +35,7 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 - `src/core/Layout.jsx` — AppBar, theme (auto light/dark), footer
 - `src/core/BaseRouter.jsx` — Routes: `/`, `/groups/:id/:tab?`, `/groups/:id/receipt/:rid/:tab?`
 - `src/pages/GroupsPage.jsx` — Groups list (home)
-- `src/pages/GroupDetailPage.jsx` — Group detail with People/Receipts/Settle tabs (default: People)
+- `src/pages/GroupDetailPage.jsx` — People / Receipts / Settle tabs; open group → Receipts by default; new group from list → `/people` once then Receipts on revisit
 - `src/pages/GroupReceiptsTab.jsx` — Receipt list within a group
 - `src/pages/GroupPeopleTab.jsx` — People management (group level)
 - `src/pages/GroupSettleTab.jsx` — Net balances + minimized transfers

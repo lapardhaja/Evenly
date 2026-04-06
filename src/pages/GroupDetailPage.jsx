@@ -25,12 +25,13 @@ export default function GroupDetailPage() {
   const { group, renameGroup } = groupData;
   const { EditTextModal, showEditTextModal } = useEditTextModal();
 
-  const currentTab = TABS.indexOf(tab) >= 0 ? TABS.indexOf(tab) : 0;
+  // Default tab when URL has no :tab — Receipts (People only right after "create group")
+  const currentTab = TABS.indexOf(tab) >= 0 ? TABS.indexOf(tab) : 1;
 
   useEffect(() => {
     if (!groupId) return;
     if (!tab || TABS.indexOf(tab) < 0) {
-      navigate(`/groups/${groupId}/people`, { replace: true });
+      navigate(`/groups/${groupId}/receipts`, { replace: true });
     }
   }, [groupId, tab, navigate]);
 

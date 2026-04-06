@@ -101,7 +101,7 @@ export default function GroupsPage() {
                 {idx > 0 && <Divider />}
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => navigate(`/groups/${g.id}/people`)}
+                    onClick={() => navigate(`/groups/${g.id}/receipts`)}
                     sx={{ py: 1.5, px: 2 }}
                   >
                     <ListItemIcon sx={{ minWidth: 40 }}>
