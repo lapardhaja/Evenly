@@ -5,22 +5,55 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
+import {
+  sanitizeDecimalString,
+  sanitizeIntegerString,
+} from '../lib/numericInput.js';
+
+/** @typedef {'text' | 'decimal' | 'integer'} EditInputKind */
 
 export default function useEditTextModal() {
   const [open, setOpen] = useState(false);
-  const [config, setConfig] = useState({ title: '', value: '', setValue: () => {} });
+  const [config, setConfig] = useState({
+    title: '',
+    value: '',
+    setValue: () => {},
+    inputKind: 'text',
+  });
   const [inputValue, setInputValue] = useState('');
 
-  const showEditTextModal = useCallback(({ title, value, setValue }) => {
-    setConfig({ title, value, setValue });
-    setInputValue(value);
-    setOpen(true);
-  }, []);
+  const showEditTextModal = useCallback(
+    /** @param {{ title: string, value: string, setValue: (v: string) => void, inputKind?: EditInputKind }} opts */
+    ({ title, value, setValue, inputKind = 'text' }) => {
+      setConfig({ title, value, setValue, inputKind });
+      setInputValue(value);
+      setOpen(true);
+    },
+    [],
+  );
 
   const handleSave = () => {
     config.setValue(inputValue);
     setOpen(false);
   };
+
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    if (config.inputKind === 'decimal') {
+      setInputValue(sanitizeDecimalString(raw));
+    } else if (config.inputKind === 'integer') {
+      setInputValue(sanitizeIntegerString(raw));
+    } else {
+      setInputValue(raw);
+    }
+  };
+
+  const inputMode =
+    config.inputKind === 'decimal'
+      ? 'decimal'
+      : config.inputKind === 'integer'
+        ? 'numeric'
+        : 'text';
 
   const EditTextModal = (
     <Dialog
@@ -36,7 +69,8 @@ export default function useEditTextModal() {
           fullWidth
           margin="dense"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={handleChange}
+          inputMode={inputMode}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();

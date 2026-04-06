@@ -1,4 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
+import {
+  sanitizeDecimalString,
+  sanitizeIntegerString,
+} from '../../lib/numericInput.js';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -57,26 +61,24 @@ export default function useAddItemModal({ onAddItem }) {
           <TextField
             id="add-item-cost"
             label="Total cost ($)"
-            type="number"
             fullWidth
             value={cost}
-            onChange={(e) => setCost(e.target.value)}
+            onChange={(e) => setCost(sanitizeDecimalString(e.target.value))}
+            inputMode="decimal"
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSubmit();
             }}
-            inputProps={{ step: '0.01', min: '0' }}
             size="small"
           />
           <TextField
             label="Quantity"
-            type="number"
             fullWidth
             value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            onChange={(e) => setQuantity(sanitizeIntegerString(e.target.value))}
+            inputMode="numeric"
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSubmit();
             }}
-            inputProps={{ min: '1' }}
             size="small"
           />
         </Stack>

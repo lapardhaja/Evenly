@@ -170,6 +170,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                             setValue: (v) => updateReceiptItemValue(item.id, 'quantity', v),
                             title: 'Edit Quantity',
                             value: String(item.quantity),
+                            inputKind: 'integer',
                           })
                         }
                         disabled={receipt.locked}
@@ -186,6 +187,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                             setValue: (v) => updateReceiptItemValue(item.id, 'cost', v),
                             title: 'Edit total cost',
                             value: String(item.cost),
+                            inputKind: 'decimal',
                           })
                         }
                         disabled={receipt.locked}
@@ -319,6 +321,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                       setValue: (v) => updateChargeValueByPct('taxCost', v, subTotal),
                       title: 'Edit Tax %',
                       value: taxPct,
+                      inputKind: 'decimal',
                     })
                   }
                   disabled={receipt.locked}
@@ -337,6 +340,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                       setValue: (v) => updateChargeValue('taxCost', v),
                       title: 'Edit Tax',
                       value: String(receipt.taxCost),
+                      inputKind: 'decimal',
                     })
                   }
                   disabled={receipt.locked}
@@ -361,6 +365,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                       setValue: (v) => updateChargeValueByPct('tipCost', v, subTotal),
                       title: 'Edit Tip %',
                       value: tipPct,
+                      inputKind: 'decimal',
                     })
                   }
                   disabled={receipt.locked}
@@ -379,6 +384,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                       setValue: (v) => updateChargeValue('tipCost', v),
                       title: 'Edit Tip',
                       value: String(receipt.tipCost),
+                      inputKind: 'decimal',
                     })
                   }
                   disabled={receipt.locked}
