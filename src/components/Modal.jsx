@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 /**
- * Rece-style modal overlay (no <dialog> quirks).
+ * Lightweight modal overlay without relying on <dialog>.
  */
 export default function Modal({ open, onClose, title, children, footer }) {
   useEffect(() => {
