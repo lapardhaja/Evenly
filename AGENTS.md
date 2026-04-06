@@ -11,7 +11,7 @@
 - **State**: `localStorage` via custom `useLocalStorage` hook
 - **Currency**: `currency.js` for precise monetary math
 - **IDs**: `uuid` v4
-- **Build**: Vite 6 with `@vitejs/plugin-react`
+- **Build**: Vite 6 with `@vitejs/plugin-react`, **PWA** via `vite-plugin-pwa` (manifest + SW precache)
 
 ## Dev commands
 
