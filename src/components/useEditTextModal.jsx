@@ -43,7 +43,10 @@ export default function useEditTextModal() {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSave();
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSave();
+            }
           }}
           variant="outlined"
           size="small"

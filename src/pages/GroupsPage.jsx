@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
@@ -12,8 +12,11 @@ import Fab from '@mui/material/Fab';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 import AddIcon from '@mui/icons-material/Add';
 import FolderSharedIcon from '@mui/icons-material/FolderShared';
+import SearchIcon from '@mui/icons-material/Search';
 import currency from 'currency.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useGroups } from '../hooks/useGroupData.js';
@@ -22,11 +25,18 @@ export default function GroupsPage() {
   const navigate = useNavigate();
   const { groups, addGroup } = useGroups();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const sorted = useMemo(
     () => [...groups].sort((a, b) => b.date - a.date),
     [groups],
   );
+
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter((g) => g.name.toLowerCase().includes(q));
+  }, [sorted, searchQuery]);
 
   const handleCreate = (name) => {
     if (!name.trim()) return;
@@ -56,9 +66,36 @@ export default function GroupsPage() {
           </Typography>
         </Paper>
       ) : (
+        <>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search groups"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          {filtered.length === 0 ? (
+            <Paper
+              sx={{ p: 3, textAlign: 'center', borderRadius: 3 }}
+              elevation={0}
+              variant="outlined"
+            >
+              <Typography color="text.secondary">
+                No groups match &ldquo;{searchQuery.trim()}&rdquo;.
+              </Typography>
+            </Paper>
+          ) : (
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
           <List disablePadding>
-            {sorted.map((g, idx) => (
+            {filtered.map((g, idx) => (
               <Box key={g.id}>
                 {idx > 0 && <Divider />}
                 <ListItem disablePadding>
@@ -113,6 +150,8 @@ export default function GroupsPage() {
             ))}
           </List>
         </Paper>
+          )}
+        </>
       )}
 
       <Fab
