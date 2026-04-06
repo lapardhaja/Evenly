@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
@@ -21,10 +23,13 @@ import currency from 'currency.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useGroups } from '../hooks/useGroupData.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
+import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
 
 export default function GroupsPage() {
   const navigate = useNavigate();
-  const { groups, addGroup } = useGroups();
+  const theme = useTheme();
+  const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
+  const { groups, addGroup, deleteGroup } = useGroups();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -44,6 +49,58 @@ export default function GroupsPage() {
     const id = addGroup(name.trim());
     if (id) navigate(`/groups/${id}/people`);
   };
+
+  const confirmDeleteGroup = (g) =>
+    window.confirm(
+      `Delete "${g.name}" and all its receipts? This cannot be undone.`,
+    );
+
+  const groupRow = (g) => (
+    <ListItemButton
+      onClick={() => navigate(`/groups/${g.id}/receipts`)}
+      sx={{ py: 1.5, px: 2 }}
+    >
+      <ListItemIcon sx={{ minWidth: 40 }}>
+        <FolderSharedIcon color="primary" />
+      </ListItemIcon>
+      <ListItemText
+        primary={<Typography fontWeight={600}>{g.name}</Typography>}
+        secondary={
+          <Box
+            component="span"
+            sx={{
+              display: 'flex',
+              gap: 1,
+              alignItems: 'center',
+              mt: 0.5,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Chip
+              label={`${g.peopleCount} people`}
+              size="small"
+              variant="outlined"
+              sx={{ height: 22, fontSize: '0.72rem' }}
+            />
+            <Chip
+              label={`${g.receiptCount} receipts`}
+              size="small"
+              variant="outlined"
+              sx={{ height: 22, fontSize: '0.72rem' }}
+            />
+          </Box>
+        }
+      />
+      <Typography
+        variant="body2"
+        fontWeight={600}
+        color="text.secondary"
+        sx={{ ml: 2, whiteSpace: 'nowrap' }}
+      >
+        {currency(g.totalSpent).format()}
+      </Typography>
+    </ListItemButton>
+  );
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
@@ -95,61 +152,29 @@ export default function GroupsPage() {
             </Paper>
           ) : (
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
-          <List disablePadding>
-            {filtered.map((g, idx) => (
-              <Box key={g.id}>
-                {idx > 0 && <Divider />}
-                <ListItem disablePadding>
-                  <ListItemButton
-                    onClick={() => navigate(`/groups/${g.id}/receipts`)}
-                    sx={{ py: 1.5, px: 2 }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 40 }}>
-                      <FolderSharedIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography fontWeight={600}>{g.name}</Typography>
-                      }
-                      secondary={
-                        <Box
-                          component="span"
-                          sx={{
-                            display: 'flex',
-                            gap: 1,
-                            alignItems: 'center',
-                            mt: 0.5,
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <Chip
-                            label={`${g.peopleCount} people`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 22, fontSize: '0.72rem' }}
-                          />
-                          <Chip
-                            label={`${g.receiptCount} receipts`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 22, fontSize: '0.72rem' }}
-                          />
-                        </Box>
-                      }
-                    />
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      color="text.secondary"
-                      sx={{ ml: 2, whiteSpace: 'nowrap' }}
-                    >
-                      {currency(g.totalSpent).format()}
-                    </Typography>
-                  </ListItemButton>
+          {isMobileSwipe ? (
+            <SwipeableDeleteList
+              items={filtered}
+              getKey={(g) => g.id}
+              onDelete={(g) => deleteGroup(g.id)}
+              deleteConfirm={confirmDeleteGroup}
+            >
+              {(g) => (
+                <ListItem disablePadding sx={{ display: 'block' }}>
+                  {groupRow(g)}
                 </ListItem>
-              </Box>
-            ))}
-          </List>
+              )}
+            </SwipeableDeleteList>
+          ) : (
+            <List disablePadding>
+              {filtered.map((g, idx) => (
+                <Box key={g.id}>
+                  {idx > 0 && <Divider />}
+                  <ListItem disablePadding>{groupRow(g)}</ListItem>
+                </Box>
+              ))}
+            </List>
+          )}
         </Paper>
           )}
         </>

@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
@@ -22,9 +24,12 @@ import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
+import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
 
 export default function GroupReceiptsTab({ groupId, groupData }) {
-  const { receipts, people, addReceipt, addReceiptWithItems } = groupData;
+  const theme = useTheme();
+  const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
+  const { receipts, people, addReceipt, addReceiptWithItems, deleteReceipt } = groupData;
   const navigate = useNavigate();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const fileInputRef = useRef(null);
@@ -108,6 +113,59 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       day: 'numeric',
     });
 
+  const confirmDeleteReceipt = (r) =>
+    window.confirm(`Delete "${r.title}"? This cannot be undone.`);
+
+  const receiptRow = (r) => {
+    const payer = r.paidById ? peopleMap[r.paidById] : null;
+    return (
+      <ListItemButton
+        onClick={() => navigate(`/groups/${groupId}/receipt/${r.id}`)}
+        sx={{ py: 1.5, px: 2 }}
+      >
+        <ListItemText
+          primary={<Typography fontWeight={600}>{r.title}</Typography>}
+          secondary={
+            <Box
+              component="span"
+              sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5, flexWrap: 'wrap' }}
+            >
+              <Typography component="span" variant="caption" color="text.secondary">
+                {formatDate(r.date)}
+              </Typography>
+              {payer && (
+                <Chip
+                  label={`Paid by ${payer.name}`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ height: 20, fontSize: '0.7rem' }}
+                />
+              )}
+              {!payer && r.total > 0 && (
+                <Chip
+                  label="No payer set"
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                  sx={{ height: 20, fontSize: '0.7rem' }}
+                />
+              )}
+            </Box>
+          }
+        />
+        <Typography
+          variant="body2"
+          fontWeight={600}
+          color="text.secondary"
+          sx={{ ml: 2, whiteSpace: 'nowrap' }}
+        >
+          {currency(r.total).format()}
+        </Typography>
+      </ListItemButton>
+    );
+  };
+
   return (
     <Box>
       <input
@@ -131,61 +189,29 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         </Paper>
       ) : (
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
-          <List disablePadding>
-            {sorted.map((r, idx) => {
-              const payer = r.paidById ? peopleMap[r.paidById] : null;
-              return (
+          {isMobileSwipe ? (
+            <SwipeableDeleteList
+              items={sorted}
+              getKey={(r) => r.id}
+              onDelete={(r) => deleteReceipt(r.id)}
+              deleteConfirm={confirmDeleteReceipt}
+            >
+              {(r) => (
+                <ListItem disablePadding sx={{ display: 'block' }}>
+                  {receiptRow(r)}
+                </ListItem>
+              )}
+            </SwipeableDeleteList>
+          ) : (
+            <List disablePadding>
+              {sorted.map((r, idx) => (
                 <Box key={r.id}>
                   {idx > 0 && <Divider />}
-                  <ListItem disablePadding>
-                    <ListItemButton
-                      onClick={() => navigate(`/groups/${groupId}/receipt/${r.id}`)}
-                      sx={{ py: 1.5, px: 2 }}
-                    >
-                      <ListItemText
-                        primary={
-                          <Typography fontWeight={600}>{r.title}</Typography>
-                        }
-                        secondary={
-                          <Box component="span" sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5, flexWrap: 'wrap' }}>
-                            <Typography component="span" variant="caption" color="text.secondary">
-                              {formatDate(r.date)}
-                            </Typography>
-                            {payer && (
-                              <Chip
-                                label={`Paid by ${payer.name}`}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                                sx={{ height: 20, fontSize: '0.7rem' }}
-                              />
-                            )}
-                            {!payer && r.total > 0 && (
-                              <Chip
-                                label="No payer set"
-                                size="small"
-                                color="warning"
-                                variant="outlined"
-                                sx={{ height: 20, fontSize: '0.7rem' }}
-                              />
-                            )}
-                          </Box>
-                        }
-                      />
-                      <Typography
-                        variant="body2"
-                        fontWeight={600}
-                        color="text.secondary"
-                        sx={{ ml: 2, whiteSpace: 'nowrap' }}
-                      >
-                        {currency(r.total).format()}
-                      </Typography>
-                    </ListItemButton>
-                  </ListItem>
+                  <ListItem disablePadding>{receiptRow(r)}</ListItem>
                 </Box>
-              );
-            })}
-          </List>
+              ))}
+            </List>
+          )}
         </Paper>
       )}
 
