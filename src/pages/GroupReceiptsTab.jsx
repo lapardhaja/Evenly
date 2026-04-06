@@ -19,7 +19,8 @@ import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 import AddIcon from '@mui/icons-material/Add';
-import DocumentScannerIcon from '@mui/icons-material/DocumentScanner';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import currency from 'currency.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
@@ -42,7 +43,8 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   } = groupData;
   const navigate = useNavigate();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
-  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const uploadInputRef = useRef(null);
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
@@ -73,14 +75,19 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     if (id) navigate(`/groups/${groupId}/receipt/${id}`);
   };
 
-  const openScanPicker = () => {
+  const openScanCamera = () => {
     setSpeedDialOpen(false);
-    fileInputRef.current?.click();
+    cameraInputRef.current?.click();
+  };
+
+  const openScanUpload = () => {
+    setSpeedDialOpen(false);
+    uploadInputRef.current?.click();
   };
 
   const handleScanFile = async (e) => {
     const file = e.target.files?.[0];
-    e.target.value = '';
+    e.target.value = ''; // allow re-selecting same file
     if (!file) return;
     setScanLoading(true);
     setScanFlowError('');
@@ -201,10 +208,17 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   return (
     <Box>
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        style={{ display: 'none' }}
+        onChange={handleScanFile}
+      />
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*,.pdf,application/pdf"
         style={{ display: 'none' }}
         onChange={handleScanFile}
       />
@@ -275,10 +289,16 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           }}
         />
         <SpeedDialAction
-          icon={<DocumentScannerIcon />}
-          tooltipTitle="Scan receipt"
+          icon={<PhotoCameraIcon />}
+          tooltipTitle="Take photo"
           tooltipOpen
-          onClick={openScanPicker}
+          onClick={openScanCamera}
+        />
+        <SpeedDialAction
+          icon={<UploadFileIcon />}
+          tooltipTitle="Upload receipt"
+          tooltipOpen
+          onClick={openScanUpload}
         />
       </SpeedDial>
 
