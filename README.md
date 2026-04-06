@@ -6,7 +6,7 @@ Split receipts easily — a clean, responsive web app for splitting shared expen
 
 - **Create Receipts** — Add receipts with titles and dates
 - **Add People** — Track who's splitting the bill
-- **Add Items** — Itemize the receipt with names, costs, and quantities
+- **Add Items** — Itemize the receipt with names, total costs, and quantities
 - **Flexible Splitting** — Check/uncheck for single items, +/- stepper for multi-quantity items
 - **Tax & Tip** — Add tax and tip by dollar amount or percentage — proportionally distributed
 - **Per-Person Breakdown** — See exactly what each person owes with itemized detail

@@ -97,7 +97,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                 Item
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700 }}>Qty</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700 }}>Cost</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700 }}>Total cost</TableCell>
               {people.map((person) => (
                 <TableCell
                   key={person.id}
@@ -183,7 +183,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                           !receipt.locked &&
                           showEditTextModal({
                             setValue: (v) => updateReceiptItemValue(item.id, 'cost', v),
-                            title: 'Edit Cost',
+                            title: 'Edit total cost',
                             value: String(item.cost),
                           })
                         }

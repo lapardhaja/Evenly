@@ -56,7 +56,7 @@ export default function useAddItemModal({ onAddItem }) {
           />
           <TextField
             id="add-item-cost"
-            label="Cost ($)"
+            label="Total cost ($)"
             type="number"
             fullWidth
             value={cost}
