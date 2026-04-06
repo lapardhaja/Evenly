@@ -237,8 +237,8 @@ export default function GroupView({ app, groupId, onBack }) {
               <>
                 <h2 className="group-title">{group.name}</h2>
                 <p className="group-subtitle">
-                  Rece-style receipt splits with a simpler mobile flow and a denser
-                  desktop workspace.
+                  Track shared spending, itemized receipts, and settlement in one
+                  organized workspace.
                 </p>
               </>
             )}
@@ -278,7 +278,7 @@ export default function GroupView({ app, groupId, onBack }) {
             <span className="summary-label">Tracked total</span>
             <strong className="summary-value">{formatMoney(totalSpent)}</strong>
             <span className="muted">
-              {group.expenses.length} entries across quick and receipt mode
+              {group.expenses.length} entries across simple and itemized flows
             </span>
           </article>
           <article className="summary-card">
@@ -356,7 +356,7 @@ export default function GroupView({ app, groupId, onBack }) {
                 <p className="rece-section-title">Entry</p>
                 <h3 className="workspace-title">Log a new split</h3>
                 <p className="muted" style={{ margin: 0 }}>
-                  Start with a quick expense or switch to the full receipt table.
+                  Start with a simple expense or switch to itemized bill entry.
                 </p>
               </div>
               <div className="workspace-toolbar-actions">
@@ -376,7 +376,7 @@ export default function GroupView({ app, groupId, onBack }) {
                   }`}
                   onClick={() => handleStartComposer('receipt')}
                 >
-                  Receipt table
+                  Itemized bill
                 </button>
                 {composerOpen ? (
                   <button
@@ -411,7 +411,7 @@ export default function GroupView({ app, groupId, onBack }) {
                     onClick={() => setEntryTab('receipt')}
                     disabled={Boolean(editingId)}
                   >
-                    Receipt
+                    Itemized
                   </button>
                 </div>
                 {composer}
@@ -467,7 +467,7 @@ export default function GroupView({ app, groupId, onBack }) {
                           <span>{expense.splitParticipantIds.length} people included</span>
                           {expense.splitMode === 'receipt' &&
                           expense.receiptLines?.length ? (
-                            <span>{expense.receiptLines.length} receipt lines</span>
+                            <span>{expense.receiptLines.length} line items</span>
                           ) : null}
                         </div>
                         <div className="activity-card-actions">
@@ -509,7 +509,7 @@ export default function GroupView({ app, groupId, onBack }) {
               <h3 className="workspace-title">How this stays fast</h3>
               <ul className="compact-list">
                 <li>Use quick expense for simple equal or exact splits.</li>
-                <li>Use receipt table when each line needs per-person units.</li>
+                <li>Use itemized bills when each line belongs to specific people.</li>
                 <li>Jump to Settle when you only care about the final transfers.</li>
               </ul>
             </div>

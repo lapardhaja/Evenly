@@ -9,7 +9,8 @@ function lineTotal(unitPrice, quantity) {
 }
 
 /**
- * Rece-style receipt: line items with per-person unit counts; tax & tip scale with food share.
+ * Itemized receipt entry: line items with per-person unit counts; tax and tip
+ * scale with each person's food share.
  *
  * @param {{
  *   participants: { id: string, name: string }[],
@@ -243,10 +244,10 @@ export default function ReceiptExpenseForm({
 
   return (
     <form onSubmit={handleSubmit} className="card receipt-form">
-      <h3>{initial ? 'Edit receipt' : 'Add receipt (line items)'}</h3>
+      <h3>{initial ? 'Edit receipt' : 'Add itemized receipt'}</h3>
       <p className="muted" style={{ marginTop: '-0.5rem' }}>
-        Like Rece: assign who took each unit per row; tax &amp; tip follow food
-        shares.
+        Assign each item to the right people and let Evenly carry tax and tip
+        proportionally.
       </p>
 
       <div className="field">

@@ -1,0 +1,50 @@
+<svg
+  width="1024"
+  height="256"
+  viewBox="0 0 1024 256"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <linearGradient id="evenly-petal-a" x1="22" y1="22" x2="126" y2="126" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9EE4C2" />
+      <stop offset="1" stop-color="#54C7A7" />
+    </linearGradient>
+    <linearGradient id="evenly-petal-b" x1="130" y1="22" x2="234" y2="126" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8DDABC" />
+      <stop offset="1" stop-color="#47BFA5" />
+    </linearGradient>
+    <linearGradient id="evenly-petal-c" x1="22" y1="130" x2="126" y2="234" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#27B2B3" />
+      <stop offset="1" stop-color="#1C96A4" />
+    </linearGradient>
+    <linearGradient id="evenly-petal-d" x1="130" y1="130" x2="234" y2="234" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2DB7B6" />
+      <stop offset="1" stop-color="#1A98A5" />
+    </linearGradient>
+  </defs>
+
+  <g>
+    <circle cx="76" cy="76" r="54" fill="url(#evenly-petal-a)" />
+    <circle cx="180" cy="76" r="54" fill="url(#evenly-petal-b)" />
+    <circle cx="76" cy="180" r="54" fill="url(#evenly-petal-c)" />
+    <circle cx="180" cy="180" r="54" fill="url(#evenly-petal-d)" />
+
+    <circle cx="128" cy="76" r="68" stroke="white" stroke-width="8" opacity="0.92" />
+    <circle cx="76" cy="128" r="68" stroke="white" stroke-width="8" opacity="0.92" />
+    <circle cx="180" cy="128" r="68" stroke="white" stroke-width="8" opacity="0.92" />
+    <circle cx="128" cy="180" r="68" stroke="white" stroke-width="8" opacity="0.92" />
+  </g>
+
+  <text
+    x="300"
+    y="178"
+    fill="#157E89"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="172"
+    font-weight="700"
+    letter-spacing="3"
+  >
+    EVENLY
+  </text>
+</svg>
