@@ -57,4 +57,5 @@ The build is a **Progressive Web App**: **Web App Manifest** + **service worker*
 
 ## License
 
-Copyright © 2026 Evenly — Designed by Servet Lapardhaja.
+Copyright © 2026 Evenly  
+Designed by Servet Lapardhaja.

@@ -89,9 +89,14 @@ export default function Layout({ children }) {
             borderColor: 'divider',
           }}
         >
-          <Typography variant="caption" color="text.secondary">
-            &copy; {new Date().getFullYear()} Evenly &mdash; Designed by Servet Lapardhaja
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              &copy; {new Date().getFullYear()} Evenly
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Designed by Servet Lapardhaja
+            </Typography>
+          </Box>
         </Box>
       </Box>
     </ThemeProvider>
