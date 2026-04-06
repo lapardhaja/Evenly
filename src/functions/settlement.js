@@ -22,7 +22,10 @@ export function computeNetBalances(group) {
   receipts.forEach((receipt) => {
     const items = idMapToList(receipt.items);
     const subTotal = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
-    const total = currency(subTotal).add(receipt.taxCost || 0).add(receipt.tipCost || 0).value;
+    const total = currency(subTotal)
+      .add(receipt.taxCost || 0)
+      .add(receipt.tipCost || 0)
+      .subtract(receipt.discountCost || 0).value;
 
     if (receipt.paidById && balances[receipt.paidById] !== undefined) {
       balances[receipt.paidById] = currency(balances[receipt.paidById]).add(total).value;
@@ -47,7 +50,8 @@ export function computeNetBalances(group) {
         const ratio = personSub / subTotal;
         personTotal = currency(personSub)
           .add(currency(receipt.taxCost || 0).multiply(ratio))
-          .add(currency(receipt.tipCost || 0).multiply(ratio)).value;
+          .add(currency(receipt.tipCost || 0).multiply(ratio))
+          .subtract(currency(receipt.discountCost || 0).multiply(ratio)).value;
       }
 
       balances[person.id] = currency(balances[person.id] || 0).subtract(personTotal).value;

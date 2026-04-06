@@ -97,7 +97,10 @@ export function useGroup(groupId) {
     return idMapToList(group?.receipts).map((r) => {
       const items = idMapToList(r.items);
       const subTotal = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
-      const total = currency(subTotal).add(r.taxCost || 0).add(r.tipCost || 0).value;
+      const total = currency(subTotal)
+        .add(r.taxCost || 0)
+        .add(r.tipCost || 0)
+        .subtract(r.discountCost || 0).value;
       return { ...r, total, subTotal };
     });
   }, [group?.receipts]);
@@ -199,6 +202,7 @@ export function useGroup(groupId) {
             personPaidMap: {},
             taxCost: 0,
             tipCost: 0,
+            discountCost: 0,
           },
         };
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };
@@ -208,7 +212,7 @@ export function useGroup(groupId) {
     [groupId, setData],
   );
 
-  /** Create a receipt and seed line items (e.g. from scan). Optional taxCost / tipCost. */
+  /** Create a receipt and seed line items (e.g. from scan). Optional taxCost / tipCost / discountCost. */
   const addReceiptWithItems = useCallback(
     (title, lineItems, charges = {}) => {
       const receiptId = uuidv4();
@@ -223,6 +227,7 @@ export function useGroup(groupId) {
       }
       const taxCost = currency(charges.taxCost ?? 0).value;
       const tipCost = currency(charges.tipCost ?? 0).value;
+      const discountCost = currency(charges.discountCost ?? 0).value;
       let dateMs = Date.now();
       if (charges.receiptDate && typeof charges.receiptDate === 'string') {
         const iso = charges.receiptDate.trim();
@@ -246,6 +251,8 @@ export function useGroup(groupId) {
             personPaidMap: {},
             taxCost: Number.isFinite(taxCost) && taxCost >= 0 ? taxCost : 0,
             tipCost: Number.isFinite(tipCost) && tipCost >= 0 ? tipCost : 0,
+            discountCost:
+              Number.isFinite(discountCost) && discountCost >= 0 ? discountCost : 0,
           },
         };
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };
@@ -339,8 +346,12 @@ export function useGroupReceipt(groupId, receiptId) {
     [items],
   );
   const total = useMemo(
-    () => currency(subTotal).add(receipt?.taxCost || 0).add(receipt?.tipCost || 0).value,
-    [subTotal, receipt?.taxCost, receipt?.tipCost],
+    () =>
+      currency(subTotal)
+        .add(receipt?.taxCost || 0)
+        .add(receipt?.tipCost || 0)
+        .subtract(receipt?.discountCost || 0).value,
+    [subTotal, receipt?.taxCost, receipt?.tipCost, receipt?.discountCost],
   );
 
   const mutateReceipt = useCallback(
@@ -440,7 +451,8 @@ export function useGroupReceipt(groupId, receiptId) {
       const personSub = personSubTotalMap[personId]?.subTotal || 0;
       const tax = getChargeForPerson('taxCost', personId);
       const tip = getChargeForPerson('tipCost', personId);
-      return currency(personSub).add(tax).add(tip).value;
+      const discount = getChargeForPerson('discountCost', personId);
+      return currency(personSub).add(tax).add(tip).subtract(discount).value;
     },
     [personSubTotalMap, getChargeForPerson],
   );

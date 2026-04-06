@@ -396,6 +396,39 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
             </TableRow>
 
+            {/* Discount */}
+            <TableRow>
+              <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}>
+                Discount
+              </TableCell>
+              <TableCell />
+              <TableCell align="right">
+                <ButtonBase
+                  onClick={() =>
+                    !receipt.locked &&
+                    showEditTextModal({
+                      setValue: (v) => updateChargeValue('discountCost', v),
+                      title: 'Edit discount',
+                      value: String(receipt.discountCost ?? 0),
+                      inputKind: 'decimal',
+                    })
+                  }
+                  disabled={receipt.locked}
+                  sx={{ borderRadius: 1, px: 0.5 }}
+                >
+                  <Typography
+                    variant="body2"
+                    color={(receipt.discountCost || 0) > 0 ? 'success.main' : 'text.secondary'}
+                  >
+                    {(receipt.discountCost || 0) > 0
+                      ? `−${currency(receipt.discountCost).format()}`
+                      : currency(0).format()}
+                  </Typography>
+                </ButtonBase>
+              </TableCell>
+              <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
+            </TableRow>
+
             {/* Total */}
             <TableRow>
               <TableCell sx={{ fontWeight: 700, position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}>
@@ -571,6 +604,14 @@ function PersonTotalListItem({ person, receiptData }) {
               {currency(getChargeForPerson('tipCost', person.id)).format()}
             </Typography>
           </ListItem>
+          {(receipt.discountCost || 0) > 0 && (
+            <ListItem sx={{ py: 0.25, px: 0 }}>
+              <ListItemText primary={<Typography variant="body2">Discount</Typography>} />
+              <Typography variant="body2" color="success.main">
+                −{currency(getChargeForPerson('discountCost', person.id)).format()}
+              </Typography>
+            </ListItem>
+          )}
         </List>
       </Collapse>
     </>

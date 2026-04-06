@@ -36,6 +36,16 @@ function normalizeMoney(val) {
   return n;
 }
 
+/** Discount is stored as a positive amount; accept negative from model as absolute. */
+function normalizeDiscount(val) {
+  if (val == null || val === '') return 0;
+  const n = typeof val === 'number' ? val : parseFloat(String(val).replace(/,/g, ''));
+  if (!Number.isFinite(n) || n === 0) return 0;
+  const a = Math.abs(n);
+  if (a > 100_000) return 0;
+  return a;
+}
+
 /** YYYY-MM-DD only; returns null if invalid */
 function normalizeReceiptDateISO(str) {
   if (str == null) return null;
@@ -131,6 +141,7 @@ Return ONLY a valid JSON object (no markdown, no code fences):
   ],
   "tax": 0.00,
   "tip": 0.00,
+  "discount": 0.00,
   "receiptDate": "",
   "grandTotal": 0.00
 }
@@ -147,7 +158,8 @@ Rules for "items":
 - "price" is the line total for that row (unit price × quantity), as a number.
 - quantity defaults to 1 if not shown.
 - Do NOT put these in items (they go in tax/tip instead): sales tax, VAT, tax lines, tip, gratuity, service charge, service fee, auto gratuity, convenience fee if clearly a tip-like charge.
-- EXCLUDE from items: subtotal, total, discounts (unless you must approximate—prefer omitting ambiguous lines), payment lines (VISA, AMEX, CASH, CHANGE), addresses, date-only lines.
+- EXCLUDE from items: subtotal, total, payment lines (VISA, AMEX, CASH, CHANGE), addresses, date-only lines.
+- Do NOT duplicate discount amounts inside "items" if you put them in "discount".
 
 Rules for "tax":
 - Put the receipt's sales tax / VAT / "Tax" line amount here. Use 0 if not shown or unclear.
@@ -155,8 +167,13 @@ Rules for "tax":
 Rules for "tip":
 - Put the combined amount of: tip, gratuity, service fee (when it is a discretionary/tip-style fee), service charge, auto gratuity—if multiple such lines exist, sum them into one number. Use 0 if none.
 
-If nothing is readable, return {"storeName":"","items":[],"tax":0,"tip":0,"receiptDate":"","grandTotal":0}
-Always return valid JSON with keys storeName, items, tax, tip, receiptDate, grandTotal.`;
+Rules for "discount":
+- Positive number: total savings from the receipt (store discount, coupon, promo, "You saved", loyalty, employee discount, etc.). Sum multiple discount lines into one.
+- If the receipt shows a negative dollar line for discount, use the absolute value.
+- Use 0 if none or unclear.
+
+If nothing is readable, return {"storeName":"","items":[],"tax":0,"tip":0,"discount":0,"receiptDate":"","grandTotal":0}
+Always return valid JSON with keys storeName, items, tax, tip, discount, receiptDate, grandTotal.`;
 
   try {
     const response = await fetch(geminiUrl(model, apiKey), {
@@ -215,6 +232,12 @@ Always return valid JSON with keys storeName, items, tax, tip, receiptDate, gran
       normalizeReceiptDateISO(parsed.date) ||
       normalizeReceiptDateISO(parsed.transactionDate);
     const grandTotal = normalizeMoney(parsed.grandTotal ?? parsed.total ?? parsed.amountDue);
+    const discount = normalizeDiscount(
+      parsed.discount ??
+        parsed.discountTotal ??
+        parsed.savings ??
+        parsed.promoDiscount,
+    );
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
@@ -222,6 +245,7 @@ Always return valid JSON with keys storeName, items, tax, tip, receiptDate, gran
       items,
       tax,
       tip,
+      discount,
       receiptDate: receiptDate || '',
       grandTotal,
     });

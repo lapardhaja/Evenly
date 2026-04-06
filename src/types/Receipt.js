@@ -12,6 +12,7 @@
  *   itemToPersonQuantityMap: Record<string, Record<string, number>>,
  *   taxCost: number,
  *   tipCost: number,
+ *   discountCost?: number,
  * }} ReceiptEntity
  */
 

@@ -20,6 +20,7 @@ export default function ScanReceiptDialog({
   items,
   taxCost = 0,
   tipCost = 0,
+  discountCost = 0,
   defaultTitle = '',
   defaultReceiptDateISO = '',
   scannedGrandTotal = 0,
@@ -37,11 +38,14 @@ export default function ScanReceiptDialog({
 
   const totalMismatch = useMemo(() => {
     if (items.length === 0 || scannedGrandTotal <= 0) return null;
-    const expected = currency(itemsSubtotal).add(taxCost).add(tipCost).value;
+    const expected = currency(itemsSubtotal)
+      .add(taxCost)
+      .add(tipCost)
+      .subtract(discountCost).value;
     const diff = Math.abs(currency(scannedGrandTotal).subtract(expected).value);
     if (diff <= 0.02) return null;
     return { expected, scanned: scannedGrandTotal };
-  }, [items.length, itemsSubtotal, taxCost, tipCost, scannedGrandTotal]);
+  }, [items.length, itemsSubtotal, taxCost, tipCost, discountCost, scannedGrandTotal]);
 
   useEffect(() => {
     if (open) {
@@ -58,6 +62,7 @@ export default function ScanReceiptDialog({
     onConfirm(t, items, {
       taxCost,
       tipCost,
+      discountCost,
       receiptDate: receiptDateISO.trim() || undefined,
     });
     onClose();
@@ -109,18 +114,23 @@ export default function ScanReceiptDialog({
         )}
         {totalMismatch && (
           <Alert severity="info" sx={{ mb: 1 }}>
-            Items + tax + tip ({currency(totalMismatch.expected).format()}) don’t match receipt
-            total ({currency(totalMismatch.scanned).format()}). Check line items or tax/tip after
-            saving.
+            Items + tax + tip − discount ({currency(totalMismatch.expected).format()}) don’t match
+            receipt total ({currency(totalMismatch.scanned).format()}). Check amounts after saving.
           </Alert>
         )}
-        {(taxCost > 0 || tipCost > 0) && (
+        {(taxCost > 0 || tipCost > 0 || discountCost > 0) && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             {taxCost > 0 && <>Tax: <strong>{currency(taxCost).format()}</strong></>}
-            {taxCost > 0 && tipCost > 0 && ' · '}
+            {taxCost > 0 && (tipCost > 0 || discountCost > 0) && ' · '}
             {tipCost > 0 && (
               <>
                 Tip / gratuity / service: <strong>{currency(tipCost).format()}</strong>
+              </>
+            )}
+            {tipCost > 0 && discountCost > 0 && ' · '}
+            {discountCost > 0 && (
+              <>
+                Discount: <strong>−{currency(discountCost).format()}</strong>
               </>
             )}
           </Typography>
@@ -129,8 +139,8 @@ export default function ScanReceiptDialog({
           <Alert severity="warning" sx={{ mb: 1 }}>
             No line items were detected. You can still create an empty receipt and add
             items manually, or try another photo with better lighting.
-            {(taxCost > 0 || tipCost > 0) &&
-              ' Tax and tip above will still be saved on the receipt.'}
+            {(taxCost > 0 || tipCost > 0 || discountCost > 0) &&
+              ' Tax, tip, and discount above will still be saved on the receipt.'}
           </Alert>
         ) : (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -168,7 +178,7 @@ export default function ScanReceiptDialog({
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="contained" onClick={handleConfirm}>
-          {items.length === 0 && taxCost <= 0 && tipCost <= 0
+          {items.length === 0 && taxCost <= 0 && tipCost <= 0 && discountCost <= 0
             ? 'Create empty receipt'
             : 'Create receipt'}
         </Button>
