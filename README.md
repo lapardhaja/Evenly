@@ -14,7 +14,7 @@ Split receipts easily — a clean, responsive web app for splitting shared expen
 - **Responsive** — Works on mobile (iPhone, Android) and desktop
 - **Offline-First** — All data stored locally in your browser
 - **Appearance** — Light, dark, or Auto (follow device); choice is saved in the browser
-- **Mobile** — Swipe left on a group or receipt to delete (red Delete action); a bottom bar offers **Undo** for a few seconds
+- **Mobile** — Swipe left a short way to reveal **Delete** (red); tap it to remove; **Undo** appears on a snackbar for a few seconds
 
 ## Getting Started
 
