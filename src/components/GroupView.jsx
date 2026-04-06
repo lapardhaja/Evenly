@@ -23,6 +23,39 @@ function navLabel(tab) {
   return 'Settle';
 }
 
+function NavIconExpenses() {
+  return (
+    <svg className="rece-mobile-nav-svg" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"
+      />
+    </svg>
+  );
+}
+
+function NavIconPeople() {
+  return (
+    <svg className="rece-mobile-nav-svg" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
+      />
+    </svg>
+  );
+}
+
+function NavIconSettle() {
+  return (
+    <svg className="rece-mobile-nav-svg" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+      />
+    </svg>
+  );
+}
+
 function formatDate(value) {
   if (!value) return 'No date';
   const date = new Date(value);
@@ -325,7 +358,7 @@ export default function GroupView({ app, groupId, onBack }) {
           className={`rece-tab${groupTab === 'items' ? ' active' : ''}`}
           onClick={() => setGroupTab('items')}
         >
-          Items
+          Expenses
         </button>
         <button
           type="button"
@@ -350,7 +383,7 @@ export default function GroupView({ app, groupId, onBack }) {
       {groupTab === 'items' && group.participants.length === 0 ? (
         <div className="rece-paper empty">
           Add people in the <strong>People</strong> tab first, then come back to
-          log expenses.
+          <strong> Expenses</strong> to log spending.
         </div>
       ) : null}
 
@@ -577,8 +610,8 @@ export default function GroupView({ app, groupId, onBack }) {
 
               {group.participants.length === 0 ? (
                 <p className="muted" style={{ marginBottom: 0 }}>
-                  Add everyone who&apos;ll split bills here. Then jump back to Items
-                  to log expenses or receipts.
+                  Add everyone who&apos;ll split bills here. Then jump back to
+                  Expenses to log spending or receipts.
                 </p>
               ) : (
                 <div className="people-list">
@@ -785,8 +818,10 @@ export default function GroupView({ app, groupId, onBack }) {
           onClick={() => setGroupTab('items')}
           aria-label="Open expenses tab"
         >
+          <span className="rece-mobile-nav-icon" aria-hidden>
+            <NavIconExpenses />
+          </span>
           <span className="rece-mobile-nav-label">{navLabel('items')}</span>
-          <span className="rece-mobile-nav-hint">Track</span>
         </button>
         <button
           type="button"
@@ -794,8 +829,10 @@ export default function GroupView({ app, groupId, onBack }) {
           onClick={() => setGroupTab('people')}
           aria-label="Open people tab"
         >
+          <span className="rece-mobile-nav-icon" aria-hidden>
+            <NavIconPeople />
+          </span>
           <span className="rece-mobile-nav-label">{navLabel('people')}</span>
-          <span className="rece-mobile-nav-hint">Manage</span>
         </button>
         <button
           type="button"
@@ -803,8 +840,10 @@ export default function GroupView({ app, groupId, onBack }) {
           onClick={() => setGroupTab('settle')}
           aria-label="Open settle tab"
         >
+          <span className="rece-mobile-nav-icon" aria-hidden>
+            <NavIconSettle />
+          </span>
           <span className="rece-mobile-nav-label">{navLabel('settle')}</span>
-          <span className="rece-mobile-nav-hint">Review</span>
         </button>
       </nav>
     </div>

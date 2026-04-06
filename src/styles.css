@@ -36,28 +36,18 @@
   flex: 1;
 }
 
-.brand-home {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  padding: 0;
+.rece-appbar-spacer {
   flex-shrink: 0;
+  min-width: 72px;
 }
 
-.brand-home:hover {
-  background: rgba(255, 255, 255, 0.18);
+.rece-appbar-title-block {
+  min-width: 0;
+  flex: 1;
 }
 
-.brand-logo {
-  width: 28px;
-  height: 28px;
-  display: block;
-  flex-shrink: 0;
+.rece-appbar-title-line {
+  margin: 0;
 }
 
 .rece-appbar-title {
@@ -65,6 +55,31 @@
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+}
+
+.rece-appbar-home {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+  transition: opacity var(--transition);
+}
+
+.rece-appbar-home:hover {
+  opacity: 0.88;
+}
+
+.rece-appbar-home:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 2px;
 }
 
 .rece-appbar-subtitle {
@@ -236,9 +251,9 @@
   bottom: max(12px, env(safe-area-inset-bottom));
   z-index: 50;
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  padding: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px 12px;
   border: 1px solid var(--border-strong);
   border-radius: 20px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
@@ -253,20 +268,49 @@
 }
 
 .rece-mobile-nav-item {
-  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 52px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   background: transparent;
   color: var(--text-muted);
   font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 0 10px;
-  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  padding: 8px 6px;
+  font-size: 0.68rem;
+  line-height: 1.15;
 }
 
 .rece-mobile-nav-item.active {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.rece-mobile-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.rece-mobile-nav-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  opacity: 0.85;
+}
+
+.rece-mobile-nav-item.active .rece-mobile-nav-svg {
+  opacity: 1;
+}
+
+.rece-mobile-nav-label {
+  text-align: center;
+  max-width: 100%;
 }
 
 .rece-mobile-nav-action {
@@ -1090,15 +1134,8 @@
     padding: 8px 12px;
   }
 
-  .brand-home {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-  }
-
-  .brand-logo {
-    width: 24px;
-    height: 24px;
+  .rece-appbar-spacer {
+    min-width: 64px;
   }
 
   .rece-appbar-title {
@@ -1121,14 +1158,6 @@
   .person-card > .btn {
     grid-column: 1 / -1;
     justify-self: flex-start;
-  }
-
-  .rece-mobile-nav {
-    grid-template-columns: 1fr;
-  }
-
-  .rece-mobile-nav-action {
-    width: 100%;
   }
 
   .rece-mobile-nav-label {

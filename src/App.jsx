@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import Dashboard from './components/Dashboard.jsx';
 import GroupView from './components/GroupView.jsx';
-import evenlyLogo from './evenly-logo.svg';
 import { useAppState } from './hooks/useAppState.js';
 import { useTheme } from './hooks/useTheme.js';
 
@@ -19,14 +18,6 @@ export default function App() {
       <header className="rece-appbar">
         <div className="rece-appbar-inner">
           <div className="rece-appbar-leading">
-            <button
-              type="button"
-              className="brand-home"
-              onClick={onBack}
-              aria-label="Go to dashboard"
-            >
-              <img className="brand-logo" src={evenlyLogo} alt="Evenly" />
-            </button>
             {openGroupId ? (
               <button
                 type="button"
@@ -36,9 +27,20 @@ export default function App() {
               >
                 Back
               </button>
-            ) : null}
-            <div>
-              <h1 className="rece-appbar-title">Evenly</h1>
+            ) : (
+              <span className="rece-appbar-spacer" aria-hidden />
+            )}
+            <div className="rece-appbar-title-block">
+              <h1 className="rece-appbar-title rece-appbar-title-line">
+                <button
+                  type="button"
+                  className="rece-appbar-home"
+                  onClick={onBack}
+                  aria-label="Home — all groups"
+                >
+                  Evenly
+                </button>
+              </h1>
               <p className="rece-appbar-subtitle">
                 {activeGroup
                   ? `${activeGroup.name} workspace`
