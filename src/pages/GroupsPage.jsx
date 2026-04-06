@@ -20,6 +20,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import currency from 'currency.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useGroups } from '../hooks/useGroupData.js';
+import { fabFixedPlacementSx } from '../core/fabPlacement.js';
 
 export default function GroupsPage() {
   const navigate = useNavigate();
@@ -163,11 +164,7 @@ export default function GroupsPage() {
             title: 'Create New Group',
           })
         }
-        sx={{
-          position: 'fixed',
-          bottom: { xs: 24, sm: 32 },
-          right: { xs: 24, sm: 32 },
-        }}
+        sx={fabFixedPlacementSx}
       >
         <AddIcon />
       </Fab>

@@ -30,6 +30,7 @@ import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import useAddItemModal from './components/UseAddItemModal.jsx';
+import { fabFixedPlacementSx } from '../core/fabPlacement.js';
 
 export default function ReceiptInfoItemsTab({ receiptData }) {
   const {
@@ -432,11 +433,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
         <Fab
           color="primary"
           onClick={showAddItemModal}
-          sx={{
-            position: 'fixed',
-            bottom: { xs: 24, sm: 32 },
-            right: { xs: 24, sm: 32 },
-          }}
+          sx={fabFixedPlacementSx}
         >
           <AddIcon />
         </Fab>

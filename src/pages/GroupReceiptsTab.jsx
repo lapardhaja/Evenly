@@ -21,6 +21,7 @@ import currency from 'currency.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
+import { fabFixedPlacementSx } from '../core/fabPlacement.js';
 
 export default function GroupReceiptsTab({ groupId, groupData }) {
   const { receipts, people, addReceipt, addReceiptWithItems } = groupData;
@@ -189,11 +190,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
 
       <SpeedDial
         ariaLabel="Add receipt"
-        sx={{
-          position: 'fixed',
-          bottom: { xs: 24, sm: 32 },
-          right: { xs: 24, sm: 32 },
-        }}
+        sx={fabFixedPlacementSx}
         icon={<SpeedDialIcon />}
         open={speedDialOpen}
         onOpen={() => setSpeedDialOpen(true)}
