@@ -35,6 +35,8 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   const [scannedStoreName, setScannedStoreName] = useState('');
   const [scannedTax, setScannedTax] = useState(0);
   const [scannedTip, setScannedTip] = useState(0);
+  const [scannedReceiptDate, setScannedReceiptDate] = useState('');
+  const [scannedGrandTotal, setScannedGrandTotal] = useState(0);
   const [scanFlowError, setScanFlowError] = useState('');
 
   const sorted = useMemo(
@@ -67,17 +69,22 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     setScanFlowError('');
     try {
       const dataUrl = await readFileAsDataUrl(file);
-      const { items, storeName, tax, tip } = await scanReceiptImage(dataUrl);
+      const { items, storeName, tax, tip, receiptDate, grandTotal } =
+        await scanReceiptImage(dataUrl);
       setScannedItems(Array.isArray(items) ? items : []);
       setScannedStoreName(storeName || '');
       setScannedTax(typeof tax === 'number' ? tax : 0);
       setScannedTip(typeof tip === 'number' ? tip : 0);
+      setScannedReceiptDate(typeof receiptDate === 'string' ? receiptDate : '');
+      setScannedGrandTotal(typeof grandTotal === 'number' ? grandTotal : 0);
       setScanDialogOpen(true);
     } catch (err) {
       setScannedItems([]);
       setScannedStoreName('');
       setScannedTax(0);
       setScannedTip(0);
+      setScannedReceiptDate('');
+      setScannedGrandTotal(0);
       setScanFlowError(err.message || 'Scan failed');
       setScanDialogOpen(true);
     } finally {
@@ -89,6 +96,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     const id = addReceiptWithItems(title, items, {
       taxCost: charges.taxCost ?? 0,
       tipCost: charges.tipCost ?? 0,
+      receiptDate: charges.receiptDate,
     });
     if (id) navigate(`/groups/${groupId}/receipt/${id}`);
   };
@@ -225,10 +233,14 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           setScannedStoreName('');
           setScannedTax(0);
           setScannedTip(0);
+          setScannedReceiptDate('');
+          setScannedGrandTotal(0);
         }}
         items={scannedItems}
         taxCost={scannedTax}
         tipCost={scannedTip}
+        defaultReceiptDateISO={scannedReceiptDate}
+        scannedGrandTotal={scannedGrandTotal}
         defaultTitle={scannedStoreName}
         error={scanFlowError}
         onConfirm={handleScanConfirm}

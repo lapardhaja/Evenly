@@ -29,8 +29,13 @@ export async function scanReceiptImage(dataUrl) {
   const storeName = typeof data.storeName === 'string' ? data.storeName.trim() : '';
   const tax = typeof data.tax === 'number' && Number.isFinite(data.tax) ? Math.max(0, data.tax) : 0;
   const tip = typeof data.tip === 'number' && Number.isFinite(data.tip) ? Math.max(0, data.tip) : 0;
+  const receiptDate = typeof data.receiptDate === 'string' ? data.receiptDate.trim() : '';
+  const grandTotal =
+    typeof data.grandTotal === 'number' && Number.isFinite(data.grandTotal)
+      ? Math.max(0, data.grandTotal)
+      : 0;
 
-  return { storeName, items, tax, tip };
+  return { storeName, items, tax, tip, receiptDate, grandTotal };
 }
 
 export function readFileAsDataUrl(file) {

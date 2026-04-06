@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -21,23 +21,45 @@ export default function ScanReceiptDialog({
   taxCost = 0,
   tipCost = 0,
   defaultTitle = '',
+  defaultReceiptDateISO = '',
+  scannedGrandTotal = 0,
   onConfirm,
   error: externalError,
 }) {
   const [title, setTitle] = useState('Scanned receipt');
+  const [receiptDateISO, setReceiptDateISO] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  const itemsSubtotal = useMemo(
+    () => items.reduce((s, row) => s + (Number(row.cost) || 0), 0),
+    [items],
+  );
+
+  const totalMismatch = useMemo(() => {
+    if (items.length === 0 || scannedGrandTotal <= 0) return null;
+    const expected = currency(itemsSubtotal).add(taxCost).add(tipCost).value;
+    const diff = Math.abs(currency(scannedGrandTotal).subtract(expected).value);
+    if (diff <= 0.02) return null;
+    return { expected, scanned: scannedGrandTotal };
+  }, [items.length, itemsSubtotal, taxCost, tipCost, scannedGrandTotal]);
 
   useEffect(() => {
     if (open) {
       const t = defaultTitle?.trim();
       setTitle(t || 'Scanned receipt');
+      const d = defaultReceiptDateISO?.trim();
+      setReceiptDateISO(/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : '');
       setPreviewOpen(false);
     }
-  }, [open, defaultTitle]);
+  }, [open, defaultTitle, defaultReceiptDateISO]);
 
   const handleConfirm = () => {
     const t = title.trim() || 'Scanned receipt';
-    onConfirm(t, items, { taxCost, tipCost });
+    onConfirm(t, items, {
+      taxCost,
+      tipCost,
+      receiptDate: receiptDateISO.trim() || undefined,
+    });
     onClose();
   };
 
@@ -59,6 +81,39 @@ export default function ScanReceiptDialog({
           onChange={(e) => setTitle(e.target.value)}
           sx={{ mb: 2 }}
         />
+        <TextField
+          label="Receipt date"
+          type="date"
+          fullWidth
+          size="small"
+          value={receiptDateISO}
+          onChange={(e) => setReceiptDateISO(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ mb: 2 }}
+          helperText={
+            receiptDateISO
+              ? 'From photo when detected — you can edit'
+              : 'Optional — add if shown on the receipt'
+          }
+        />
+        {scannedGrandTotal > 0 && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Total on receipt: <strong>{currency(scannedGrandTotal).format()}</strong>
+            {items.length > 0 && (
+              <>
+                {' '}
+                · Line items subtotal: <strong>{currency(itemsSubtotal).format()}</strong>
+              </>
+            )}
+          </Typography>
+        )}
+        {totalMismatch && (
+          <Alert severity="info" sx={{ mb: 1 }}>
+            Items + tax + tip ({currency(totalMismatch.expected).format()}) don’t match receipt
+            total ({currency(totalMismatch.scanned).format()}). Check line items or tax/tip after
+            saving.
+          </Alert>
+        )}
         {(taxCost > 0 || tipCost > 0) && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             {taxCost > 0 && <>Tax: <strong>{currency(taxCost).format()}</strong></>}

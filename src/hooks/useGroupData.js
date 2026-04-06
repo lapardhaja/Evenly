@@ -198,13 +198,21 @@ export function useGroup(groupId) {
       }
       const taxCost = currency(charges.taxCost ?? 0).value;
       const tipCost = currency(charges.tipCost ?? 0).value;
+      let dateMs = Date.now();
+      if (charges.receiptDate && typeof charges.receiptDate === 'string') {
+        const iso = charges.receiptDate.trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+          const parsed = new Date(`${iso}T12:00:00`).getTime();
+          if (!Number.isNaN(parsed)) dateMs = parsed;
+        }
+      }
       setData((prev) => {
         const g = { ...prev.groups[groupId] };
         g.receipts = {
           ...g.receipts,
           [receiptId]: {
             title,
-            date: Date.now(),
+            date: dateMs,
             locked: false,
             paidById: '',
             items,

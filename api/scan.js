@@ -36,6 +36,22 @@ function normalizeMoney(val) {
   return n;
 }
 
+/** YYYY-MM-DD only; returns null if invalid */
+function normalizeReceiptDateISO(str) {
+  if (str == null) return null;
+  const s = String(str).trim();
+  if (!s) return null;
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const y = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10);
+  const d = parseInt(m[3], 10);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+  return s;
+}
+
 function normalizeItems(raw) {
   if (!Array.isArray(raw)) return [];
   const out = [];
@@ -114,8 +130,18 @@ Return ONLY a valid JSON object (no markdown, no code fences):
     { "name": "item name", "quantity": 1, "price": 0.00 }
   ],
   "tax": 0.00,
-  "tip": 0.00
+  "tip": 0.00,
+  "receiptDate": "",
+  "grandTotal": 0.00
 }
+
+Rules for "receiptDate":
+- If a transaction date appears on the receipt (not future-dated promos), return it as "YYYY-MM-DD" only (e.g. "2024-03-15").
+- Prefer the main receipt / transaction date over "reprint" dates if both exist.
+- If unclear or missing, use empty string "".
+
+Rules for "grandTotal":
+- The final TOTAL / AMOUNT DUE the customer pays, as a number. Use 0 if not visible.
 
 Rules for "items":
 - "price" is the line total for that row (unit price × quantity), as a number.
@@ -129,8 +155,8 @@ Rules for "tax":
 Rules for "tip":
 - Put the combined amount of: tip, gratuity, service fee (when it is a discretionary/tip-style fee), service charge, auto gratuity—if multiple such lines exist, sum them into one number. Use 0 if none.
 
-If nothing is readable, return {"storeName":"","items":[],"tax":0,"tip":0}
-Always return valid JSON with keys storeName, items, tax, tip.`;
+If nothing is readable, return {"storeName":"","items":[],"tax":0,"tip":0,"receiptDate":"","grandTotal":0}
+Always return valid JSON with keys storeName, items, tax, tip, receiptDate, grandTotal.`;
 
   try {
     const response = await fetch(geminiUrl(model, apiKey), {
@@ -184,6 +210,11 @@ Always return valid JSON with keys storeName, items, tax, tip.`;
     const tip = normalizeMoney(
       parsed.tip ?? parsed.tipAmount ?? parsed.gratuity ?? parsed.serviceFee,
     );
+    const receiptDate =
+      normalizeReceiptDateISO(parsed.receiptDate) ||
+      normalizeReceiptDateISO(parsed.date) ||
+      normalizeReceiptDateISO(parsed.transactionDate);
+    const grandTotal = normalizeMoney(parsed.grandTotal ?? parsed.total ?? parsed.amountDue);
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
@@ -191,6 +222,8 @@ Always return valid JSON with keys storeName, items, tax, tip.`;
       items,
       tax,
       tip,
+      receiptDate: receiptDate || '',
+      grandTotal,
     });
   } catch (err) {
     console.error('Scan error:', err);
