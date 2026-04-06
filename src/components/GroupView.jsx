@@ -27,9 +27,9 @@ function isSettled(group, t) {
 }
 
 /**
- * @param {{ app: ReturnType<import('../hooks/useAppState.js').useAppState>, groupId: string }} props
+ * @param {{ app: ReturnType<import('../hooks/useAppState.js').useAppState>, groupId: string, onBack: () => void }} props
  */
-export default function GroupView({ app, groupId }) {
+export default function GroupView({ app, groupId, onBack }) {
   const group = app.groups.find((g) => g.id === groupId);
   const [participantName, setParticipantName] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -120,21 +120,21 @@ export default function GroupView({ app, groupId }) {
         </div>
       </div>
 
-      <nav className="rece-tabs" role="tablist" aria-label="Group sections">
+      <nav className="rece-seg-tabs" role="tablist" aria-label="Group sections">
         <button
           type="button"
           role="tab"
           aria-selected={groupTab === 'items'}
-          className={`rece-tab${groupTab === 'items' ? ' active' : ''}`}
+          className={`rece-seg-tab${groupTab === 'items' ? ' active' : ''}`}
           onClick={() => setGroupTab('items')}
         >
-          Items
+          Expenses
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={groupTab === 'people'}
-          className={`rece-tab${groupTab === 'people' ? ' active' : ''}`}
+          className={`rece-seg-tab${groupTab === 'people' ? ' active' : ''}`}
           onClick={() => setGroupTab('people')}
         >
           People
@@ -143,7 +143,7 @@ export default function GroupView({ app, groupId }) {
           type="button"
           role="tab"
           aria-selected={groupTab === 'settle'}
-          className={`rece-tab${groupTab === 'settle' ? ' active' : ''}`}
+          className={`rece-seg-tab${groupTab === 'settle' ? ' active' : ''}`}
           onClick={() => setGroupTab('settle')}
         >
           Settle
@@ -178,7 +178,7 @@ export default function GroupView({ app, groupId }) {
           </form>
           {group.participants.length === 0 ? (
             <p className="muted" style={{ marginBottom: 0 }}>
-              Add everyone who&apos;ll split bills here. Then use Items to log
+              Add everyone who&apos;ll split bills here. Then use Expenses to log
               expenses or receipts.
             </p>
           ) : (
@@ -223,7 +223,7 @@ export default function GroupView({ app, groupId }) {
       {groupTab === 'items' && group.participants.length === 0 ? (
         <div className="rece-paper empty">
           Add people in the <strong>People</strong> tab first, then come back to
-          log expenses.
+          Expenses to log spending.
         </div>
       ) : null}
 

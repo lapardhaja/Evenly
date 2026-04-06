@@ -28,7 +28,14 @@ export default function App() {
           ) : (
             <span className="rece-appbar-spacer" aria-hidden />
           )}
-          <h1 className="rece-appbar-title">Evenly</h1>
+          <button
+            type="button"
+            className="rece-appbar-title rece-appbar-home"
+            onClick={onBack}
+            aria-label="Home — all groups"
+          >
+            Evenly
+          </button>
           <div className="rece-appbar-actions">
             <button
               type="button"
@@ -47,7 +54,7 @@ export default function App() {
       <div className="rece-container">
         <main className="app-main">
           {openGroupId ? (
-            <GroupView app={app} groupId={openGroupId} />
+            <GroupView app={app} groupId={openGroupId} onBack={onBack} />
           ) : (
             <Dashboard app={app} onOpenGroup={onOpenGroup} />
           )}
