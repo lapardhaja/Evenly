@@ -11,17 +11,18 @@ export default function useLocalStorage(key, initialValue) {
   });
 
   const setValue = useCallback(
-    (value) => {
-      const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      try {
-        localStorage.setItem(key, JSON.stringify(valueToStore));
-      } catch {
-        /* quota exceeded */
-      }
+    (updater) => {
+      setStoredValue((prev) => {
+        const next = updater instanceof Function ? updater(prev) : updater;
+        try {
+          localStorage.setItem(key, JSON.stringify(next));
+        } catch {
+          /* quota exceeded */
+        }
+        return next;
+      });
     },
-    [key, storedValue],
+    [key],
   );
 
   return [storedValue, setValue];
