@@ -30,7 +30,7 @@ Open [http://localhost:5173](http://localhost:5173) to use the app.
 npm run build
 ```
 
-**Vercel** (receipt scan): connect the repo. Vercel sets `VERCEL=1` during build so asset paths use `/`. Add **`GEMINI_API_KEY`** in Project → Settings → Environment Variables. Optional: **`GEMINI_MODEL`** (default `gemini-2.5-flash`). The app calls **`POST /api/scan`** (Gemini vision); the key stays on the server.
+**Vercel** (receipt scan): connect the repo. Vercel sets `VERCEL=1` during build so asset paths use `/`. Add **`GEMINI_API_KEY`** in Project → Settings → Environment Variables. Optional: **`GEMINI_MODEL`** (default `gemini-3.1-flash-lite-preview`). The app calls **`POST /api/scan`** (Gemini vision); the key stays on the server.
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
