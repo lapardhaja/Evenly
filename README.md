@@ -45,7 +45,7 @@ The build is a **Progressive Web App**: **Web App Manifest** + **service worker*
 
 **Limits**
 - Not a native App Store app (no push unless you add more work; iOS PWA limits apply).
-- For a polished **iOS home-screen icon**, consider adding **PNG** `apple-touch-icon` sizes (180×180); SVG works on newer iOS.
+- **iOS home screen** uses **`apple-touch-icon.png`** (180×180) in `public/` — Safari often ignores SVG for the icon. After icon changes, **remove** the old home-screen shortcut and **Add to Home Screen** again.
 
 ## Tech Stack
 
