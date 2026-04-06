@@ -11,24 +11,34 @@ export default function App() {
 
   const onOpenGroup = useCallback((id) => setOpenGroupId(id), []);
   const onBack = useCallback(() => setOpenGroupId(null), []);
+  const activeGroup = app.groups.find((group) => group.id === openGroupId) ?? null;
 
   return (
     <div className="app-shell">
       <header className="rece-appbar">
         <div className="rece-appbar-inner">
-          {openGroupId ? (
-            <button
-              type="button"
-              className="btn btn-ghost rece-appbar-back"
-              onClick={onBack}
-              aria-label="Back to groups"
-            >
-              ←
-            </button>
-          ) : (
-            <span className="rece-appbar-spacer" aria-hidden />
-          )}
-          <h1 className="rece-appbar-title">Evenly</h1>
+          <div className="rece-appbar-leading">
+            {openGroupId ? (
+              <button
+                type="button"
+                className="btn btn-ghost rece-appbar-back"
+                onClick={onBack}
+                aria-label="Back to groups"
+              >
+                Back
+              </button>
+            ) : (
+              <span className="brand-badge">EVENLY</span>
+            )}
+            <div>
+              <h1 className="rece-appbar-title">Evenly</h1>
+              <p className="rece-appbar-subtitle">
+                {activeGroup
+                  ? `${activeGroup.name} workspace`
+                  : 'Rece-inspired bill splitting'}
+              </p>
+            </div>
+          </div>
           <div className="rece-appbar-actions">
             <button
               type="button"
@@ -38,7 +48,7 @@ export default function App() {
                 theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
               }
             >
-              {theme === 'dark' ? 'Light' : 'Dark'}
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </button>
           </div>
         </div>
@@ -47,7 +57,7 @@ export default function App() {
       <div className="rece-container">
         <main className="app-main">
           {openGroupId ? (
-            <GroupView app={app} groupId={openGroupId} />
+            <GroupView app={app} groupId={openGroupId} onBack={onBack} />
           ) : (
             <Dashboard app={app} onOpenGroup={onOpenGroup} />
           )}
@@ -55,7 +65,7 @@ export default function App() {
       </div>
 
       <footer className="app-footer">
-        <p>Sevi & Amanda™</p>
+        <p>Private by default. Everything stays in your browser.</p>
       </footer>
     </div>
   );

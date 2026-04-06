@@ -30,6 +30,20 @@ export function useAppState() {
     [setRaw]
   );
 
+  const renameGroup = useCallback(
+    (groupId, name) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      setRaw((s) => ({
+        ...s,
+        groups: s.groups.map((g) =>
+          g.id === groupId ? { ...g, name: trimmed } : g
+        ),
+      }));
+    },
+    [setRaw]
+  );
+
   const addParticipant = useCallback(
     (groupId, name) => {
       const trimmed = name.trim();
@@ -225,6 +239,7 @@ export function useAppState() {
       ...raw,
       setMeName,
       addGroup,
+      renameGroup,
       addParticipant,
       removeParticipant,
       addExpense,
@@ -240,6 +255,7 @@ export function useAppState() {
       raw,
       setMeName,
       addGroup,
+      renameGroup,
       addParticipant,
       updateParticipantVenmo,
       removeParticipant,
