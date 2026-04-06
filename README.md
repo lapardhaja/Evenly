@@ -34,6 +34,19 @@ npm run build
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
+## PWA (install on phone / desktop)
+
+The build is a **Progressive Web App**: **Web App Manifest** + **service worker** (via `vite-plugin-pwa`).
+
+**Benefits**
+- **Add to Home Screen** (iOS Safari: Share → Add to Home Screen; Android Chrome: Install prompt) — opens like an app, full screen (`standalone`).
+- **Faster repeat visits** — shell and assets are **cached** so the app loads quickly offline after the first visit.
+- **Works offline for the UI** — your data is already in **localStorage**; new scans still need network for `/api/scan`.
+
+**Limits**
+- Not a native App Store app (no push unless you add more work; iOS PWA limits apply).
+- For a polished **iOS home-screen icon**, consider adding **PNG** `apple-touch-icon` sizes (180×180); SVG works on newer iOS.
+
 ## Tech Stack
 
 - React 18 + Vite 6
