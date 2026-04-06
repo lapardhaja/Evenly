@@ -33,6 +33,29 @@
   letter-spacing: 0.01em;
 }
 
+.rece-appbar-home {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.rece-appbar-home:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.rece-appbar-home:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
 .rece-appbar-actions {
   display: flex;
   align-items: center;
@@ -127,6 +150,47 @@
   bottom: -1px;
   height: 2px;
   background: var(--accent);
+}
+
+/* —— Group view: segmented tabs (mobile-friendly) —— */
+.rece-seg-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 16px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+}
+
+.rece-seg-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
+}
+
+.rece-seg-tab:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.rece-seg-tab.active {
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 /* —— Paper / cards —— */
