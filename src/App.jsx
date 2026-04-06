@@ -7,7 +7,7 @@ import { useTheme } from './hooks/useTheme.js';
 
 export default function App() {
   const app = useAppState();
-  const { theme, toggle } = useTheme();
+  useTheme();
   const [openGroupId, setOpenGroupId] = useState(null);
 
   const onOpenGroup = useCallback((id) => setOpenGroupId(id), []);
@@ -19,6 +19,14 @@ export default function App() {
       <header className="rece-appbar">
         <div className="rece-appbar-inner">
           <div className="rece-appbar-leading">
+            <button
+              type="button"
+              className="brand-home"
+              onClick={onBack}
+              aria-label="Go to dashboard"
+            >
+              <img className="brand-logo" src={evenlyLogo} alt="Evenly" />
+            </button>
             {openGroupId ? (
               <button
                 type="button"
@@ -28,27 +36,15 @@ export default function App() {
               >
                 Back
               </button>
-            ) : (
-              <img className="brand-logo" src={evenlyLogo} alt="Evenly" />
-            )}
+            ) : null}
             <div>
               <h1 className="rece-appbar-title">Evenly</h1>
               <p className="rece-appbar-subtitle">
-                {activeGroup ? `${activeGroup.name} workspace` : 'Shared expenses, handled cleanly'}
+                {activeGroup
+                  ? `${activeGroup.name} workspace`
+                  : 'Shared expenses, handled cleanly'}
               </p>
             </div>
-          </div>
-          <div className="rece-appbar-actions">
-            <button
-              type="button"
-              className="btn btn-ghost rece-appbar-theme"
-              onClick={toggle}
-              aria-label={
-                theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
-              }
-            >
-              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-            </button>
           </div>
         </div>
       </header>
@@ -64,7 +60,7 @@ export default function App() {
       </div>
 
       <footer className="app-footer">
-        <p>Private by default. Everything stays in your browser.</p>
+        <p>Copyright Evenly 2026 Designed by Servet Lapardhaja.</p>
       </footer>
     </div>
   );

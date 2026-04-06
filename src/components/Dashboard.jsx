@@ -49,6 +49,7 @@ function getGroupSummary(group, meName) {
 
 export default function Dashboard({ app, onOpenGroup }) {
   const [name, setName] = useState('');
+  const [peopleDraft, setPeopleDraft] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 
   const groupSummaries = useMemo(
@@ -78,10 +79,27 @@ export default function Dashboard({ app, onOpenGroup }) {
     e.preventDefault();
     const id = app.addGroup(name);
     if (!id) return;
+    const seen = new Set();
+    const peopleToAdd = peopleDraft
+      .split(/[\n,]+/)
+      .map((person) => person.trim())
+      .filter(Boolean);
+
     if (app.meName.trim()) {
+      const normalizedMe = app.meName.trim().toLowerCase();
+      seen.add(normalizedMe);
       app.addParticipant(id, app.meName);
     }
+
+    peopleToAdd.forEach((person) => {
+      const normalized = person.toLowerCase();
+      if (seen.has(normalized)) return;
+      seen.add(normalized);
+      app.addParticipant(id, person);
+    });
+
     setName('');
+    setPeopleDraft('');
     setModalOpen(false);
     onOpenGroup(id);
   }
@@ -261,7 +279,7 @@ export default function Dashboard({ app, onOpenGroup }) {
         }
       >
         <form id="form-new-group" onSubmit={handleCreate}>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <label htmlFor="group-name">Group name</label>
             <input
               id="group-name"
@@ -272,13 +290,25 @@ export default function Dashboard({ app, onOpenGroup }) {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="group-people">Add people now</label>
+            <textarea
+              id="group-people"
+              className="textarea"
+              placeholder="Alex, Sarah, Mike"
+              value={peopleDraft}
+              onChange={(e) => setPeopleDraft(e.target.value)}
+            />
+          </div>
           {app.meName.trim() ? (
             <p className="muted" style={{ marginBottom: 0 }}>
-              You&apos;ll be added to the group automatically as {app.meName.trim()}.
+              You&apos;ll be added automatically as {app.meName.trim()}. Add the rest
+              of the group here to start with a complete setup.
             </p>
           ) : (
             <p className="muted" style={{ marginBottom: 0 }}>
-              Tip: set your name first so the app can highlight your balances.
+              Add names separated by commas or new lines. You can always edit the
+              list later.
             </p>
           )}
         </form>
