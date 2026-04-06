@@ -18,6 +18,7 @@ export default function ScanReceiptDialog({
   open,
   onClose,
   items,
+  defaultTitle = '',
   onConfirm,
   error: externalError,
 }) {
@@ -26,10 +27,11 @@ export default function ScanReceiptDialog({
 
   useEffect(() => {
     if (open) {
-      setTitle('Scanned receipt');
+      const t = defaultTitle?.trim();
+      setTitle(t || 'Scanned receipt');
       setPreviewOpen(false);
     }
-  }, [open]);
+  }, [open, defaultTitle]);
 
   const handleConfirm = () => {
     const t = title.trim() || 'Scanned receipt';

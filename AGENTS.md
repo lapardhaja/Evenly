@@ -2,7 +2,7 @@
 
 ## Project overview
 
-**Evenly** is a receipt-splitting SPA (React 18 + Vite 6 + MUI 5). Data persists in `localStorage`. Can deploy to **GitHub Pages** (static) or **Vercel** (static + `/api/scan-receipt` for Google Vision OCR; env `GOOGLE_VISION_API_KEY`).
+**Evenly** is a receipt-splitting SPA (React 18 + Vite 6 + MUI 5). Data persists in `localStorage`. Deploy to **GitHub Pages** (static only) or **Vercel** (static + `POST /api/scan` using Gemini; env `GEMINI_API_KEY`, optional `GEMINI_MODEL`).
 
 ## Tech stack
 

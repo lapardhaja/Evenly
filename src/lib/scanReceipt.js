@@ -1,26 +1,34 @@
 import { compressImageDataUrl } from './compressImageForScan.js';
 
 /**
- * Calls Vercel serverless /api/scan-receipt (same origin in prod).
- * Local dev with Vite only: set VITE_SCAN_RECEIPT_URL to your `vercel dev` origin, e.g. http://localhost:3000
+ * Photo → /api/scan (Vercel) → Gemini → { storeName, items }
+ * Local: VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev (with vercel dev)
  */
-export async function scanReceiptImage(imageBase64) {
-  const compressed = await compressImageDataUrl(imageBase64);
+export async function scanReceiptImage(dataUrl) {
+  const compressed = await compressImageDataUrl(dataUrl);
+
+  const m = compressed.match(/^data:([^;]+);base64,(.+)$/);
+  const mimeType = m ? m[1] : 'image/jpeg';
+  const base64Image = m ? m[2].trim() : compressed.replace(/^data:image\/\w+;base64,/, '').trim();
 
   const origin = (import.meta.env.VITE_SCAN_RECEIPT_URL || '').replace(/\/$/, '');
-  const url = `${origin}/api/scan-receipt`;
+  const url = `${origin}/api/scan`;
 
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageBase64: compressed }),
+    body: JSON.stringify({ base64Image, mimeType }),
   });
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(data.error || `Scan failed (${res.status})`);
   }
-  return data;
+
+  const items = Array.isArray(data.items) ? data.items : [];
+  const storeName = typeof data.storeName === 'string' ? data.storeName.trim() : '';
+
+  return { storeName, items };
 }
 
 export function readFileAsDataUrl(file) {

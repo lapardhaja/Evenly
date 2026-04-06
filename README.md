@@ -30,10 +30,9 @@ Open [http://localhost:5173](http://localhost:5173) to use the app.
 npm run build
 ```
 
-**Vercel** (recommended for receipt scan): connect the repo. Vercel sets `VERCEL=1` during build so asset paths use `/`. Add **`GOOGLE_VISION_API_KEY`** in Project → Settings → Environment Variables and enable **Cloud Vision API** on that Google Cloud project. The app serves `POST /api/scan-receipt` as a serverless function; the key stays on the server.
+**Vercel** (receipt scan): connect the repo. Vercel sets `VERCEL=1` during build so asset paths use `/`. Add **`GEMINI_API_KEY`** in Project → Settings → Environment Variables. Optional: **`GEMINI_MODEL`** (default `gemini-2.0-flash`). The app calls **`POST /api/scan`** (Gemini vision); the key stays on the server.
 
-Local scan dev: run `vercel dev` in the project root and start Vite with  
-`VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev` (port from `vercel dev`).
+Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
 ## Tech Stack
 

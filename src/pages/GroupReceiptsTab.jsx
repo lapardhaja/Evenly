@@ -31,6 +31,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   const [scanLoading, setScanLoading] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedItems, setScannedItems] = useState([]);
+  const [scannedStoreName, setScannedStoreName] = useState('');
   const [scanFlowError, setScanFlowError] = useState('');
 
   const sorted = useMemo(
@@ -63,11 +64,13 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     setScanFlowError('');
     try {
       const dataUrl = await readFileAsDataUrl(file);
-      const { items } = await scanReceiptImage(dataUrl);
+      const { items, storeName } = await scanReceiptImage(dataUrl);
       setScannedItems(Array.isArray(items) ? items : []);
+      setScannedStoreName(storeName || '');
       setScanDialogOpen(true);
     } catch (err) {
       setScannedItems([]);
+      setScannedStoreName('');
       setScanFlowError(err.message || 'Scan failed');
       setScanDialogOpen(true);
     } finally {
@@ -213,8 +216,10 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         onClose={() => {
           setScanDialogOpen(false);
           setScanFlowError('');
+          setScannedStoreName('');
         }}
         items={scannedItems}
+        defaultTitle={scannedStoreName}
         error={scanFlowError}
         onConfirm={handleScanConfirm}
       />
