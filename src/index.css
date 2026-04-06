@@ -1,48 +1,3 @@
-:root {
-  --font: 'Roboto', system-ui, -apple-system, sans-serif;
-  --radius: 4px;
-  --radius-sm: 4px;
-  --radius-lg: 8px;
-  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 4px 5px rgba(0, 0, 0, 0.14);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
-  --shadow-lg:
-    0 18px 48px rgba(15, 23, 42, 0.18),
-    0 8px 18px rgba(15, 23, 42, 0.08);
-  --elevation-bar: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-:root,
-:root[data-theme='light'] {
-  --bg: #f4f8f8;
-  --surface: #ffffff;
-  --surface-elevated: #fcfefe;
-  --surface-muted: #eef6f5;
-  --table-bg: #ffffff;
-  --highlight-row: #e6f7f4;
-  --text: rgba(15, 36, 39, 0.94);
-  --text-muted: rgba(15, 36, 39, 0.62);
-  --text-disabled: rgba(15, 36, 39, 0.4);
-  --border: rgba(17, 92, 99, 0.12);
-  --border-strong: rgba(17, 92, 99, 0.22);
-  --divider: rgba(17, 92, 99, 0.08);
-  --accent: #178c95;
-  --accent-hover: #127980;
-  --accent-contrast: #ffffff;
-  --accent-soft: rgba(23, 140, 149, 0.1);
-  --accent-ripple: rgba(23, 140, 149, 0.14);
-  --accent-ring: rgba(23, 140, 149, 0.2);
-  --owe: #b65353;
-  --owe-bg: rgba(182, 83, 83, 0.1);
-  --owed: #288870;
-  --owed-bg: rgba(40, 136, 112, 0.12);
-  --input-bg: #f8fbfb;
-  --appbar-fg: #ffffff;
-  --appbar-bg: #167f88;
-  --hero-tint: rgba(113, 212, 180, 0.2);
-  --fab-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2), 0 6px 10px rgba(0, 0, 0, 0.14);
-}
-
 *,
 *::before,
 *::after {
@@ -55,13 +10,9 @@ html {
 
 body {
   margin: 0;
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.5;
-  font-size: 0.875rem;
-  min-height: 100dvh;
+  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -76,14 +27,7 @@ textarea {
   color: inherit;
 }
 
-button {
-  cursor: pointer;
-}
-
 a {
-  color: var(--accent);
-}
-
-::backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  text-decoration: none;
+  color: inherit;
 }
