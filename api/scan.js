@@ -29,6 +29,13 @@ function parseGeminiJson(text) {
   }
 }
 
+function normalizeMoney(val) {
+  if (val == null || val === '') return 0;
+  const n = typeof val === 'number' ? val : parseFloat(String(val).replace(/,/g, ''));
+  if (!Number.isFinite(n) || n < 0 || n > 100_000) return 0;
+  return n;
+}
+
 function normalizeItems(raw) {
   if (!Array.isArray(raw)) return [];
   const out = [];
@@ -99,21 +106,31 @@ export default async function handler(req, res) {
 
   const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
 
-  const prompt = `Look at this receipt image and extract purchase line items.
+  const prompt = `Look at this receipt image and extract data for a bill-splitting app.
 Return ONLY a valid JSON object (no markdown, no code fences):
 {
   "storeName": "business name if visible, else empty string",
   "items": [
     { "name": "item name", "quantity": 1, "price": 0.00 }
-  ]
+  ],
+  "tax": 0.00,
+  "tip": 0.00
 }
 
-Rules:
-- "price" is the line total for that row (unit price × quantity) in the receipt currency, as a number.
+Rules for "items":
+- "price" is the line total for that row (unit price × quantity), as a number.
 - quantity defaults to 1 if not shown.
-- EXCLUDE: tax, tip, subtotal, total, discounts, service fees, payment lines (VISA, CASH, CHANGE), addresses, dates-only lines.
-- If nothing is readable, return {"storeName":"","items":[]}
-- Always return valid JSON.`;
+- Do NOT put these in items (they go in tax/tip instead): sales tax, VAT, tax lines, tip, gratuity, service charge, service fee, auto gratuity, convenience fee if clearly a tip-like charge.
+- EXCLUDE from items: subtotal, total, discounts (unless you must approximate—prefer omitting ambiguous lines), payment lines (VISA, AMEX, CASH, CHANGE), addresses, date-only lines.
+
+Rules for "tax":
+- Put the receipt's sales tax / VAT / "Tax" line amount here. Use 0 if not shown or unclear.
+
+Rules for "tip":
+- Put the combined amount of: tip, gratuity, service fee (when it is a discretionary/tip-style fee), service charge, auto gratuity—if multiple such lines exist, sum them into one number. Use 0 if none.
+
+If nothing is readable, return {"storeName":"","items":[],"tax":0,"tip":0}
+Always return valid JSON with keys storeName, items, tax, tip.`;
 
   try {
     const response = await fetch(geminiUrl(model, apiKey), {
@@ -163,11 +180,17 @@ Rules:
 
     const storeName = String(parsed.storeName ?? '').trim().slice(0, 200);
     const items = normalizeItems(parsed.items);
+    const tax = normalizeMoney(parsed.tax ?? parsed.taxAmount);
+    const tip = normalizeMoney(
+      parsed.tip ?? parsed.tipAmount ?? parsed.gratuity ?? parsed.serviceFee,
+    );
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
       storeName,
       items,
+      tax,
+      tip,
     });
   } catch (err) {
     console.error('Scan error:', err);

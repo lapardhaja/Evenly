@@ -32,6 +32,8 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannedItems, setScannedItems] = useState([]);
   const [scannedStoreName, setScannedStoreName] = useState('');
+  const [scannedTax, setScannedTax] = useState(0);
+  const [scannedTip, setScannedTip] = useState(0);
   const [scanFlowError, setScanFlowError] = useState('');
 
   const sorted = useMemo(
@@ -64,13 +66,17 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     setScanFlowError('');
     try {
       const dataUrl = await readFileAsDataUrl(file);
-      const { items, storeName } = await scanReceiptImage(dataUrl);
+      const { items, storeName, tax, tip } = await scanReceiptImage(dataUrl);
       setScannedItems(Array.isArray(items) ? items : []);
       setScannedStoreName(storeName || '');
+      setScannedTax(typeof tax === 'number' ? tax : 0);
+      setScannedTip(typeof tip === 'number' ? tip : 0);
       setScanDialogOpen(true);
     } catch (err) {
       setScannedItems([]);
       setScannedStoreName('');
+      setScannedTax(0);
+      setScannedTip(0);
       setScanFlowError(err.message || 'Scan failed');
       setScanDialogOpen(true);
     } finally {
@@ -78,8 +84,11 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     }
   };
 
-  const handleScanConfirm = (title, items) => {
-    const id = addReceiptWithItems(title, items);
+  const handleScanConfirm = (title, items, charges = {}) => {
+    const id = addReceiptWithItems(title, items, {
+      taxCost: charges.taxCost ?? 0,
+      tipCost: charges.tipCost ?? 0,
+    });
     if (id) navigate(`/groups/${groupId}/receipt/${id}`);
   };
 
@@ -217,8 +226,12 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           setScanDialogOpen(false);
           setScanFlowError('');
           setScannedStoreName('');
+          setScannedTax(0);
+          setScannedTip(0);
         }}
         items={scannedItems}
+        taxCost={scannedTax}
+        tipCost={scannedTip}
         defaultTitle={scannedStoreName}
         error={scanFlowError}
         onConfirm={handleScanConfirm}

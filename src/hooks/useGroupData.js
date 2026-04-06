@@ -183,9 +183,9 @@ export function useGroup(groupId) {
     [groupId, setData],
   );
 
-  /** Create a receipt and seed line items (e.g. from OCR). */
+  /** Create a receipt and seed line items (e.g. from scan). Optional taxCost / tipCost. */
   const addReceiptWithItems = useCallback(
-    (title, lineItems) => {
+    (title, lineItems, charges = {}) => {
       const receiptId = uuidv4();
       const items = {};
       for (const row of lineItems) {
@@ -196,6 +196,8 @@ export function useGroup(groupId) {
         if (!Number.isFinite(cost) || cost <= 0) continue;
         items[uuidv4()] = { name, cost, quantity };
       }
+      const taxCost = currency(charges.taxCost ?? 0).value;
+      const tipCost = currency(charges.tipCost ?? 0).value;
       setData((prev) => {
         const g = { ...prev.groups[groupId] };
         g.receipts = {
@@ -208,8 +210,8 @@ export function useGroup(groupId) {
             items,
             personToItemQuantityMap: {},
             itemToPersonQuantityMap: {},
-            taxCost: 0,
-            tipCost: 0,
+            taxCost: Number.isFinite(taxCost) && taxCost >= 0 ? taxCost : 0,
+            tipCost: Number.isFinite(tipCost) && tipCost >= 0 ? tipCost : 0,
           },
         };
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };

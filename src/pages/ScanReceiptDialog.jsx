@@ -18,6 +18,8 @@ export default function ScanReceiptDialog({
   open,
   onClose,
   items,
+  taxCost = 0,
+  tipCost = 0,
   defaultTitle = '',
   onConfirm,
   error: externalError,
@@ -35,7 +37,7 @@ export default function ScanReceiptDialog({
 
   const handleConfirm = () => {
     const t = title.trim() || 'Scanned receipt';
-    onConfirm(t, items);
+    onConfirm(t, items, { taxCost, tipCost });
     onClose();
   };
 
@@ -57,10 +59,23 @@ export default function ScanReceiptDialog({
           onChange={(e) => setTitle(e.target.value)}
           sx={{ mb: 2 }}
         />
+        {(taxCost > 0 || tipCost > 0) && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {taxCost > 0 && <>Tax: <strong>{currency(taxCost).format()}</strong></>}
+            {taxCost > 0 && tipCost > 0 && ' · '}
+            {tipCost > 0 && (
+              <>
+                Tip / gratuity / service: <strong>{currency(tipCost).format()}</strong>
+              </>
+            )}
+          </Typography>
+        )}
         {items.length === 0 && !externalError ? (
           <Alert severity="warning" sx={{ mb: 1 }}>
             No line items were detected. You can still create an empty receipt and add
             items manually, or try another photo with better lighting.
+            {(taxCost > 0 || tipCost > 0) &&
+              ' Tax and tip above will still be saved on the receipt.'}
           </Alert>
         ) : (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -98,7 +113,9 @@ export default function ScanReceiptDialog({
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="contained" onClick={handleConfirm}>
-          {items.length === 0 ? 'Create empty receipt' : 'Create receipt'}
+          {items.length === 0 && taxCost <= 0 && tipCost <= 0
+            ? 'Create empty receipt'
+            : 'Create receipt'}
         </Button>
       </DialogActions>
     </Dialog>
