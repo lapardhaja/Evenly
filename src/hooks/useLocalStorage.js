@@ -1,47 +1,28 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 
-const STORAGE_KEY = 'evenly:app:v1';
-
-const defaultState = () => ({
-  groups: [],
-  meName: '',
-});
-
-/**
- * @template T
- * @param {string} key
- * @param {() => T} getDefault
- * @returns {[T, (updater: T | ((prev: T) => T)) => void]}
- */
-export function useLocalStorage(key, getDefault) {
-  const [state, setState] = useState(() => {
+export default function useLocalStorage(key, initialValue) {
+  const [storedValue, setStoredValue] = useState(() => {
     try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return { ...getDefault(), ...parsed };
-      }
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
     } catch {
-      /* ignore */
+      return initialValue;
     }
-    return getDefault();
   });
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(key, JSON.stringify(state));
-    } catch {
-      /* quota */
-    }
-  }, [key, state]);
+  const setValue = useCallback(
+    (value) => {
+      const valueToStore =
+        value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      try {
+        localStorage.setItem(key, JSON.stringify(valueToStore));
+      } catch {
+        /* quota exceeded */
+      }
+    },
+    [key, storedValue],
+  );
 
-  const update = useCallback((updater) => {
-    setState((prev) =>
-      typeof updater === 'function' ? updater(prev) : updater
-    );
-  }, []);
-
-  return [state, update];
+  return [storedValue, setValue];
 }
-
-export { STORAGE_KEY, defaultState };
