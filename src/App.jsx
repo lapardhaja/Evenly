@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import Dashboard from './components/Dashboard.jsx';
 import GroupView from './components/GroupView.jsx';
+import evenlyLogo from './evenly-logo.svg';
 import { useAppState } from './hooks/useAppState.js';
 import { useTheme } from './hooks/useTheme.js';
 
@@ -28,14 +29,12 @@ export default function App() {
                 Back
               </button>
             ) : (
-              <span className="brand-badge">EVENLY</span>
+              <img className="brand-logo" src={evenlyLogo} alt="Evenly" />
             )}
             <div>
               <h1 className="rece-appbar-title">Evenly</h1>
               <p className="rece-appbar-subtitle">
-                {activeGroup
-                  ? `${activeGroup.name} workspace`
-                  : 'Rece-inspired bill splitting'}
+                {activeGroup ? `${activeGroup.name} workspace` : 'Shared expenses, handled cleanly'}
               </p>
             </div>
           </div>

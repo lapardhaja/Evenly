@@ -35,6 +35,20 @@
   min-width: 0;
 }
 
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  display: block;
+  flex-shrink: 0;
+}
+
 .brand-badge {
   display: inline-flex;
   align-items: center;
@@ -507,7 +521,11 @@
   display: grid;
   gap: 18px;
   background:
-    linear-gradient(135deg, var(--surface) 0%, var(--surface-elevated) 100%);
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--surface) 82%, var(--accent-soft) 18%) 0%,
+      var(--surface-elevated) 100%
+    );
 }
 
 .dashboard-title {
@@ -600,7 +618,11 @@
   border: 1px solid var(--border);
   border-radius: 18px;
   background:
-    linear-gradient(180deg, var(--surface) 0%, var(--surface-elevated) 100%);
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 88%, var(--accent-soft) 12%) 0%,
+      var(--surface-elevated) 100%
+    );
   box-shadow: var(--shadow-sm);
   text-align: left;
   color: inherit;
@@ -686,6 +708,11 @@
   color: var(--text-muted);
 }
 
+.activity-type-badge {
+  color: var(--accent-deep);
+  background: color-mix(in srgb, var(--accent-soft) 72%, var(--surface) 28%);
+}
+
 /* —— Group workspace —— */
 .group-page {
   display: grid;
@@ -696,7 +723,11 @@
   display: grid;
   gap: 18px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--accent-soft) 12%), var(--surface));
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 78%, var(--accent-soft) 22%),
+      var(--surface)
+    );
 }
 
 .group-subtitle {

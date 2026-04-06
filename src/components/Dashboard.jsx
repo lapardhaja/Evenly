@@ -91,10 +91,10 @@ export default function Dashboard({ app, onOpenGroup }) {
       <section className="dashboard-hero rece-paper card-elevated">
         <div className="dashboard-hero-copy">
           <p className="rece-section-title">Split smarter</p>
-          <h2 className="dashboard-title">Receipts first. Cleanup later.</h2>
+          <h2 className="dashboard-title">Shared expenses, clearly organized.</h2>
           <p className="dashboard-subtitle">
-            Build groups, drop in line items, and jump straight to who owes what
-            without digging through forms.
+            Track group spending, itemize shared bills, and settle balances with a
+            workflow that feels fast on mobile and efficient on desktop.
           </p>
         </div>
         <div className="dashboard-actions">
@@ -142,12 +142,12 @@ export default function Dashboard({ app, onOpenGroup }) {
         <article className="mini-stat-card rece-paper">
           <span className="mini-stat-label">Expenses logged</span>
           <strong className="mini-stat-value">{totals.expenseCount}</strong>
-          <span className="muted">Quick entries and full receipts live together</span>
+          <span className="muted">Simple entries and detailed bills stay in one timeline</span>
         </article>
         <article className="mini-stat-card rece-paper">
           <span className="mini-stat-label">Tracked total</span>
           <strong className="mini-stat-value">{formatMoney(totals.totalSpent)}</strong>
-          <span className="muted">Local-only data, instant recalculation</span>
+          <span className="muted">Instant totals with private, browser-local storage</span>
         </article>
       </section>
 
