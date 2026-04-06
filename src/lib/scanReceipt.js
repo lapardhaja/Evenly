@@ -1,15 +1,19 @@
+import { compressImageDataUrl } from './compressImageForScan.js';
+
 /**
  * Calls Vercel serverless /api/scan-receipt (same origin in prod).
  * Local dev with Vite only: set VITE_SCAN_RECEIPT_URL to your `vercel dev` origin, e.g. http://localhost:3000
  */
 export async function scanReceiptImage(imageBase64) {
+  const compressed = await compressImageDataUrl(imageBase64);
+
   const origin = (import.meta.env.VITE_SCAN_RECEIPT_URL || '').replace(/\/$/, '');
   const url = `${origin}/api/scan-receipt`;
 
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageBase64 }),
+    body: JSON.stringify({ imageBase64: compressed }),
   });
 
   const data = await res.json().catch(() => ({}));

@@ -57,8 +57,12 @@ export default async function handler(req, res) {
   }
 
   const b64 = imageBase64.replace(/^data:image\/\w+;base64,/, '').trim();
-  if (b64.length > 6_000_000) {
-    return res.status(413).json({ error: 'Image too large (max ~4.5MB)' });
+  // Vercel request body ~4.5MB; client should compress first — keep headroom for JSON
+  if (b64.length > 5_000_000) {
+    return res.status(413).json({
+      error:
+        'Image too large for upload. The app should compress automatically — try updating, or use a smaller photo.',
+    });
   }
 
   try {
