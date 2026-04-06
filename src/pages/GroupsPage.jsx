@@ -41,7 +41,7 @@ export default function GroupsPage() {
   const handleCreate = (name) => {
     if (!name.trim()) return;
     const id = addGroup(name.trim());
-    if (id) navigate(`/groups/${id}`);
+    if (id) navigate(`/groups/${id}/people`);
   };
 
   return (
@@ -100,7 +100,7 @@ export default function GroupsPage() {
                 {idx > 0 && <Divider />}
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => navigate(`/groups/${g.id}`)}
+                    onClick={() => navigate(`/groups/${g.id}/people`)}
                     sx={{ py: 1.5, px: 2 }}
                   >
                     <ListItemIcon sx={{ minWidth: 40 }}>

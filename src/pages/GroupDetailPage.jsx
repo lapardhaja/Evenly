@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
@@ -14,7 +15,7 @@ import GroupReceiptsTab from './GroupReceiptsTab.jsx';
 import GroupPeopleTab from './GroupPeopleTab.jsx';
 import GroupSettleTab from './GroupSettleTab.jsx';
 
-const TABS = ['receipts', 'people', 'settle'];
+const TABS = ['people', 'receipts', 'settle'];
 
 export default function GroupDetailPage() {
   const { groupId, tab } = useParams();
@@ -25,6 +26,13 @@ export default function GroupDetailPage() {
   const { EditTextModal, showEditTextModal } = useEditTextModal();
 
   const currentTab = TABS.indexOf(tab) >= 0 ? TABS.indexOf(tab) : 0;
+
+  useEffect(() => {
+    if (!groupId) return;
+    if (!tab || TABS.indexOf(tab) < 0) {
+      navigate(`/groups/${groupId}/people`, { replace: true });
+    }
+  }, [groupId, tab, navigate]);
 
   if (!group) {
     return (
@@ -91,8 +99,8 @@ export default function GroupDetailPage() {
         ))}
       </Tabs>
 
-      {currentTab === 0 && <GroupReceiptsTab groupId={groupId} groupData={groupData} />}
-      {currentTab === 1 && <GroupPeopleTab groupData={groupData} />}
+      {currentTab === 0 && <GroupPeopleTab groupData={groupData} />}
+      {currentTab === 1 && <GroupReceiptsTab groupId={groupId} groupData={groupData} />}
       {currentTab === 2 && <GroupSettleTab groupId={groupId} groupData={groupData} />}
 
       {EditTextModal}
