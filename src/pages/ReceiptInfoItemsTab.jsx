@@ -457,7 +457,7 @@ function PersonTotalListItem({ person, receiptData }) {
     getItemCostForPerson,
     getChargeForPerson,
     getTotalForPerson,
-    updatePerson,
+    setPersonPaid,
   } = receiptData;
 
   const [open, setOpen] = useState(false);
@@ -469,10 +469,11 @@ function PersonTotalListItem({ person, receiptData }) {
       <ListItemButton onClick={() => setOpen(!open)} sx={{ py: 1.5 }}>
         <Checkbox
           checked={!!person.paid}
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => {
             e.stopPropagation();
-            updatePerson({ ...person, paid: !person.paid });
+            setPersonPaid(person.id, !person.paid);
           }}
           inputProps={{
             'aria-label': `${person.paid ? 'Unmark' : 'Mark'} ${person.name} as paid`,

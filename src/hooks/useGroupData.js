@@ -172,6 +172,7 @@ export function useGroup(groupId) {
             items: {},
             personToItemQuantityMap: {},
             itemToPersonQuantityMap: {},
+            personPaidMap: {},
             taxCost: 0,
             tipCost: 0,
           },
@@ -218,6 +219,7 @@ export function useGroup(groupId) {
             items,
             personToItemQuantityMap: {},
             itemToPersonQuantityMap: {},
+            personPaidMap: {},
             taxCost: Number.isFinite(taxCost) && taxCost >= 0 ? taxCost : 0,
             tipCost: Number.isFinite(tipCost) && tipCost >= 0 ? tipCost : 0,
           },
@@ -268,6 +270,17 @@ export function useGroupReceipt(groupId, receiptId) {
   }, [group, receiptId]);
 
   const people = useMemo(() => idMapToList(group?.people), [group?.people]);
+
+  /** Per-receipt "marked paid" for settle-up tracking (not stored on group person). */
+  const peopleWithPaid = useMemo(
+    () =>
+      people.map((p) => ({
+        ...p,
+        paid: !!(receipt?.personPaidMap && receipt.personPaidMap[p.id]),
+      })),
+    [people, receipt?.personPaidMap],
+  );
+
   const items = useMemo(() => idMapToList(receipt?.items), [receipt?.items]);
 
   const subTotal = useMemo(
@@ -329,6 +342,16 @@ export function useGroupReceipt(groupId, receiptId) {
         }
         return { ...r, personToItemQuantityMap: p2i, itemToPersonQuantityMap: i2p };
       });
+    },
+    [mutateReceipt],
+  );
+
+  const setPersonPaid = useCallback(
+    (personId, paid) => {
+      mutateReceipt((r) => ({
+        ...r,
+        personPaidMap: { ...(r.personPaidMap || {}), [personId]: !!paid },
+      }));
     },
     [mutateReceipt],
   );
@@ -456,7 +479,7 @@ export function useGroupReceipt(groupId, receiptId) {
 
   return {
     receipt,
-    people,
+    people: peopleWithPaid,
     items,
     subTotal,
     total,
@@ -474,5 +497,6 @@ export function useGroupReceipt(groupId, receiptId) {
     updateChargeValue,
     updateChargeValueByPct,
     deleteReceipt,
+    setPersonPaid,
   };
 }
