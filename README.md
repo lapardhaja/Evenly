@@ -1,55 +1,43 @@
 # Evenly
 
-A polished **bill-splitting** web app for shared trips, meals, and household expenses. Features: **quick expenses** (equal / exact / percent / by quantity), **itemized receipts** (line items + unit grid), proportional **tax & tip**, balances, **minimum-transfer settle-up**, optional **Venmo** links, and **localStorage** persistence with no backend required.
+Split receipts easily — a clean, responsive web app for splitting shared expenses among friends.
 
-## Stack
+## Features
 
-- React 18 (hooks) + Vite 6
-- Modular helpers: `src/lib/balances.js`, `src/lib/settlement.js`, `src/lib/receiptSplit.js`
+- **Create Receipts** — Add receipts with titles and dates
+- **Add People** — Track who's splitting the bill
+- **Add Items** — Itemize the receipt with names, costs, and quantities
+- **Flexible Splitting** — Check/uncheck for single items, +/- stepper for multi-quantity items
+- **Tax & Tip** — Add tax and tip by dollar amount or percentage — proportionally distributed
+- **Per-Person Breakdown** — See exactly what each person owes with itemized detail
+- **Lock Receipts** — Lock a receipt to prevent accidental edits
+- **Venmo Integration** — Quick Venmo charge links for each person
+- **Responsive** — Works on mobile (iPhone, Android) and desktop
+- **Offline-First** — All data stored locally in your browser
 
-## Run locally
+## Getting Started
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+Open [http://localhost:5173](http://localhost:5173) to use the app.
 
 ## Build
 
 ```bash
 npm run build
-npm run preview
 ```
 
-Production builds use a **relative asset base** (`./`) so the app works on **GitHub project Pages** (`https://<user>.github.io/<repo>/`). Without that, JS/CSS load from the site root and the page stays blank.
+## Tech Stack
 
-### GitHub Pages
+- React 18 + Vite 6
+- MUI 5 (Material UI)
+- react-router-dom v6 (HashRouter)
+- currency.js
+- localStorage persistence
 
-After merging, enable **Settings → Pages → Build and deployment → GitHub Actions**. The workflow `.github/workflows/pages.yml` builds with `npm ci` and deploys `dist/`.
+## License
 
-## Tests
-
-```bash
-npm test
-```
-
-Settlement uses a **greedy pairing** of net creditors and debtors (standard flow reduction); for balances that sum to zero it yields **at most n−1** transfers.
-
-## File structure
-
-```
-index.html
-package.json
-vite.config.js
-src/
-  main.jsx          # entry
-  App.jsx           # dashboard vs group route (local state)
-  index.css         # theme tokens + reset
-  styles.css        # layout / components
-  types.js          # JSDoc typedefs
-  components/       # Dashboard, GroupView, Modal, forms
-  hooks/            # useAppState, useLocalStorage, useTheme
-  lib/              # balances, settlement (+ tests)
-```
+Copyright © 2026 Evenly — Designed by Servet Lapardhaja.
