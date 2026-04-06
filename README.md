@@ -11,7 +11,6 @@ Split receipts easily — a clean, responsive web app for splitting shared expen
 - **Tax & Tip** — Add tax and tip by dollar amount or percentage — proportionally distributed
 - **Per-Person Breakdown** — See exactly what each person owes with itemized detail
 - **Lock Receipts** — Lock a receipt to prevent accidental edits
-- **Venmo Integration** — Quick Venmo charge links for each person
 - **Responsive** — Works on mobile (iPhone, Android) and desktop
 - **Offline-First** — All data stored locally in your browser
 - **Appearance** — Light, dark, or Auto (follow device); choice is saved in the browser

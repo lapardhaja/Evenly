@@ -407,8 +407,11 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
 
       {/* Per-person breakdown */}
       <Box sx={{ mt: 3 }}>
-        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.25 }}>
           Per Person Breakdown
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          Use the checkbox to mark someone as paid (for your own tracking).
         </Typography>
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
           <List disablePadding>
@@ -461,12 +464,6 @@ function PersonTotalListItem({ person, receiptData }) {
   const personTotal = getTotalForPerson(person.id);
   const personSub = personSubTotalMap[person.id]?.subTotal || 0;
 
-  const getVenmoLink = () => {
-    const amount = personTotal;
-    const note = encodeURIComponent(`${receipt.title} - Split by Evenly`);
-    return `venmo://paycharge?txn=charge&recipients=&amount=${amount}&note=${note}`;
-  };
-
   return (
     <>
       <ListItemButton onClick={() => setOpen(!open)} sx={{ py: 1.5 }}>
@@ -476,6 +473,9 @@ function PersonTotalListItem({ person, receiptData }) {
           onChange={(e) => {
             e.stopPropagation();
             updatePerson({ ...person, paid: !person.paid });
+          }}
+          inputProps={{
+            'aria-label': `${person.paid ? 'Unmark' : 'Mark'} ${person.name} as paid`,
           }}
           sx={{ mr: 1 }}
         />
@@ -514,20 +514,6 @@ function PersonTotalListItem({ person, receiptData }) {
             )
           }
         />
-        {!person.paid && (
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.location.href = getVenmoLink();
-            }}
-            sx={{ mr: 1 }}
-          >
-            <Typography variant="caption" fontWeight={700} color="primary">
-              Venmo
-            </Typography>
-          </IconButton>
-        )}
         {open ? <ExpandLess /> : <ExpandMore />}
       </ListItemButton>
       <Collapse in={open} timeout="auto" unmountOnExit>
