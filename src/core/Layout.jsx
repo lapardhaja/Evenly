@@ -1,11 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { Link } from 'react-router-dom';
+import useThemeMode from '../hooks/useThemeMode.js';
+import ThemeModeMenu from './ThemeModeMenu.jsx';
 
 const lightTheme = createTheme({
   palette: {
@@ -34,11 +35,21 @@ const darkTheme = createTheme({
 });
 
 export default function Layout({ children }) {
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+  const { themeMode, setThemeMode, resolvedMode } = useThemeMode();
   const theme = useMemo(
-    () => (prefersDarkMode ? darkTheme : lightTheme),
-    [prefersDarkMode],
+    () => (resolvedMode === 'dark' ? darkTheme : lightTheme),
+    [resolvedMode],
   );
+
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute(
+        'content',
+        resolvedMode === 'dark' ? '#1a1a1a' : '#178c95',
+      );
+    }
+  }, [resolvedMode]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -71,6 +82,7 @@ export default function Layout({ children }) {
                 Evenly
               </Typography>
             </Box>
+            <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} />
           </Toolbar>
         </AppBar>
 
