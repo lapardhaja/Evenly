@@ -17,6 +17,12 @@ function transferKey(t) {
   return `${t.from}|${t.to}|${t.amount.toFixed(2)}`;
 }
 
+function navLabel(tab) {
+  if (tab === 'items') return 'Expenses';
+  if (tab === 'people') return 'People';
+  return 'Settle';
+}
+
 function formatDate(value) {
   if (!value) return 'No date';
   const date = new Date(value);
@@ -362,7 +368,7 @@ export default function GroupView({ app, groupId, onBack }) {
               <div className="workspace-toolbar-actions">
                 <button
                   type="button"
-                  className={`btn btn-sm ${
+                  className={`btn btn-sm workspace-action-btn ${
                     entryTab === 'quick' ? 'btn-primary' : 'btn-ghost'
                   }`}
                   onClick={() => handleStartComposer('quick')}
@@ -371,7 +377,7 @@ export default function GroupView({ app, groupId, onBack }) {
                 </button>
                 <button
                   type="button"
-                  className={`btn btn-sm ${
+                  className={`btn btn-sm workspace-action-btn ${
                     entryTab === 'receipt' ? 'btn-primary' : 'btn-ghost'
                   }`}
                   onClick={() => handleStartComposer('receipt')}
@@ -381,7 +387,7 @@ export default function GroupView({ app, groupId, onBack }) {
                 {composerOpen ? (
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
+                    className="btn btn-ghost btn-sm workspace-action-btn"
                     onClick={handleCloseComposer}
                   >
                     Hide form
@@ -769,27 +775,36 @@ export default function GroupView({ app, groupId, onBack }) {
         </section>
       ) : null}
 
-      <nav className="rece-mobile-nav" aria-label="Group mobile navigation">
+      <nav
+        className={`rece-mobile-nav${groupTab === 'items' && composerOpen ? ' is-hidden' : ''}`}
+        aria-label="Group mobile navigation"
+      >
         <button
           type="button"
           className={`rece-mobile-nav-item${groupTab === 'items' ? ' active' : ''}`}
           onClick={() => setGroupTab('items')}
+          aria-label="Open expenses tab"
         >
-          Items
+          <span className="rece-mobile-nav-label">{navLabel('items')}</span>
+          <span className="rece-mobile-nav-hint">Track</span>
         </button>
         <button
           type="button"
           className={`rece-mobile-nav-item${groupTab === 'people' ? ' active' : ''}`}
           onClick={() => setGroupTab('people')}
+          aria-label="Open people tab"
         >
-          People
+          <span className="rece-mobile-nav-label">{navLabel('people')}</span>
+          <span className="rece-mobile-nav-hint">Manage</span>
         </button>
         <button
           type="button"
           className={`rece-mobile-nav-item${groupTab === 'settle' ? ' active' : ''}`}
           onClick={() => setGroupTab('settle')}
+          aria-label="Open settle tab"
         >
-          Settle
+          <span className="rece-mobile-nav-label">{navLabel('settle')}</span>
+          <span className="rece-mobile-nav-hint">Review</span>
         </button>
       </nav>
     </div>
