@@ -23,15 +23,28 @@
 
 ## Architecture
 
+### Data model
+Groups → Receipts hierarchy. People are defined at the group level and shared across all receipts.
+
+- `evenly:data:v2` localStorage key holds all groups, people, and receipts.
+- Each receipt has a `paidById` field (who paid the bill).
+- Settlement computed across all receipts in a group using greedy creditor/debtor pairing.
+
+### Files
 - `src/main.jsx` — Entry point, renders HashRouter + Layout + BaseRouter
 - `src/core/Layout.jsx` — AppBar, theme (auto light/dark), footer
-- `src/core/BaseRouter.jsx` — Routes: `/receipts`, `/receipts/:receiptId/:tab?`
-- `src/pages/ReceiptsPage.jsx` — Receipt list with create FAB
-- `src/pages/ReceiptInfoPage.jsx` — Receipt detail with Items/People tabs
-- `src/pages/ReceiptInfoItemsTab.jsx` — Scrollable item table + per-person breakdown
-- `src/pages/ReceiptInfoPeopleTab.jsx` — People management
-- `src/hooks/useReceiptData.js` — All CRUD and computation logic
+- `src/core/BaseRouter.jsx` — Routes: `/`, `/groups/:id/:tab?`, `/groups/:id/receipt/:rid/:tab?`
+- `src/pages/GroupsPage.jsx` — Groups list (home)
+- `src/pages/GroupDetailPage.jsx` — Group detail with Receipts/People/Settle tabs
+- `src/pages/GroupReceiptsTab.jsx` — Receipt list within a group
+- `src/pages/GroupPeopleTab.jsx` — People management (group level)
+- `src/pages/GroupSettleTab.jsx` — Net balances + minimized transfers
+- `src/pages/ReceiptInfoPage.jsx` — Receipt detail with Paid By + Items/People tabs
+- `src/pages/ReceiptInfoItemsTab.jsx` — Item table + per-person breakdown
+- `src/pages/ReceiptInfoPeopleTab.jsx` — People list (read-only in group context)
+- `src/hooks/useGroupData.js` — All CRUD and computation logic
 - `src/hooks/useLocalStorage.js` — Generic localStorage hook
+- `src/functions/settlement.js` — Net balance + greedy transfer minimization
 - `src/components/useEditTextModal.jsx` — Reusable edit dialog
 - `src/pages/components/UseAddItemModal.jsx` — Add item dialog
 
