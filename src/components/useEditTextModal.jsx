@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -10,7 +10,6 @@ export default function useEditTextModal() {
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState({ title: '', value: '', setValue: () => {} });
   const [inputValue, setInputValue] = useState('');
-  const inputRef = useRef(null);
 
   const showEditTextModal = useCallback(({ title, value, setValue }) => {
     setConfig({ title, value, setValue });
@@ -18,26 +17,22 @@ export default function useEditTextModal() {
     setOpen(true);
   }, []);
 
-  useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.select();
-      }, 100);
-    }
-  }, [open]);
-
   const handleSave = () => {
     config.setValue(inputValue);
     setOpen(false);
   };
 
   const EditTextModal = (
-    <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={() => setOpen(false)}
+      maxWidth="xs"
+      fullWidth
+      disableAutoFocus
+    >
       <DialogTitle>{config.title}</DialogTitle>
       <DialogContent>
         <TextField
-          inputRef={inputRef}
-          autoFocus
           fullWidth
           margin="dense"
           value={inputValue}
