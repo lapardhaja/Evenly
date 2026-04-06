@@ -1,9 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// GitHub project Pages: site is at https://<user>.github.io/<repo>/ — asset
-// URLs must be under /<repo>/, not /. Relative base fixes that without hardcoding.
+// GitHub Pages: relative base. Vercel (VERCEL=1): absolute '/' for assets + /api routes.
 export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: command === 'build' ? './' : '/',
+  base: command === 'build' && process.env.VERCEL !== '1' ? './' : '/',
 }));

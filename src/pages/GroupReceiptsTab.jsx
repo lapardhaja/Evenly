@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -7,18 +7,31 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
-import Fab from '@mui/material/Fab';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
+import SpeedDial from '@mui/material/SpeedDial';
+import SpeedDialAction from '@mui/material/SpeedDialAction';
+import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 import AddIcon from '@mui/icons-material/Add';
+import DocumentScannerIcon from '@mui/icons-material/DocumentScanner';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import currency from 'currency.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
+import ScanReceiptDialog from './ScanReceiptDialog.jsx';
+import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
 
 export default function GroupReceiptsTab({ groupId, groupData }) {
-  const { receipts, people, addReceipt } = groupData;
+  const { receipts, people, addReceipt, addReceiptWithItems } = groupData;
   const navigate = useNavigate();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
+  const fileInputRef = useRef(null);
+  const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [scannedItems, setScannedItems] = useState([]);
+  const [scanFlowError, setScanFlowError] = useState('');
 
   const sorted = useMemo(
     () => [...receipts].sort((a, b) => b.date - a.date),
@@ -37,6 +50,36 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     if (id) navigate(`/groups/${groupId}/receipt/${id}`);
   };
 
+  const openScanPicker = () => {
+    setSpeedDialOpen(false);
+    fileInputRef.current?.click();
+  };
+
+  const handleScanFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setScanLoading(true);
+    setScanFlowError('');
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const { items } = await scanReceiptImage(dataUrl);
+      setScannedItems(Array.isArray(items) ? items : []);
+      setScanDialogOpen(true);
+    } catch (err) {
+      setScannedItems([]);
+      setScanFlowError(err.message || 'Scan failed');
+      setScanDialogOpen(true);
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const handleScanConfirm = (title, items) => {
+    const id = addReceiptWithItems(title, items);
+    if (id) navigate(`/groups/${groupId}/receipt/${id}`);
+  };
+
   const formatDate = (ts) =>
     new Date(ts).toLocaleDateString(undefined, {
       year: 'numeric',
@@ -46,6 +89,14 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
 
   return (
     <Box>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handleScanFile}
+      />
       {sorted.length === 0 ? (
         <Paper
           sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}
@@ -117,23 +168,56 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         </Paper>
       )}
 
-      <Fab
-        color="primary"
-        onClick={() =>
-          showEditTextModal({
-            value: '',
-            setValue: handleCreate,
-            title: 'New Receipt',
-          })
-        }
+      <Backdrop
+        open={scanLoading}
+        sx={{ color: '#fff', zIndex: (t) => t.zIndex.drawer + 2 }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+
+      <SpeedDial
+        ariaLabel="Add receipt"
         sx={{
           position: 'fixed',
           bottom: { xs: 24, sm: 32 },
           right: { xs: 24, sm: 32 },
         }}
+        icon={<SpeedDialIcon />}
+        open={speedDialOpen}
+        onOpen={() => setSpeedDialOpen(true)}
+        onClose={() => setSpeedDialOpen(false)}
       >
-        <AddIcon />
-      </Fab>
+        <SpeedDialAction
+          icon={<AddIcon />}
+          tooltipTitle="New receipt"
+          tooltipOpen
+          onClick={() => {
+            setSpeedDialOpen(false);
+            showEditTextModal({
+              value: '',
+              setValue: handleCreate,
+              title: 'New Receipt',
+            });
+          }}
+        />
+        <SpeedDialAction
+          icon={<DocumentScannerIcon />}
+          tooltipTitle="Scan receipt"
+          tooltipOpen
+          onClick={openScanPicker}
+        />
+      </SpeedDial>
+
+      <ScanReceiptDialog
+        open={scanDialogOpen}
+        onClose={() => {
+          setScanDialogOpen(false);
+          setScanFlowError('');
+        }}
+        items={scannedItems}
+        error={scanFlowError}
+        onConfirm={handleScanConfirm}
+      />
 
       {EditTextModal}
     </Box>

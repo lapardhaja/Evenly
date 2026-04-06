@@ -183,6 +183,42 @@ export function useGroup(groupId) {
     [groupId, setData],
   );
 
+  /** Create a receipt and seed line items (e.g. from OCR). */
+  const addReceiptWithItems = useCallback(
+    (title, lineItems) => {
+      const receiptId = uuidv4();
+      const items = {};
+      for (const row of lineItems) {
+        const name = String(row.name || '').trim();
+        if (!name) continue;
+        const cost = Number(row.cost);
+        const quantity = Math.max(1, Math.min(999, Number(row.quantity) || 1));
+        if (!Number.isFinite(cost) || cost <= 0) continue;
+        items[uuidv4()] = { name, cost, quantity };
+      }
+      setData((prev) => {
+        const g = { ...prev.groups[groupId] };
+        g.receipts = {
+          ...g.receipts,
+          [receiptId]: {
+            title,
+            date: Date.now(),
+            locked: false,
+            paidById: '',
+            items,
+            personToItemQuantityMap: {},
+            itemToPersonQuantityMap: {},
+            taxCost: 0,
+            tipCost: 0,
+          },
+        };
+        return { ...prev, groups: { ...prev.groups, [groupId]: g } };
+      });
+      return receiptId;
+    },
+    [groupId, setData],
+  );
+
   const deleteReceipt = useCallback(
     (receiptId) => {
       setData((prev) => {
@@ -205,6 +241,7 @@ export function useGroup(groupId) {
     updatePerson,
     removePerson,
     addReceipt,
+    addReceiptWithItems,
     deleteReceipt,
   };
 }
