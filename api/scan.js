@@ -1,10 +1,10 @@
 /**
  * POST /api/scan
  * Body: { base64Image: string (raw base64), mimeType: string e.g. "image/jpeg" }
- * Env: GEMINI_API_KEY (optional GEMINI_MODEL, default gemini-2.0-flash)
+ * Env: GEMINI_API_KEY (optional GEMINI_MODEL, default gemini-2.5-flash)
  */
 
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 function geminiUrl(model, apiKey) {
   const m = encodeURIComponent(model);
