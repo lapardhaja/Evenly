@@ -7,22 +7,23 @@ import Tab from '@mui/material/Tab';
 import IconButton from '@mui/material/IconButton';
 import ButtonBase from '@mui/material/ButtonBase';
 import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import LockIcon from '@mui/icons-material/Lock';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import useEditTextModal from '../components/useEditTextModal.jsx';
-import { useGetReceipt } from '../hooks/useReceiptData.js';
+import { useGroupReceipt } from '../hooks/useGroupData.js';
 import ReceiptInfoItemsTab from './ReceiptInfoItemsTab.jsx';
 import ReceiptInfoPeopleTab from './ReceiptInfoPeopleTab.jsx';
 
 const TABS = ['items', 'people'];
 
 export default function ReceiptInfoPage() {
-  const { receiptId, tab } = useParams();
+  const { groupId, receiptId, tab } = useParams();
   const navigate = useNavigate();
-  const receiptData = useGetReceipt(receiptId);
-  const { receipt, updateReceiptProperty, deleteReceipt } = receiptData;
+  const receiptData = useGroupReceipt(groupId, receiptId);
+  const { receipt, people, updateReceiptProperty, deleteReceipt } = receiptData;
   const { EditTextModal, showEditTextModal } = useEditTextModal();
 
   const currentTab = TABS.indexOf(tab) >= 0 ? TABS.indexOf(tab) : 0;
@@ -41,20 +42,17 @@ export default function ReceiptInfoPage() {
   const handleDelete = () => {
     if (!window.confirm('Delete this receipt? This cannot be undone.')) return;
     deleteReceipt();
-    navigate('/receipts');
+    navigate(`/groups/${groupId}/receipts`);
   };
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 3 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          mb: 1,
-        }}
-      >
-        <IconButton onClick={() => navigate('/receipts')} size="small">
+      {/* Header row */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <IconButton
+          onClick={() => navigate(`/groups/${groupId}/receipts`)}
+          size="small"
+        >
           <ArrowBackIcon />
         </IconButton>
         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -80,9 +78,7 @@ export default function ReceiptInfoPage() {
               variant="h6"
               fontWeight={700}
               noWrap
-              sx={{
-                maxWidth: { xs: '55vw', sm: 'none' },
-              }}
+              sx={{ maxWidth: { xs: '50vw', sm: 'none' } }}
             >
               {receipt.title}
             </Typography>
@@ -100,7 +96,17 @@ export default function ReceiptInfoPage() {
         </IconButton>
       </Box>
 
-      <Box sx={{ px: 1, mb: 2 }}>
+      {/* Date + Paid By row */}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 2,
+          px: 1,
+          mb: 2,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
         <TextField
           type="date"
           value={dateStr}
@@ -111,14 +117,34 @@ export default function ReceiptInfoPage() {
           variant="standard"
           size="small"
           disabled={receipt.locked}
-          InputProps={{ disableUnderline: false }}
-          sx={{ maxWidth: 180 }}
+          sx={{ maxWidth: 160 }}
         />
+        <TextField
+          select
+          label="Paid by"
+          value={receipt.paidById || ''}
+          onChange={(e) => updateReceiptProperty('paidById', e.target.value)}
+          variant="standard"
+          size="small"
+          disabled={receipt.locked}
+          sx={{ minWidth: 140 }}
+        >
+          <MenuItem value="">
+            <em>Not set</em>
+          </MenuItem>
+          {people.map((p) => (
+            <MenuItem key={p.id} value={p.id}>
+              {p.name}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       <Tabs
         value={currentTab}
-        onChange={(_, v) => navigate(`/receipts/${receiptId}/${TABS[v]}`)}
+        onChange={(_, v) =>
+          navigate(`/groups/${groupId}/receipt/${receiptId}/${TABS[v]}`)
+        }
         indicatorColor="primary"
         textColor="primary"
         centered
@@ -130,7 +156,12 @@ export default function ReceiptInfoPage() {
       </Tabs>
 
       {currentTab === 0 && <ReceiptInfoItemsTab receiptData={receiptData} />}
-      {currentTab === 1 && <ReceiptInfoPeopleTab receiptData={receiptData} />}
+      {currentTab === 1 && (
+        <ReceiptInfoPeopleTab
+          receiptData={receiptData}
+          isGroupReceipt
+        />
+      )}
 
       {EditTextModal}
     </Container>
