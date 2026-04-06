@@ -54,7 +54,31 @@ export function useGroups() {
     [setData],
   );
 
-  return { groups, addGroup, deleteGroup };
+  const getGroupSnapshot = useCallback(
+    (groupId) => {
+      const raw = data.groups?.[groupId];
+      if (!raw) return null;
+      try {
+        return JSON.parse(JSON.stringify(raw));
+      } catch {
+        return null;
+      }
+    },
+    [data.groups],
+  );
+
+  const restoreGroup = useCallback(
+    (groupId, snapshot) => {
+      if (!snapshot || !groupId) return;
+      setData((prev) => ({
+        ...prev,
+        groups: { ...prev.groups, [groupId]: snapshot },
+      }));
+    },
+    [setData],
+  );
+
+  return { groups, addGroup, deleteGroup, getGroupSnapshot, restoreGroup };
 }
 
 // ─── Single group ───────────────────────────────────────────────────────
@@ -244,6 +268,31 @@ export function useGroup(groupId) {
     [groupId, setData],
   );
 
+  const getReceiptSnapshot = useCallback(
+    (rid) => {
+      const raw = data.groups?.[groupId]?.receipts?.[rid];
+      if (!raw) return null;
+      try {
+        return JSON.parse(JSON.stringify(raw));
+      } catch {
+        return null;
+      }
+    },
+    [data.groups, groupId],
+  );
+
+  const restoreReceipt = useCallback(
+    (rid, snapshot) => {
+      if (!snapshot || !rid) return;
+      setData((prev) => {
+        const g = { ...prev.groups[groupId] };
+        g.receipts = { ...g.receipts, [rid]: snapshot };
+        return { ...prev, groups: { ...prev.groups, [groupId]: g } };
+      });
+    },
+    [groupId, setData],
+  );
+
   return {
     group,
     people,
@@ -255,6 +304,8 @@ export function useGroup(groupId) {
     addReceipt,
     addReceiptWithItems,
     deleteReceipt,
+    getReceiptSnapshot,
+    restoreReceipt,
   };
 }
 

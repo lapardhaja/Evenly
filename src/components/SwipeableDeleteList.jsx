@@ -7,15 +7,16 @@ import {
   Type,
 } from 'react-swipeable-list';
 import 'react-swipeable-list/dist/styles.css';
+import './swipeable-list-overrides.css';
 
 /**
  * Mobile-only: swipe left to reveal Delete (full swipe triggers delete).
+ * Parent should show Snackbar + Undo after onDelete(item).
  */
 export default function SwipeableDeleteList({
   items,
   getKey,
   onDelete,
-  deleteConfirm,
   children,
 }) {
   return (
@@ -23,7 +24,7 @@ export default function SwipeableDeleteList({
       type={Type.IOS}
       fullSwipe
       threshold={0.35}
-      destructiveCallbackDelay={350}
+      destructiveCallbackDelay={400}
       style={{ width: '100%' }}
     >
       {items.map((item, idx) => (
@@ -32,10 +33,10 @@ export default function SwipeableDeleteList({
           trailingActions={
             <TrailingActions>
               <SwipeAction
+                className="evenly-swipe-delete"
                 destructive
-                onClick={() => {
-                  if (deleteConfirm(item)) onDelete(item);
-                }}
+                Tag="button"
+                onClick={() => onDelete(item)}
               >
                 Delete
               </SwipeAction>

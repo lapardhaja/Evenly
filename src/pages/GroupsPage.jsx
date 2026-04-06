@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import Container from '@mui/material/Container';
+import Snackbar from '@mui/material/Snackbar';
+import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
@@ -29,9 +31,10 @@ export default function GroupsPage() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
-  const { groups, addGroup, deleteGroup } = useGroups();
+  const { groups, addGroup, deleteGroup, getGroupSnapshot, restoreGroup } = useGroups();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const [searchQuery, setSearchQuery] = useState('');
+  const [undoDelete, setUndoDelete] = useState(null);
 
   const sorted = useMemo(
     () => [...groups].sort((a, b) => b.date - a.date),
@@ -50,10 +53,25 @@ export default function GroupsPage() {
     if (id) navigate(`/groups/${id}/people`);
   };
 
-  const confirmDeleteGroup = (g) =>
-    window.confirm(
-      `Delete "${g.name}" and all its receipts? This cannot be undone.`,
-    );
+  const handleSwipeDeleteGroup = useCallback(
+    (g) => {
+      const snapshot = getGroupSnapshot(g.id);
+      deleteGroup(g.id);
+      setUndoDelete({
+        id: g.id,
+        snapshot,
+        label: g.name,
+      });
+    },
+    [deleteGroup, getGroupSnapshot],
+  );
+
+  const handleUndoGroupDelete = useCallback(() => {
+    if (undoDelete?.snapshot) {
+      restoreGroup(undoDelete.id, undoDelete.snapshot);
+    }
+    setUndoDelete(null);
+  }, [undoDelete, restoreGroup]);
 
   const groupRow = (g) => (
     <ListItemButton
@@ -156,8 +174,7 @@ export default function GroupsPage() {
             <SwipeableDeleteList
               items={filtered}
               getKey={(g) => g.id}
-              onDelete={(g) => deleteGroup(g.id)}
-              deleteConfirm={confirmDeleteGroup}
+              onDelete={handleSwipeDeleteGroup}
             >
               {(g) => (
                 <ListItem disablePadding sx={{ display: 'block' }}>
@@ -195,6 +212,26 @@ export default function GroupsPage() {
       </Fab>
 
       {EditTextModal}
+
+      <Snackbar
+        open={!!undoDelete}
+        autoHideDuration={7000}
+        onClose={(_, reason) => {
+          if (reason === 'clickaway') return;
+          setUndoDelete(null);
+        }}
+        message={
+          undoDelete
+            ? `Removed "${undoDelete.label}"`
+            : ''
+        }
+        action={
+          <Button color="secondary" size="small" onClick={handleUndoGroupDelete}>
+            Undo
+          </Button>
+        }
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Container>
   );
 }

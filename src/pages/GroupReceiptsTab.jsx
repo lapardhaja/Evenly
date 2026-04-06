@@ -1,8 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
+import Snackbar from '@mui/material/Snackbar';
+import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -29,7 +31,15 @@ import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
 export default function GroupReceiptsTab({ groupId, groupData }) {
   const theme = useTheme();
   const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
-  const { receipts, people, addReceipt, addReceiptWithItems, deleteReceipt } = groupData;
+  const {
+    receipts,
+    people,
+    addReceipt,
+    addReceiptWithItems,
+    deleteReceipt,
+    getReceiptSnapshot,
+    restoreReceipt,
+  } = groupData;
   const navigate = useNavigate();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const fileInputRef = useRef(null);
@@ -43,6 +53,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   const [scannedReceiptDate, setScannedReceiptDate] = useState('');
   const [scannedGrandTotal, setScannedGrandTotal] = useState(0);
   const [scanFlowError, setScanFlowError] = useState('');
+  const [undoReceiptDelete, setUndoReceiptDelete] = useState(null);
 
   const sorted = useMemo(
     () => [...receipts].sort((a, b) => b.date - a.date),
@@ -113,8 +124,25 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       day: 'numeric',
     });
 
-  const confirmDeleteReceipt = (r) =>
-    window.confirm(`Delete "${r.title}"? This cannot be undone.`);
+  const handleSwipeDeleteReceipt = useCallback(
+    (r) => {
+      const snapshot = getReceiptSnapshot(r.id);
+      deleteReceipt(r.id);
+      setUndoReceiptDelete({
+        id: r.id,
+        snapshot,
+        label: r.title,
+      });
+    },
+    [deleteReceipt, getReceiptSnapshot],
+  );
+
+  const handleUndoReceiptDelete = useCallback(() => {
+    if (undoReceiptDelete?.snapshot) {
+      restoreReceipt(undoReceiptDelete.id, undoReceiptDelete.snapshot);
+    }
+    setUndoReceiptDelete(null);
+  }, [undoReceiptDelete, restoreReceipt]);
 
   const receiptRow = (r) => {
     const payer = r.paidById ? peopleMap[r.paidById] : null;
@@ -193,8 +221,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
             <SwipeableDeleteList
               items={sorted}
               getKey={(r) => r.id}
-              onDelete={(r) => deleteReceipt(r.id)}
-              deleteConfirm={confirmDeleteReceipt}
+              onDelete={handleSwipeDeleteReceipt}
             >
               {(r) => (
                 <ListItem disablePadding sx={{ display: 'block' }}>
@@ -273,6 +300,26 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       />
 
       {EditTextModal}
+
+      <Snackbar
+        open={!!undoReceiptDelete}
+        autoHideDuration={7000}
+        onClose={(_, reason) => {
+          if (reason === 'clickaway') return;
+          setUndoReceiptDelete(null);
+        }}
+        message={
+          undoReceiptDelete
+            ? `Removed "${undoReceiptDelete.label}"`
+            : ''
+        }
+        action={
+          <Button color="secondary" size="small" onClick={handleUndoReceiptDelete}>
+            Undo
+          </Button>
+        }
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

@@ -1,0 +1,39 @@
+/* react-swipeable-list: red, centered Delete (Tag="button" on SwipeAction) */
+.swipeable-list-item__trailing-actions .swipe-action.evenly-swipe-delete {
+  min-height: 100%;
+}
+
+.swipeable-list-item__trailing-actions button.swipe-action.evenly-swipe-delete {
+  flex: 1;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 100%;
+  min-width: 88px;
+  margin: 0;
+  padding: 0 16px;
+  border: none;
+  border-radius: 0;
+  background: #c62828 !important;
+  color: #fff !important;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.swipeable-list-item__trailing-actions button.swipe-action.evenly-swipe-delete:active {
+  background: #b71c1c !important;
+}
+
+.swipeable-list-item__trailing-actions
+  .swipe-action.evenly-swipe-delete.swipe-action__grayed {
+  background: transparent !important;
+}
+
+.swipeable-list-item__trailing-actions
+  button.swipe-action.evenly-swipe-delete.swipe-action__grayed {
+  background: #c62828 !important;
+}
