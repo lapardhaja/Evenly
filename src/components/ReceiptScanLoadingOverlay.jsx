@@ -6,7 +6,7 @@ import { keyframes } from '@mui/system';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SavingsIcon from '@mui/icons-material/Savings';
-import { SCAN_LOADING_QUIPS } from '../data/scanLoadingQuips.js';
+import { SCAN_LOADING_QUIPS_EXTRA } from '../data/scanLoadingQuips.js';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -29,7 +29,7 @@ const floatY = keyframes`
 `;
 
 function pickRandomQuipIndex(excludeIndex) {
-  const n = SCAN_LOADING_QUIPS.length;
+  const n = SCAN_LOADING_QUIPS_EXTRA.length;
   if (n <= 1) return 0;
   let next = Math.floor(Math.random() * n);
   let guard = 0;
@@ -159,7 +159,7 @@ export default function ReceiptScanLoadingOverlay({ open }) {
           },
         }}
       >
-        {SCAN_LOADING_QUIPS[msgIndex]}
+        {SCAN_LOADING_QUIPS_EXTRA[msgIndex]}
       </Typography>
 
       <Typography variant="caption" sx={{ color: 'grey.500', mt: 1 }}>
