@@ -28,6 +28,7 @@ import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
+import { appliedDiscountAmount } from '../functions/receiptTotals.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import useAddItemModal from './components/UseAddItemModal.jsx';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
@@ -38,6 +39,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
     items,
     people,
     subTotal,
+    taxableBaseAfterDiscount,
     total,
     getPersonCountForItem,
     getItemQuantityForPerson,
@@ -55,11 +57,12 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
     onAddItem: addItem,
   });
 
-  const taxPct = subTotal > 0
-    ? ((currency(receipt.taxCost).value / currency(subTotal).value) * 100).toFixed(2)
+  const pctBase = taxableBaseAfterDiscount > 0 ? taxableBaseAfterDiscount : subTotal;
+  const taxPct = pctBase > 0
+    ? ((currency(receipt.taxCost).value / currency(pctBase).value) * 100).toFixed(2)
     : '0.00';
-  const tipPct = subTotal > 0
-    ? ((currency(receipt.tipCost).value / currency(subTotal).value) * 100).toFixed(2)
+  const tipPct = pctBase > 0
+    ? ((currency(receipt.tipCost).value / currency(pctBase).value) * 100).toFixed(2)
     : '0.00';
 
   return (
@@ -308,6 +311,58 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
             </TableRow>
 
+            {/* Discount (before tax & tip) */}
+            <TableRow>
+              <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}>
+                Discount
+              </TableCell>
+              <TableCell />
+              <TableCell align="right">
+                <ButtonBase
+                  onClick={() =>
+                    !receipt.locked &&
+                    showEditTextModal({
+                      setValue: (v) => updateChargeValue('discountCost', v),
+                      title: 'Edit discount',
+                      value: String(receipt.discountCost ?? 0),
+                      inputKind: 'decimal',
+                    })
+                  }
+                  disabled={receipt.locked}
+                  sx={{ borderRadius: 1, px: 0.5 }}
+                >
+                  <Typography
+                    variant="body2"
+                    color={(receipt.discountCost || 0) > 0 ? 'success.main' : 'text.secondary'}
+                  >
+                    {(receipt.discountCost || 0) > 0
+                      ? `−${currency(appliedDiscountAmount(subTotal, receipt.discountCost)).format()}`
+                      : currency(0).format()}
+                  </Typography>
+                </ButtonBase>
+              </TableCell>
+              <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
+            </TableRow>
+
+            {(receipt.discountCost || 0) > 0 && (
+              <TableRow>
+                <TableCell
+                  sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}
+                  colSpan={2}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    After discount (tax/tip on this)
+                  </Typography>
+                </TableCell>
+                <TableCell align="right">
+                  <Typography variant="body2" fontWeight={600}>
+                    {currency(taxableBaseAfterDiscount).format()}
+                  </Typography>
+                </TableCell>
+                <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
+              </TableRow>
+            )}
+
             {/* Tax */}
             <TableRow>
               <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}>
@@ -318,7 +373,8 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                   onClick={() =>
                     !receipt.locked &&
                     showEditTextModal({
-                      setValue: (v) => updateChargeValueByPct('taxCost', v, subTotal),
+                      setValue: (v) =>
+                        updateChargeValueByPct('taxCost', v, taxableBaseAfterDiscount),
                       title: 'Edit Tax %',
                       value: taxPct,
                       inputKind: 'decimal',
@@ -362,7 +418,8 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                   onClick={() =>
                     !receipt.locked &&
                     showEditTextModal({
-                      setValue: (v) => updateChargeValueByPct('tipCost', v, subTotal),
+                      setValue: (v) =>
+                        updateChargeValueByPct('tipCost', v, taxableBaseAfterDiscount),
                       title: 'Edit Tip %',
                       value: tipPct,
                       inputKind: 'decimal',
@@ -391,39 +448,6 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                   sx={{ borderRadius: 1, px: 0.5 }}
                 >
                   {currency(receipt.tipCost).format()}
-                </ButtonBase>
-              </TableCell>
-              <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
-            </TableRow>
-
-            {/* Discount */}
-            <TableRow>
-              <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}>
-                Discount
-              </TableCell>
-              <TableCell />
-              <TableCell align="right">
-                <ButtonBase
-                  onClick={() =>
-                    !receipt.locked &&
-                    showEditTextModal({
-                      setValue: (v) => updateChargeValue('discountCost', v),
-                      title: 'Edit discount',
-                      value: String(receipt.discountCost ?? 0),
-                      inputKind: 'decimal',
-                    })
-                  }
-                  disabled={receipt.locked}
-                  sx={{ borderRadius: 1, px: 0.5 }}
-                >
-                  <Typography
-                    variant="body2"
-                    color={(receipt.discountCost || 0) > 0 ? 'success.main' : 'text.secondary'}
-                  >
-                    {(receipt.discountCost || 0) > 0
-                      ? `−${currency(receipt.discountCost).format()}`
-                      : currency(0).format()}
-                  </Typography>
                 </ButtonBase>
               </TableCell>
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
@@ -491,6 +515,8 @@ function PersonTotalListItem({ person, receiptData }) {
   const {
     receipt,
     items,
+    subTotal,
+    taxableBaseAfterDiscount,
     personSubTotalMap,
     getItemQuantityForPerson,
     getItemCostForPerson,
@@ -502,6 +528,15 @@ function PersonTotalListItem({ person, receiptData }) {
   const [open, setOpen] = useState(false);
   const personTotal = getTotalForPerson(person.id);
   const personSub = personSubTotalMap[person.id]?.subTotal || 0;
+  const appliedDisc = appliedDiscountAmount(subTotal, receipt?.discountCost);
+  const personDiscountShare =
+    subTotal > 0 && appliedDisc > 0
+      ? currency(personSub).multiply(appliedDisc).divide(subTotal).value
+      : 0;
+  const personAfterDiscount =
+    subTotal > 0
+      ? currency(personSub).multiply(taxableBaseAfterDiscount).divide(subTotal).value
+      : 0;
 
   return (
     <>
@@ -592,6 +627,22 @@ function PersonTotalListItem({ person, receiptData }) {
             <ListItemText primary={<Typography variant="body2">Sub Total</Typography>} />
             <Typography variant="body2">{currency(personSub).format()}</Typography>
           </ListItem>
+          {personDiscountShare > 0 && (
+            <ListItem sx={{ py: 0.25, px: 0 }}>
+              <ListItemText primary={<Typography variant="body2">Discount</Typography>} />
+              <Typography variant="body2" color="success.main">
+                −{currency(personDiscountShare).format()}
+              </Typography>
+            </ListItem>
+          )}
+          {personDiscountShare > 0 && (
+            <ListItem sx={{ py: 0.25, px: 0 }}>
+              <ListItemText
+                primary={<Typography variant="body2">After discount</Typography>}
+              />
+              <Typography variant="body2">{currency(personAfterDiscount).format()}</Typography>
+            </ListItem>
+          )}
           <ListItem sx={{ py: 0.25, px: 0 }}>
             <ListItemText primary={<Typography variant="body2">Tax</Typography>} />
             <Typography variant="body2">
@@ -604,14 +655,6 @@ function PersonTotalListItem({ person, receiptData }) {
               {currency(getChargeForPerson('tipCost', person.id)).format()}
             </Typography>
           </ListItem>
-          {(receipt.discountCost || 0) > 0 && (
-            <ListItem sx={{ py: 0.25, px: 0 }}>
-              <ListItemText primary={<Typography variant="body2">Discount</Typography>} />
-              <Typography variant="body2" color="success.main">
-                −{currency(getChargeForPerson('discountCost', person.id)).format()}
-              </Typography>
-            </ListItem>
-          )}
         </List>
       </Collapse>
     </>

@@ -3,6 +3,7 @@ import useLocalStorage from './useLocalStorage.js';
 import currency from 'currency.js';
 import { v4 as uuidv4 } from 'uuid';
 import { idMapToList } from '../functions/utils.js';
+import { receiptGrandTotal, taxableSubtotalAfterDiscount } from '../functions/receiptTotals.js';
 
 const STORAGE_KEY = 'evenly:data:v2';
 
@@ -97,10 +98,7 @@ export function useGroup(groupId) {
     return idMapToList(group?.receipts).map((r) => {
       const items = idMapToList(r.items);
       const subTotal = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
-      const total = currency(subTotal)
-        .add(r.taxCost || 0)
-        .add(r.tipCost || 0)
-        .subtract(r.discountCost || 0).value;
+      const total = receiptGrandTotal(subTotal, r.discountCost, r.taxCost, r.tipCost);
       return { ...r, total, subTotal };
     });
   }, [group?.receipts]);
@@ -345,12 +343,20 @@ export function useGroupReceipt(groupId, receiptId) {
     () => items.reduce((s, i) => currency(s).add(i.cost).value, 0),
     [items],
   );
+
+  const taxableBaseAfterDiscount = useMemo(
+    () => taxableSubtotalAfterDiscount(subTotal, receipt?.discountCost),
+    [subTotal, receipt?.discountCost],
+  );
+
   const total = useMemo(
     () =>
-      currency(subTotal)
-        .add(receipt?.taxCost || 0)
-        .add(receipt?.tipCost || 0)
-        .subtract(receipt?.discountCost || 0).value,
+      receiptGrandTotal(
+        subTotal,
+        receipt?.discountCost,
+        receipt?.taxCost,
+        receipt?.tipCost,
+      ),
     [subTotal, receipt?.taxCost, receipt?.tipCost, receipt?.discountCost],
   );
 
@@ -451,10 +457,13 @@ export function useGroupReceipt(groupId, receiptId) {
       const personSub = personSubTotalMap[personId]?.subTotal || 0;
       const tax = getChargeForPerson('taxCost', personId);
       const tip = getChargeForPerson('tipCost', personId);
-      const discount = getChargeForPerson('discountCost', personId);
-      return currency(personSub).add(tax).add(tip).subtract(discount).value;
+      if (subTotal <= 0) return 0;
+      const afterDiscount = currency(personSub)
+        .multiply(taxableBaseAfterDiscount)
+        .divide(subTotal).value;
+      return currency(afterDiscount).add(tax).add(tip).value;
     },
-    [personSubTotalMap, getChargeForPerson],
+    [personSubTotalMap, getChargeForPerson, subTotal, taxableBaseAfterDiscount],
   );
 
   const getItemCostForPerson = useCallback(
@@ -545,6 +554,7 @@ export function useGroupReceipt(groupId, receiptId) {
     people: peopleWithPaid,
     items,
     subTotal,
+    taxableBaseAfterDiscount,
     total,
     personSubTotalMap,
     getPersonCountForItem,

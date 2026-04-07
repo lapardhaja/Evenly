@@ -13,6 +13,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Collapse from '@mui/material/Collapse';
 import Link from '@mui/material/Link';
 import currency from 'currency.js';
+import { receiptGrandTotal } from '../functions/receiptTotals.js';
 
 export default function ScanReceiptDialog({
   open,
@@ -38,10 +39,7 @@ export default function ScanReceiptDialog({
 
   const totalMismatch = useMemo(() => {
     if (items.length === 0 || scannedGrandTotal <= 0) return null;
-    const expected = currency(itemsSubtotal)
-      .add(taxCost)
-      .add(tipCost)
-      .subtract(discountCost).value;
+    const expected = receiptGrandTotal(itemsSubtotal, discountCost, taxCost, tipCost);
     const diff = Math.abs(currency(scannedGrandTotal).subtract(expected).value);
     if (diff <= 0.02) return null;
     return { expected, scanned: scannedGrandTotal };
@@ -114,7 +112,7 @@ export default function ScanReceiptDialog({
         )}
         {totalMismatch && (
           <Alert severity="info" sx={{ mb: 1 }}>
-            Items + tax + tip − discount ({currency(totalMismatch.expected).format()}) don’t match
+            Items − discount + tax + tip ({currency(totalMismatch.expected).format()}) don’t match
             receipt total ({currency(totalMismatch.scanned).format()}). Check amounts after saving.
           </Alert>
         )}

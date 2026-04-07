@@ -171,6 +171,7 @@ Rules for "discount":
 - Positive number: total savings from the receipt (store discount, coupon, promo, "You saved", loyalty, employee discount, etc.). Sum multiple discount lines into one.
 - If the receipt shows a negative dollar line for discount, use the absolute value.
 - Use 0 if none or unclear.
+- This discount applies to the item subtotal before tax and tip (typical register behavior).
 
 If nothing is readable, return {"storeName":"","items":[],"tax":0,"tip":0,"discount":0,"receiptDate":"","grandTotal":0}
 Always return valid JSON with keys storeName, items, tax, tip, discount, receiptDate, grandTotal.`;
