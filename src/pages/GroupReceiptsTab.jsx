@@ -89,6 +89,12 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     const file = e.target.files?.[0];
     e.target.value = ''; // allow re-selecting same file
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      window.alert(
+        'Please choose a photo (JPEG, PNG, or HEIC). PDF and other files are not supported for scan.',
+      );
+      return;
+    }
     setScanLoading(true);
     setScanFlowError('');
     try {
@@ -218,7 +224,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       <input
         ref={uploadInputRef}
         type="file"
-        accept="image/*,.pdf,application/pdf"
+        accept="image/*"
         style={{ display: 'none' }}
         onChange={handleScanFile}
       />

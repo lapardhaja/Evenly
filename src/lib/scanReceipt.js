@@ -1,12 +1,10 @@
 import { compressImageDataUrl } from './compressImageForScan.js';
 
 /**
- * Image/PDF data URL → /api/scan (Vercel) → Gemini
- * PDFs are sent as-is (no canvas compress). Images are compressed for size limits.
+ * Image data URL → compress → /api/scan (Vercel) → Gemini (images only).
  */
 export async function scanReceiptImage(dataUrl) {
-  const isPdf = /^data:application\/pdf/i.test(dataUrl);
-  const processed = isPdf ? dataUrl : await compressImageDataUrl(dataUrl);
+  const processed = await compressImageDataUrl(dataUrl);
 
   const m = processed.match(/^data:([^;]+);base64,(.+)$/);
   const mimeType = m ? m[1] : 'image/jpeg';

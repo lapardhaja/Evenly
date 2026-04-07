@@ -125,6 +125,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No image provided (base64Image + mimeType)' });
   }
 
+  const mt = String(mimeType || '').toLowerCase();
+  if (mt === 'application/pdf' || mt.includes('pdf')) {
+    return res.status(400).json({ error: 'Only image uploads are supported (e.g. JPEG, PNG), not PDF.' });
+  }
+  if (mt && !mt.startsWith('image/')) {
+    return res.status(400).json({ error: 'Only image MIME types are supported.' });
+  }
+
   base64 = base64.replace(/\s/g, '');
   if (base64.length > 5_000_000) {
     return res.status(413).json({ error: 'Image too large' });
