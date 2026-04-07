@@ -11,8 +11,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
 import SpeedDial from '@mui/material/SpeedDial';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import SpeedDialIcon from '@mui/material/SpeedDialIcon';
@@ -28,6 +26,7 @@ import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
 import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
+import ReceiptScanLoadingOverlay from '../components/ReceiptScanLoadingOverlay.jsx';
 
 export default function GroupReceiptsTab({ groupId, groupData }) {
   const theme = useTheme();
@@ -266,12 +265,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         </Paper>
       )}
 
-      <Backdrop
-        open={scanLoading}
-        sx={{ color: '#fff', zIndex: (t) => t.zIndex.drawer + 2 }}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
+      <ReceiptScanLoadingOverlay open={scanLoading} />
 
       <SpeedDial
         ariaLabel="Add receipt"
