@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Backdrop from '@mui/material/Backdrop';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -6,6 +6,7 @@ import { keyframes } from '@mui/system';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SavingsIcon from '@mui/icons-material/Savings';
+import { SCAN_LOADING_QUIPS } from '../data/scanLoadingQuips.js';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -27,27 +28,36 @@ const floatY = keyframes`
   50% { transform: translateY(-8px); }
 `;
 
-const MESSAGES = [
-  'Teaching the robot to read receipt handwriting…',
-  'Convincing pixels to confess their prices…',
-  'Asking Gemini very nicely what you bought…',
-  'Squishing your photo for a faster trip to the cloud…',
-  'Counting beans, line items, and questionable snacks…',
-  'Doing the math so the group chat stays civil…',
-  'Your receipt is being judged by a very serious AI…',
-  'Still cheaper than hiring a forensic accountant…',
-  'Translating crumpled paper into sweet, sweet data…',
-  'Hang tight — money doesn’t grow on trees, but it loads in seconds…',
-];
+function pickRandomQuipIndex(excludeIndex) {
+  const n = SCAN_LOADING_QUIPS.length;
+  if (n <= 1) return 0;
+  let next = Math.floor(Math.random() * n);
+  let guard = 0;
+  while (next === excludeIndex && guard < 8) {
+    next = Math.floor(Math.random() * n);
+    guard += 1;
+  }
+  if (next === excludeIndex) {
+    next = (excludeIndex + 1) % n;
+  }
+  return next;
+}
 
 export default function ReceiptScanLoadingOverlay({ open }) {
-  const [msgIndex, setMsgIndex] = useState(0);
+  const [msgIndex, setMsgIndex] = useState(() => pickRandomQuipIndex(-1));
+  const prevOpenRef = useRef(false);
 
   useEffect(() => {
-    if (!open) return undefined;
-    setMsgIndex(0);
+    if (!open) {
+      prevOpenRef.current = false;
+      return undefined;
+    }
+    if (!prevOpenRef.current) {
+      prevOpenRef.current = true;
+      setMsgIndex((i) => pickRandomQuipIndex(i));
+    }
     const id = window.setInterval(() => {
-      setMsgIndex((i) => (i + 1) % MESSAGES.length);
+      setMsgIndex((i) => pickRandomQuipIndex(i));
     }, 2800);
     return () => window.clearInterval(id);
   }, [open]);
@@ -149,7 +159,7 @@ export default function ReceiptScanLoadingOverlay({ open }) {
           },
         }}
       >
-        {MESSAGES[msgIndex]}
+        {SCAN_LOADING_QUIPS[msgIndex]}
       </Typography>
 
       <Typography variant="caption" sx={{ color: 'grey.500', mt: 1 }}>
