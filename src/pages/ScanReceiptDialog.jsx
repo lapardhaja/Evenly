@@ -13,6 +13,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Collapse from '@mui/material/Collapse';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
+import Box from '@mui/material/Box';
 import currency from 'currency.js';
 import { receiptGrandTotal } from '../functions/receiptTotals.js';
 
@@ -70,41 +71,58 @@ export default function ScanReceiptDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth scroll="paper">
       <DialogTitle>Receipt scan</DialogTitle>
-      <DialogContent
-        sx={{
-          // Extra top space so outlined TextField floating labels aren’t clipped
-          // (DialogContent uses overflow: auto by default).
-          pt: 2.5,
-          pb: 2,
-        }}
-      >
+      <DialogContent sx={{ pt: 2, pb: 2 }}>
         <Stack spacing={2.5}>
         {externalError && (
           <Alert severity="error">
             {externalError}
           </Alert>
         )}
-        <TextField
-          label="Receipt name"
-          fullWidth
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          variant="outlined"
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          label="Receipt date"
-          type="date"
-          fullWidth
-          value={receiptDateISO}
-          onChange={(e) => setReceiptDateISO(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          helperText={
-            receiptDateISO
-              ? 'From photo when detected — you can edit'
-              : 'Optional — add if shown on the receipt'
-          }
-        />
+        <Box>
+          <Typography
+            component="label"
+            variant="subtitle2"
+            htmlFor="scan-receipt-name"
+            sx={{ display: 'block', mb: 1, fontWeight: 600 }}
+          >
+            Receipt name
+          </Typography>
+          <TextField
+            id="scan-receipt-name"
+            hiddenLabel
+            fullWidth
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            variant="outlined"
+            placeholder="Name this receipt"
+            aria-label="Receipt name"
+          />
+        </Box>
+        <Box>
+          <Typography
+            component="label"
+            variant="subtitle2"
+            htmlFor="scan-receipt-date"
+            sx={{ display: 'block', mb: 1, fontWeight: 600 }}
+          >
+            Receipt date
+          </Typography>
+          <TextField
+            id="scan-receipt-date"
+            hiddenLabel
+            type="date"
+            fullWidth
+            value={receiptDateISO}
+            onChange={(e) => setReceiptDateISO(e.target.value)}
+            variant="outlined"
+            aria-label="Receipt date"
+            helperText={
+              receiptDateISO
+                ? 'From photo when detected — you can edit'
+                : 'Optional — add if shown on the receipt'
+            }
+          />
+        </Box>
         {scannedGrandTotal > 0 && (
           <Typography variant="body2" color="text.secondary">
             Total on receipt: <strong>{currency(scannedGrandTotal).format()}</strong>
