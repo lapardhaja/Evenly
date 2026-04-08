@@ -26,7 +26,7 @@
 ### Data model
 Groups → Receipts hierarchy. People are defined at the group level and shared across all receipts.
 
-- `evenly:data:v2` localStorage key holds all groups, people, and receipts (mirrored when logged in for offline cache).
+- `evenly:data:v2` is the legacy guest key; signed-in users use `evenly:data:v2:user:<uuid>` so accounts don’t share one cache. First login migrates legacy → user key once.
 - Supabase tables: `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations` — see `supabase/migrations/`.
 - Each receipt has a `paidById` field (who paid the bill).
 - Settlement computed across all receipts in a group using greedy creditor/debtor pairing.

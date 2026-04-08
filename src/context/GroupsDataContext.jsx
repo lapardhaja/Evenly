@@ -9,44 +9,36 @@ import {
 } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { loadNormalizedData, persistNormalizedData } from '../lib/supabaseSync.js';
+import {
+  EVENLY_DATA_LEGACY_KEY,
+  getEvenlyDataStorageKey,
+  readEvenlyDataJson,
+  writeEvenlyDataJson,
+  mergeCloudWithLocalOnlyGroups,
+} from '../lib/evenlyStorageKey.js';
 import { useAuth } from './AuthContext.jsx';
-
-const STORAGE_KEY = 'evenly:data:v2';
 
 const defaultData = () => ({ groups: {} });
 
 const GroupsDataContext = createContext(null);
 
-function readLocalStorage() {
-  try {
-    const item = localStorage.getItem(STORAGE_KEY);
-    return item ? JSON.parse(item) : defaultData();
-  } catch {
-    return defaultData();
-  }
-}
-
 export function GroupsDataProvider({ children }) {
   const { user, loading: authLoading } = useAuth();
-  const supabase = getSupabase();
   const cloud = isSupabaseConfigured() && !!user;
 
-  const [data, setStoredValue] = useState(() => readLocalStorage());
-  // When Supabase is configured, wait for auth + first load before showing data
+  const [data, setStoredValue] = useState(() => readEvenlyDataJson(EVENLY_DATA_LEGACY_KEY));
   const [dataReady, setDataReady] = useState(() => !isSupabaseConfigured());
+  const [syncError, setSyncError] = useState('');
 
   const storedValueRef = useRef(data);
   storedValueRef.current = data;
 
+  const storageKeyRef = useRef(EVENLY_DATA_LEGACY_KEY);
+
   const setData = useCallback((updater) => {
     const prev = storedValueRef.current;
     const next = updater instanceof Function ? updater(prev) : updater;
-    // Always mirror to localStorage so logout / offline still has latest cache
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* quota */
-    }
+    writeEvenlyDataJson(storageKeyRef.current, next);
     storedValueRef.current = next;
     setStoredValue(next);
   }, []);
@@ -59,15 +51,21 @@ export function GroupsDataProvider({ children }) {
     }
 
     if (!isSupabaseConfigured() || !user) {
+      storageKeyRef.current = EVENLY_DATA_LEGACY_KEY;
+      setSyncError('');
       setDataReady(true);
-      const local = readLocalStorage();
+      const local = readEvenlyDataJson(EVENLY_DATA_LEGACY_KEY);
       setStoredValue(local);
       storedValueRef.current = local;
       return undefined;
     }
 
+    const userKey = getEvenlyDataStorageKey(user.id);
+    storageKeyRef.current = userKey;
+
     let cancelled = false;
     setDataReady(false);
+    setSyncError('');
 
     (async () => {
       try {
@@ -76,34 +74,61 @@ export function GroupsDataProvider({ children }) {
           if (!cancelled) setDataReady(true);
           return;
         }
-        let cloudData = await loadNormalizedData(client, user.id);
-        const local = readLocalStorage();
+
+        // One-time: copy pre-account local data into this user's cache key
+        let localCached = readEvenlyDataJson(userKey);
+        if (Object.keys(localCached.groups || {}).length === 0) {
+          const legacy = readEvenlyDataJson(EVENLY_DATA_LEGACY_KEY);
+          if (Object.keys(legacy.groups || {}).length > 0) {
+            writeEvenlyDataJson(userKey, legacy);
+            try {
+              localStorage.removeItem(EVENLY_DATA_LEGACY_KEY);
+            } catch {
+              /* ignore */
+            }
+            localCached = legacy;
+          }
+        }
+
+        const cloudData = await loadNormalizedData(client, user.id);
+        if (cancelled) return;
+
         const cloudEmpty =
           !cloudData.groups || Object.keys(cloudData.groups).length === 0;
-        const localHas = local.groups && Object.keys(local.groups).length > 0;
+        const cloudIds = new Set(Object.keys(cloudData.groups || {}));
+        const localIds = Object.keys(localCached.groups || {});
 
-        let merged = cloudData;
-        if (cloudEmpty && localHas) {
-          merged = local;
+        let merged = mergeCloudWithLocalOnlyGroups(cloudData, localCached);
+        const addedLocalOnly = localIds.some((id) => !cloudIds.has(id));
+
+        if (cloudEmpty && localIds.length > 0) {
+          merged = { groups: { ...localCached.groups } };
+        }
+
+        const shouldPersist =
+          (cloudEmpty && localIds.length > 0) || (!cloudEmpty && addedLocalOnly);
+
+        if (shouldPersist) {
           await persistNormalizedData(client, user.id, merged);
         }
 
         if (!cancelled) {
           storedValueRef.current = merged;
           setStoredValue(merged);
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-          } catch {
-            /* quota */
-          }
+          writeEvenlyDataJson(userKey, merged);
           setDataReady(true);
         }
       } catch (e) {
         console.error('Evenly cloud sync load failed:', e);
         if (!cancelled) {
-          const fallback = readLocalStorage();
-          setStoredValue(fallback);
-          storedValueRef.current = fallback;
+          const msg =
+            e?.message ||
+            e?.error_description ||
+            String(e) ||
+            'Could not load your data from the cloud.';
+          setSyncError(msg);
+          setStoredValue(defaultData());
+          storedValueRef.current = defaultData();
           setDataReady(true);
         }
       }
@@ -117,7 +142,7 @@ export function GroupsDataProvider({ children }) {
   // Debounced persist to Supabase
   const persistTimer = useRef(null);
   useEffect(() => {
-    if (!cloud || !dataReady) return undefined;
+    if (!cloud || !dataReady || syncError) return undefined;
 
     if (persistTimer.current) clearTimeout(persistTimer.current);
     persistTimer.current = window.setTimeout(() => {
@@ -125,22 +150,27 @@ export function GroupsDataProvider({ children }) {
       if (!client || !user) return;
       persistNormalizedData(client, user.id, storedValueRef.current).catch((err) => {
         console.error('Evenly cloud sync save failed:', err);
+        setSyncError(err?.message || 'Could not save to the cloud.');
       });
     }, 700);
 
     return () => {
       if (persistTimer.current) clearTimeout(persistTimer.current);
     };
-  }, [data, cloud, dataReady, user]);
+  }, [data, cloud, dataReady, user, syncError]);
+
+  const clearSyncError = useCallback(() => setSyncError(''), []);
 
   const value = useMemo(
     () => ({
       data,
       setData,
       ready: !authLoading && dataReady,
-      cloudSync: cloud,
+      cloudSync: cloud && !syncError,
+      syncError,
+      clearSyncError,
     }),
-    [data, setData, authLoading, dataReady, cloud],
+    [data, setData, authLoading, dataReady, cloud, syncError, clearSyncError],
   );
 
   return (

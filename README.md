@@ -40,7 +40,7 @@ Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **
 2. **Authentication → Providers → Email** — enable email/password.  
 3. In **SQL Editor**, run the migration in `supabase/migrations/20260210120000_evenly_normalized.sql` (tables + RLS). The file is **idempotent** (safe to run again). If you still get errors, your project may already have a different `public.groups` table from another tutorial — use a fresh Supabase project or rename/drop the conflicting table first.  
 4. Copy **Project URL** and **anon public** key into `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.  
-5. Rebuild/redeploy. Use the profile icon → **Sign in**. First login uploads existing local data if the cloud is empty.
+5. Rebuild/redeploy. Use the profile icon → **Sign in**. On first login, guest data in `evenly:data:v2` is copied into a **per-account** cache key and uploaded if your cloud is empty. Each account has its own cache (`evenly:data:v2:user:<id>`) so two logins on the same browser don’t show the same groups. Cloud rows always win when merging; local-only groups (not yet in Supabase) are merged in and then saved.
 6. **Password reset**: In Supabase → **Authentication** → **URL Configuration**, add your app’s URL to **Redirect URLs** (e.g. `https://your-app.vercel.app/**` or your GitHub Pages origin). Reset links open `#/reset-password` on that site. (The app uses **HashRouter**; recovery tokens are read from the hash manually so they work with `#/path?...` URLs.)
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.

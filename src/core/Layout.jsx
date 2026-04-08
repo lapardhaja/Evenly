@@ -8,6 +8,8 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -48,7 +50,7 @@ export default function Layout({ children }) {
   const { user, signOut, configured: supabaseConfigured, loading: authLoading } = useAuth();
   const onLoginRoute =
     location.pathname === '/login' || location.pathname === '/reset-password';
-  const { ready: dataReady, cloudSync } = useGroupsData();
+  const { ready: dataReady, cloudSync, syncError, clearSyncError } = useGroupsData();
   const [accountAnchor, setAccountAnchor] = useState(null);
   const { themeMode, setThemeMode, resolvedMode } = useThemeMode();
   const theme = useMemo(
@@ -154,6 +156,22 @@ export default function Layout({ children }) {
         </AppBar>
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {supabaseConfigured && user && syncError && !onLoginRoute ? (
+            <Alert
+              severity="error"
+              onClose={clearSyncError}
+              action={
+                <Button color="inherit" size="small" onClick={() => window.location.reload()}>
+                  Retry
+                </Button>
+              }
+              sx={{ borderRadius: 0 }}
+            >
+              Cloud sync failed: {syncError}. Your screen may be empty until this is fixed — check the browser
+              console, Supabase RLS policies, and that you ran the SQL migration. Old guest data is under a
+              different cache if you used the app before signing in.
+            </Alert>
+          ) : null}
           {children}
         </Box>
 
