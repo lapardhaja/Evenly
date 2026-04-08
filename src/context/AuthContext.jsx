@@ -7,6 +7,7 @@ import {
   useCallback,
 } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { applySupabaseSessionFromHash } from '../lib/supabaseRecoveryFromHash.js';
 
 const AuthContext = createContext(null);
 
@@ -23,17 +24,22 @@ export function AuthProvider({ children }) {
     }
 
     let cancelled = false;
-    client.auth
-      .getSession()
-      .then(({ data: { session: s } }) => {
+    (async () => {
+      try {
+        await applySupabaseSessionFromHash(client);
+      } catch {
+        /* ignore */
+      }
+      try {
+        const { data: { session: s } } = await client.auth.getSession();
         if (!cancelled) {
           setSession(s);
-          setLoading(false);
         }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
+      } catch {
+        /* ignore */
+      }
+      if (!cancelled) setLoading(false);
+    })();
 
     const { data: sub } = client.auth.onAuthStateChange((_event, s) => {
       setSession(s);

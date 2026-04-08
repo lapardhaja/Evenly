@@ -10,6 +10,7 @@ import Alert from '@mui/material/Alert';
 import Link from '@mui/material/Link';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { applySupabaseSessionFromHash } from '../lib/supabaseRecoveryFromHash.js';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export default function ResetPasswordPage() {
     });
 
     (async () => {
+      await applySupabaseSessionFromHash(client);
       const { data } = await client.auth.getSession();
       applySession(data.session);
       // Recovery tokens in URL hash are processed asynchronously
