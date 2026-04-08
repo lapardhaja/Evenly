@@ -28,38 +28,6 @@
     />
   </head>
   <body>
-    <!-- Capture Supabase recovery tokens before PWA SW / React; HashRouter breaks GoTrue's URL parser. -->
-    <script>
-      (function () {
-        try {
-          var h = window.location.hash || '';
-          if (h.indexOf('access_token=') < 0 && h.indexOf('refresh_token=') < 0 && h.indexOf('code=') < 0)
-            return;
-          var raw = h.charAt(0) === '#' ? h.slice(1) : h;
-          var params = {};
-          raw.split(/[?&]/).forEach(function (part) {
-            if (!part || part.indexOf('=') < 0) return;
-            var i = part.indexOf('=');
-            var k = decodeURIComponent(part.slice(0, i).replace(/\+/g, ' '));
-            var v = decodeURIComponent(part.slice(i + 1).replace(/\+/g, ' '));
-            if (k) params[k] = v;
-          });
-          var payload = null;
-          if (params.access_token && params.refresh_token) {
-            payload = { access_token: params.access_token, refresh_token: params.refresh_token };
-          } else if (params.code) {
-            payload = { code: params.code };
-          }
-          if (payload) {
-            sessionStorage.setItem('evenly:auth:pending', JSON.stringify(payload));
-            var route = '#/reset-password';
-            var m = h.match(/^#(\/[^?&]*)/);
-            if (m) route = '#' + m[1];
-            window.history.replaceState(window.history.state, '', window.location.pathname + route);
-          }
-        } catch (e) {}
-      })();
-    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

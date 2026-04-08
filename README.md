@@ -41,7 +41,8 @@ Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **
 3. In **SQL Editor**, run the migration in `supabase/migrations/20260210120000_evenly_normalized.sql` (tables + RLS). The file is **idempotent** (safe to run again). If you still get errors, your project may already have a different `public.groups` table from another tutorial — use a fresh Supabase project or rename/drop the conflicting table first.  
 4. Copy **Project URL** and **anon public** key into `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.  
 5. Rebuild/redeploy. Use the profile icon → **Sign in**. App data is read from and written to Supabase only (no `localStorage` mirror for groups/receipts). Any old `evenly:data:v2` keys are removed from the browser after a successful load.
-6. **Password reset**: In Supabase → **Authentication** → **URL Configuration**, add your app’s URL to **Redirect URLs** (e.g. `https://evenly.lapardhaja.com/**`). Use redirect **`https://yoursite.com/#/reset-password`**. The built HTML stashes tokens from the hash into `sessionStorage` before React/PWA load, then applies them with Supabase. If reset still fails: deploy the latest build, request a **new** email, open the link in **Safari/Chrome** (not in-app browsers), and optionally **unregister the service worker** once (DevTools → Application → Service Workers → Unregister) so an old cached `index.html` isn’t served.
+
+The app does **not** include forgot-password / email reset; users can use **Supabase Dashboard → Authentication → Users** to help someone regain access if needed.
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
