@@ -81,7 +81,7 @@ export default function Layout({ children }) {
         sx={{ zIndex: (t) => t.zIndex.drawer + 10, color: '#fff', flexDirection: 'column', gap: 2 }}
       >
         <CircularProgress color="inherit" />
-        <Typography variant="body2">Loading your data…</Typography>
+        <Typography variant="body2">Loading…</Typography>
       </Backdrop>
       <Box sx={{ flexGrow: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <AppBar position="sticky" elevation={2}>
@@ -136,7 +136,7 @@ export default function Layout({ children }) {
                   {cloudSync ? (
                     <MenuItem disabled sx={{ opacity: '1 !important' }}>
                       <Typography variant="caption" color="success.main">
-                        Data on server
+                        Signed in
                       </Typography>
                     </MenuItem>
                   ) : null}
@@ -167,9 +167,7 @@ export default function Layout({ children }) {
               }
               sx={{ borderRadius: 0 }}
             >
-              Could not load your data from the server: {syncError}. Check the browser console, Supabase RLS
-              policies, and that you ran the SQL migration. Data is not stored in the browser when cloud sign-in
-              is enabled.
+              We couldn’t load your data. Tap Retry. If that doesn’t help, sign out and sign in again.
             </Alert>
           ) : null}
           {children}

@@ -38,8 +38,7 @@ export default function LoginPage() {
     return (
       <Container maxWidth="sm" sx={{ py: 4 }}>
         <Alert severity="info">
-          Cloud sign-in is not configured. Add <code>VITE_SUPABASE_URL</code> and{' '}
-          <code>VITE_SUPABASE_ANON_KEY</code> to your environment, then rebuild.
+          Sign-in isn’t set up for this build yet. If you’re the app owner, check the deployment configuration.
         </Alert>
         <Button sx={{ mt: 2 }} onClick={() => navigate('/')}>
           Back to groups
@@ -99,7 +98,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       if (forgotMode) {
-        setError(String(err?.message || 'Could not send reset email.'));
+        setError('We couldn’t send the email. Try again in a moment.');
       } else if (mode === 'signup') {
         const { message, isEmailTaken } = formatSignUpError(err);
         if (isEmailTaken) {
@@ -123,23 +122,19 @@ export default function LoginPage() {
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {forgotMode
-            ? 'Enter your email and we’ll send a link to set a new password.'
-            : 'Sign in is required to use Evenly. Your groups sync across devices (email + password).'}
+            ? 'Enter your email and we’ll send you a link to set a new password.'
+            : 'Sign in is required to use Evenly.'}
         </Typography>
 
         {resetSent ? (
           <Alert severity="success" variant="outlined" sx={{ mb: 2 }}>
-            If an account exists for that email, you’ll get a reset link shortly. Check your inbox and spam folder.
+            If we find an account for that email, we’ll send a reset link. Check your inbox and spam folder.
           </Alert>
         ) : null}
 
         {successNotice ? (
           <Alert severity="success" variant="outlined" sx={{ mb: 2 }}>
             {successNotice}
-            <Typography variant="caption" component="p" sx={{ mt: 1, display: 'block', opacity: 0.9 }}>
-              Tip: In Supabase → Authentication → Providers → Email, you can turn off “Confirm email” for
-              faster testing.
-            </Typography>
           </Alert>
         ) : null}
 

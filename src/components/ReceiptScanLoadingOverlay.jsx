@@ -163,7 +163,7 @@ export default function ReceiptScanLoadingOverlay({ open }) {
       </Typography>
 
       <Typography variant="caption" sx={{ color: 'grey.500', mt: 1 }}>
-        Evenly × AI — please don’t spend this loading time online shopping
+        Hang in there — almost done
       </Typography>
     </Backdrop>
   );

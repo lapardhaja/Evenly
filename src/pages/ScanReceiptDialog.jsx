@@ -70,7 +70,7 @@ export default function ScanReceiptDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth scroll="paper">
-      <DialogTitle>Receipt scan</DialogTitle>
+      <DialogTitle>Review receipt</DialogTitle>
       <DialogContent sx={{ pt: 2, pb: 2 }}>
         <Stack spacing={2.5}>
         {externalError && (
@@ -117,9 +117,7 @@ export default function ScanReceiptDialog({
             variant="outlined"
             aria-label="Receipt date"
             helperText={
-              receiptDateISO
-                ? 'From photo when detected — you can edit'
-                : 'Optional — add if shown on the receipt'
+              receiptDateISO ? 'You can change this if needed' : 'Optional — if it’s on the receipt'
             }
           />
         </Box>
@@ -136,8 +134,8 @@ export default function ScanReceiptDialog({
         )}
         {totalMismatch && (
           <Alert severity="info">
-            Items − discount + tax + tip ({currency(totalMismatch.expected).format()}) don’t match
-            receipt total ({currency(totalMismatch.scanned).format()}). Check amounts after saving.
+            The total from your items ({currency(totalMismatch.expected).format()}) doesn’t match the total on the
+            receipt ({currency(totalMismatch.scanned).format()}). Double-check the numbers after you save.
           </Alert>
         )}
         {(taxCost > 0 || tipCost > 0 || discountCost > 0) && (
@@ -159,10 +157,10 @@ export default function ScanReceiptDialog({
         )}
         {items.length === 0 && !externalError ? (
           <Alert severity="warning">
-            No line items were detected. You can still create an empty receipt and add
-            items manually, or try another photo with better lighting.
+            We couldn’t read line items from this photo. You can still create the receipt and add items yourself, or
+            try a clearer photo.
             {(taxCost > 0 || tipCost > 0 || discountCost > 0) &&
-              ' Tax, tip, and discount above will still be saved on the receipt.'}
+              ' Tax, tip, and discount will still be saved.'}
           </Alert>
         ) : (
           <Typography variant="body2" color="text.secondary">

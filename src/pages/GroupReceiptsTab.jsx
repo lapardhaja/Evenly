@@ -89,9 +89,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     e.target.value = ''; // allow re-selecting same file
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      window.alert(
-        'Please choose a photo (JPEG, PNG, or HEIC). PDF and other files are not supported for scan.',
-      );
+      window.alert('Please choose a photo (not a PDF).');
       return;
     }
     setScanLoading(true);
@@ -116,7 +114,11 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       setScannedDiscount(0);
       setScannedReceiptDate('');
       setScannedGrandTotal(0);
-      setScanFlowError(err.message || 'Scan failed');
+      setScanFlowError(
+        err?.message && String(err.message).length < 120
+          ? err.message
+          : 'We couldn’t read this receipt. Try another photo.',
+      );
       setScanDialogOpen(true);
     } finally {
       setScanLoading(false);

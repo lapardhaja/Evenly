@@ -44,4 +44,14 @@ describe('supabaseAuthErrors', () => {
     assert.match(m, /incorrect email or password/i);
     assert.ok(!/not found/i.test(m));
   });
+
+  it('sign up hides long technical backend messages', () => {
+    const r = formatSignUpError({
+      message:
+        'TypeError: fetch failed connecting to https://xyz.supabase.co/auth/v1/signup with network error and more text',
+      code: '',
+    });
+    assert.strictEqual(r.isEmailTaken, false);
+    assert.strictEqual(r.message, 'Something went wrong. Please try again.');
+  });
 });

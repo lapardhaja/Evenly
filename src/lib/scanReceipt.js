@@ -21,7 +21,17 @@ export async function scanReceiptImage(dataUrl) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data.error || `Scan failed (${res.status})`);
+    if (res.status === 413) {
+      throw new Error('That photo is too large. Try a smaller image.');
+    }
+    if (res.status >= 500) {
+      throw new Error('Something went wrong. Please try again in a moment.');
+    }
+    const apiMsg = typeof data.error === 'string' ? data.error : '';
+    if (apiMsg && !/supabase|gemini|vercel|api key|unauthorized/i.test(apiMsg)) {
+      throw new Error(apiMsg);
+    }
+    throw new Error('We couldn’t read this receipt. Try another photo.');
   }
 
   const items = Array.isArray(data.items) ? data.items : [];
@@ -45,7 +55,7 @@ export function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.onerror = () => reject(new Error('We couldn’t read that file.'));
     reader.readAsDataURL(file);
   });
 }

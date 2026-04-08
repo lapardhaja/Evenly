@@ -39,10 +39,12 @@ export function formatSignUpError(err) {
     };
   }
 
-  return {
-    isEmailTaken: false,
-    message: raw || 'Something went wrong. Please try again.',
-  };
+  const generic = 'Something went wrong. Please try again.';
+  if (!raw) return { isEmailTaken: false, message: generic };
+  if (/supabase|gotrue|fetch|network|500|401|403/i.test(raw) && raw.length > 80) {
+    return { isEmailTaken: false, message: generic };
+  }
+  return { isEmailTaken: false, message: raw };
 }
 
 /**
@@ -64,5 +66,9 @@ export function formatSignInError(err) {
     return 'Confirm your email first (check your inbox), then try signing in.';
   }
 
-  return raw || 'Sign in failed. Please try again.';
+  if (!raw) return 'Sign in failed. Please try again.';
+  if (/supabase|gotrue|fetch|network/i.test(raw) && raw.length > 80) {
+    return 'Sign in failed. Please try again.';
+  }
+  return raw;
 }
