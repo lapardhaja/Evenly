@@ -17,13 +17,11 @@ export default function LoginPage() {
   const from = rawFrom === '/login' ? '/' : rawFrom;
   const { signIn, signUp, configured, user, loading: authLoading } = useAuth();
 
-  if (configured && !authLoading && user) {
-    return <Navigate to={from} replace />;
-  }
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('signin');
   const [error, setError] = useState('');
+  const [successNotice, setSuccessNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
   if (!configured) {
@@ -40,9 +38,18 @@ export default function LoginPage() {
     );
   }
 
+  if (!authLoading && user) {
+    return <Navigate to={from} replace />;
+  }
+
+  const clearMessages = () => {
+    setError('');
+    setSuccessNotice('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    clearMessages();
     setBusy(true);
     try {
       if (mode === 'signin') {
@@ -52,8 +59,8 @@ export default function LoginPage() {
         const data = await signUp(email.trim(), password);
         if (!data?.session) {
           setMode('signin');
-          setError(
-            'Check your email to confirm your account, then sign in. (You can disable confirmation in Supabase → Authentication → Providers → Email.)',
+          setSuccessNotice(
+            'Almost there — we sent a confirmation link to your email. Open it, then sign in below.',
           );
           return;
         }
@@ -75,6 +82,16 @@ export default function LoginPage() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Sign in is required to use Evenly. Your groups sync across devices (email + password).
         </Typography>
+
+        {successNotice ? (
+          <Alert severity="success" variant="outlined" sx={{ mb: 2 }}>
+            {successNotice}
+            <Typography variant="caption" component="p" sx={{ mt: 1, display: 'block', opacity: 0.9 }}>
+              Tip: In Supabase → Authentication → Providers → Email, you can turn off “Confirm email” for
+              faster testing.
+            </Typography>
+          </Alert>
+        ) : null}
 
         {error ? (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -113,7 +130,7 @@ export default function LoginPage() {
             variant="body2"
             onClick={() => {
               setMode(mode === 'signin' ? 'signup' : 'signin');
-              setError('');
+              clearMessages();
             }}
           >
             {mode === 'signin' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
