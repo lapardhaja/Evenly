@@ -12,6 +12,9 @@ if (url && anonKey) {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      // Recovery links use implicit tokens in the URL fragment; PKCE would require a stored code_verifier
+      // that is missing when the user opens the email on another device.
+      flowType: 'implicit',
     },
   });
 }
