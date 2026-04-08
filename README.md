@@ -12,7 +12,7 @@ Split receipts easily — a clean, responsive web app for splitting shared expen
 - **Per-Person Breakdown** — See exactly what each person owes with itemized detail
 - **Lock Receipts** — Lock a receipt to prevent accidental edits
 - **Responsive** — Works on mobile (iPhone, Android) and desktop
-- **Offline-First** — All data stored locally in your browser
+- **Offline-First** — Data stored locally in your browser; optional **Supabase** sign-in syncs groups/receipts to the cloud (normalized Postgres + row-level security)
 - **Appearance** — Light, dark, or Auto (follow device); choice is saved in the browser
 - **Mobile** — Swipe left a short way to reveal **Delete** (red); tap it to remove; **Undo** appears on a snackbar for a few seconds
 
@@ -32,6 +32,15 @@ npm run build
 ```
 
 **Vercel** (receipt scan): connect the repo. Vercel sets `VERCEL=1` during build so asset paths use `/`. Add **`GEMINI_API_KEY`** in Project → Settings → Environment Variables. Optional: **`GEMINI_MODEL`** (default `gemini-3.1-flash-lite-preview`). The app calls **`POST /api/scan`** (Gemini vision); the key stays on the server.
+
+Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **Sign in** (cloud sync). Never put the Supabase **service role** key in the frontend.
+
+**Supabase setup (normalized sync)**  
+1. Create a project at [supabase.com](https://supabase.com).  
+2. **Authentication → Providers → Email** — enable email/password.  
+3. In **SQL Editor**, run the migration in `supabase/migrations/20260210120000_evenly_normalized.sql` (tables + RLS).  
+4. Copy **Project URL** and **anon public** key into `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.  
+5. Rebuild/redeploy. Use the profile icon → **Sign in**. First login uploads existing local data if the cloud is empty.
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
@@ -54,7 +63,7 @@ The build is a **Progressive Web App**: **Web App Manifest** + **service worker*
 - MUI 5 (Material UI)
 - react-router-dom v6 (HashRouter)
 - currency.js
-- localStorage persistence
+- localStorage persistence; optional Supabase Auth + Postgres sync (`@supabase/supabase-js`)
 
 ## License
 

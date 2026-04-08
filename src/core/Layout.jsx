@@ -1,12 +1,20 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import useThemeMode from '../hooks/useThemeMode.js';
 import ThemeModeMenu from './ThemeModeMenu.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useGroupsData } from '../context/GroupsDataContext.jsx';
 
 const lightTheme = createTheme({
   palette: {
@@ -35,6 +43,10 @@ const darkTheme = createTheme({
 });
 
 export default function Layout({ children }) {
+  const navigate = useNavigate();
+  const { user, signOut, configured: supabaseConfigured, loading: authLoading } = useAuth();
+  const { ready: dataReady, cloudSync } = useGroupsData();
+  const [accountAnchor, setAccountAnchor] = useState(null);
   const { themeMode, setThemeMode, resolvedMode } = useThemeMode();
   const theme = useMemo(
     () => (resolvedMode === 'dark' ? darkTheme : lightTheme),
@@ -51,9 +63,19 @@ export default function Layout({ children }) {
     }
   }, [resolvedMode]);
 
+  const showBootstrap =
+    supabaseConfigured && (authLoading || !dataReady);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <Backdrop
+        open={showBootstrap}
+        sx={{ zIndex: (t) => t.zIndex.drawer + 10, color: '#fff', flexDirection: 'column', gap: 2 }}
+      >
+        <CircularProgress color="inherit" />
+        <Typography variant="body2">Loading your data…</Typography>
+      </Backdrop>
       <Box sx={{ flexGrow: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <AppBar position="sticky" elevation={2}>
           <Toolbar>
@@ -83,6 +105,58 @@ export default function Layout({ children }) {
               </Typography>
             </Box>
             <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} />
+            {supabaseConfigured ? (
+              <>
+                <IconButton
+                  color="inherit"
+                  aria-label="account"
+                  onClick={(e) => setAccountAnchor(e.currentTarget)}
+                  edge="end"
+                >
+                  <AccountCircleIcon />
+                </IconButton>
+                <Menu
+                  anchorEl={accountAnchor}
+                  open={Boolean(accountAnchor)}
+                  onClose={() => setAccountAnchor(null)}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                >
+                  {user ? (
+                    <>
+                      <MenuItem disabled sx={{ opacity: '1 !important', maxWidth: 280 }}>
+                        <Typography variant="caption" noWrap title={user.email}>
+                          {user.email}
+                        </Typography>
+                      </MenuItem>
+                      {cloudSync ? (
+                        <MenuItem disabled sx={{ opacity: '1 !important' }}>
+                          <Typography variant="caption" color="success.main">
+                            Cloud sync on
+                          </Typography>
+                        </MenuItem>
+                      ) : null}
+                      <MenuItem
+                        onClick={() => {
+                          setAccountAnchor(null);
+                          signOut();
+                        }}
+                      >
+                        Sign out
+                      </MenuItem>
+                    </>
+                  ) : (
+                    <MenuItem
+                      onClick={() => {
+                        setAccountAnchor(null);
+                        navigate('/login');
+                      }}
+                    >
+                      Sign in
+                    </MenuItem>
+                  )}
+                </Menu>
+              </>
+            ) : null}
           </Toolbar>
         </AppBar>
 

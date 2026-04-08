@@ -1,18 +1,14 @@
 import { useMemo, useCallback } from 'react';
-import useLocalStorage from './useLocalStorage.js';
 import currency from 'currency.js';
+import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { v4 as uuidv4 } from 'uuid';
 import { idMapToList } from '../functions/utils.js';
 import { receiptGrandTotal, taxableSubtotalAfterDiscount } from '../functions/receiptTotals.js';
 
-const STORAGE_KEY = 'evenly:data:v2';
-
-const defaultData = () => ({ groups: {} });
-
 // ─── Groups list ────────────────────────────────────────────────────────
 
 export function useGroups() {
-  const [data, setData] = useLocalStorage(STORAGE_KEY, defaultData());
+  const { data, setData } = useGroupsData();
 
   const groups = useMemo(
     () =>
@@ -85,7 +81,7 @@ export function useGroups() {
 // ─── Single group ───────────────────────────────────────────────────────
 
 export function useGroup(groupId) {
-  const [data, setData] = useLocalStorage(STORAGE_KEY, defaultData());
+  const { data, setData } = useGroupsData();
 
   const group = useMemo(() => {
     if (!data.groups?.[groupId]) return null;
@@ -317,7 +313,7 @@ export function useGroup(groupId) {
 // ─── Single receipt within a group ──────────────────────────────────────
 
 export function useGroupReceipt(groupId, receiptId) {
-  const [data, setData] = useLocalStorage(STORAGE_KEY, defaultData());
+  const { data, setData } = useGroupsData();
 
   const group = data.groups?.[groupId];
   const receipt = useMemo(() => {

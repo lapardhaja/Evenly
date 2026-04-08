@@ -2,13 +2,13 @@
 
 ## Project overview
 
-**Evenly** is a receipt-splitting SPA (React 18 + Vite 6 + MUI 5). Data persists in `localStorage`. Deploy to **GitHub Pages** (static only) or **Vercel** (static + `POST /api/scan` using Gemini; env `GEMINI_API_KEY`, optional `GEMINI_MODEL`).
+**Evenly** is a receipt-splitting SPA (React 18 + Vite 6 + MUI 5). Data persists in `localStorage`; optional **Supabase** email/password syncs normalized rows to Postgres (RLS). Deploy to **GitHub Pages** (static only) or **Vercel** (static + `POST /api/scan` using Gemini; env `GEMINI_API_KEY`, optional `GEMINI_MODEL`).
 
 ## Tech stack
 
 - **UI**: React 18, MUI 5 (Material UI), @emotion
 - **Routing**: react-router-dom v6 with `HashRouter` (GitHub Pages compatible)
-- **State**: `localStorage` via custom `useLocalStorage` hook
+- **State**: `localStorage` + optional cloud: `AuthContext`, `GroupsDataContext`, `src/lib/supabaseSync.js` (normalized tables). Hooks in `useGroupData.js` read/write via `useGroupsData()`.
 - **Currency**: `currency.js` for precise monetary math
 - **IDs**: `uuid` v4
 - **Build**: Vite 6 with `@vitejs/plugin-react`, **PWA** via `vite-plugin-pwa` (manifest + SW precache)
@@ -26,7 +26,8 @@
 ### Data model
 Groups → Receipts hierarchy. People are defined at the group level and shared across all receipts.
 
-- `evenly:data:v2` localStorage key holds all groups, people, and receipts.
+- `evenly:data:v2` localStorage key holds all groups, people, and receipts (mirrored when logged in for offline cache).
+- Supabase tables: `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations` — see `supabase/migrations/`.
 - Each receipt has a `paidById` field (who paid the bill).
 - Settlement computed across all receipts in a group using greedy creditor/debtor pairing.
 
@@ -50,7 +51,7 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 
 ## Cursor Cloud specific instructions
 
-- **No external services required** — all data is in localStorage
+- **Optional Supabase** — set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; run SQL migration in Supabase. Without them, app stays local-only.
 - Dev server: `npm run dev -- --host 0.0.0.0 --port 5173`
 - Build check: `npm run build`
 - No test framework configured yet
