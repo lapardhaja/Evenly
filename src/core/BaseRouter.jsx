@@ -4,6 +4,7 @@ import GroupDetailPage from '../pages/GroupDetailPage.jsx';
 import ReceiptInfoPage from '../pages/ReceiptInfoPage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
 import UpdatePasswordPage from '../pages/UpdatePasswordPage.jsx';
+import SharedSettlementPage from '../pages/SharedSettlementPage.jsx';
 import RequireAuth from './RequireAuth.jsx';
 
 export default function BaseRouter() {
@@ -11,6 +12,7 @@ export default function BaseRouter() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/update-password" element={<UpdatePasswordPage />} />
+      <Route path="/shared-settlement/:token" element={<SharedSettlementPage />} />
       <Route
         path="/"
         element={

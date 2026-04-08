@@ -23,6 +23,7 @@ import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
 import { computeNetBalances, minimizeTransfers } from '../functions/settlement.js';
 import { formatSettlementSummaryText } from '../lib/formatSettlementSummary.js';
+import SettlementShareDialog from '../components/SettlementShareDialog.jsx';
 
 async function copyPlainText(text) {
   try {
@@ -53,6 +54,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
   const { group, people, receipts } = groupData;
   const [settledSet, setSettledSet] = useState(new Set());
   const [snack, setSnack] = useState({ open: false, message: '' });
+  const [shareLinkOpen, setShareLinkOpen] = useState(false);
 
   const peopleMap = useMemo(() => {
     const map = {};
@@ -78,6 +80,33 @@ export default function GroupSettleTab({ groupId, groupData }) {
   const missingPayerTitles = useMemo(
     () => missingPayers.map((r) => r.title || 'Untitled receipt'),
     [missingPayers],
+  );
+
+  const shareWarnings = useMemo(() => {
+    if (missingPayers.length === 0) return [];
+    if (missingPayers.length === 1) {
+      return [
+        `"${missingPayers[0].title || 'A receipt'}" has no payer set — totals may be off.`,
+      ];
+    }
+    return [`${missingPayers.length} receipts have no payer set — totals may be off.`];
+  }, [missingPayers]);
+
+  const transfersForShare = useMemo(
+    () =>
+      transfers
+        .map((t) => {
+          const fromPerson = peopleMap[t.from];
+          const toPerson = peopleMap[t.to];
+          if (!fromPerson || !toPerson) return null;
+          return {
+            from: fromPerson.name,
+            to: toPerson.name,
+            amount: t.amount,
+          };
+        })
+        .filter(Boolean),
+    [transfers, peopleMap],
   );
 
   const summaryText = useMemo(
@@ -237,12 +266,24 @@ export default function GroupSettleTab({ groupId, groupData }) {
           startIcon={<IosShareIcon />}
           onClick={handleShareSummary}
         >
-          Share
+          Share text
+        </Button>
+        <Button size="small" variant="contained" onClick={() => setShareLinkOpen(true)}>
+          Share link
         </Button>
       </Stack>
       <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2, mt: -1 }}>
-        Sends who pays whom as plain text — easy to paste in Messages or WhatsApp.
+        Share text pastes a message. Share link opens a simple page (add an optional note before you
+        send it).
       </Typography>
+
+      <SettlementShareDialog
+        open={shareLinkOpen}
+        onClose={() => setShareLinkOpen(false)}
+        groupName={group?.name}
+        transfers={transfersForShare}
+        warnings={shareWarnings}
+      />
 
       {transfers.length === 0 ? (
         <Paper

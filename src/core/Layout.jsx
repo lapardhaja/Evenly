@@ -49,7 +49,9 @@ export default function Layout({ children }) {
   const location = useLocation();
   const { user, signOut, configured: supabaseConfigured, loading: authLoading } = useAuth();
   const onLoginRoute =
-    location.pathname === '/login' || location.pathname === '/update-password';
+    location.pathname === '/login' ||
+    location.pathname === '/update-password' ||
+    location.pathname.startsWith('/shared-settlement/');
   const { ready: dataReady, cloudSync, syncError, clearSyncError } = useGroupsData();
   const [accountAnchor, setAccountAnchor] = useState(null);
   const { themeMode, setThemeMode, resolvedMode } = useThemeMode();
