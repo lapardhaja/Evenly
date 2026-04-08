@@ -9,6 +9,7 @@ import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
 import Link from '@mui/material/Link';
 import { useAuth } from '../context/AuthContext.jsx';
+import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { applySupabaseSessionFromHash } from '../lib/supabaseRecoveryFromHash.js';
 
@@ -139,6 +140,7 @@ export default function ResetPasswordPage() {
               required
               autoComplete="new-password"
               fullWidth
+              sx={(theme) => muiTextFieldAutofillSx(theme)}
             />
             <TextField
               label="Confirm new password"
@@ -148,6 +150,7 @@ export default function ResetPasswordPage() {
               required
               autoComplete="new-password"
               fullWidth
+              sx={(theme) => muiTextFieldAutofillSx(theme)}
             />
             <Button type="submit" variant="contained" size="large" disabled={busy}>
               {busy ? 'Saving…' : 'Update password'}

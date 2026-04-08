@@ -9,6 +9,7 @@ import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
 import Link from '@mui/material/Link';
 import { useAuth } from '../context/AuthContext.jsx';
+import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
 import {
   classifySignUpResponse,
   formatSignInError,
@@ -161,6 +162,7 @@ export default function LoginPage() {
             required
             autoComplete="email"
             fullWidth
+            sx={(theme) => muiTextFieldAutofillSx(theme)}
           />
           {!forgotMode ? (
             <TextField
@@ -171,6 +173,7 @@ export default function LoginPage() {
               required
               autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
               fullWidth
+              sx={(theme) => muiTextFieldAutofillSx(theme)}
             />
           ) : null}
           <Button type="submit" variant="contained" size="large" disabled={busy}>
