@@ -1,4 +1,20 @@
 /**
+ * Supabase may return HTTP 200 with no session for (a) new user awaiting email confirm,
+ * or (b) duplicate signup when Confirm email + Confirm phone are both on (obfuscated user).
+ * Real new signups include at least one identity; duplicates use an empty identities array.
+ *
+ * @param {{ user?: { identities?: unknown[] } | null; session?: unknown | null } | null | undefined} data
+ * @returns {'logged_in' | 'awaiting_confirmation' | 'likely_already_registered'}
+ */
+export function classifySignUpResponse(data) {
+  if (data?.session) return 'logged_in';
+  const identities = data?.user?.identities;
+  const hasIdentity = Array.isArray(identities) && identities.length > 0;
+  if (hasIdentity) return 'awaiting_confirmation';
+  return 'likely_already_registered';
+}
+
+/**
  * Map Supabase Auth errors to safe, clear UI copy.
  * @param {import('@supabase/supabase-js').AuthError | Error | null | undefined} err
  * @returns {{ isEmailTaken: boolean, message: string }}

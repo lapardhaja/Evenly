@@ -9,7 +9,11 @@ import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
 import Link from '@mui/material/Link';
 import { useAuth } from '../context/AuthContext.jsx';
-import { formatSignInError, formatSignUpError } from '../lib/supabaseAuthErrors.js';
+import {
+  classifySignUpResponse,
+  formatSignInError,
+  formatSignUpError,
+} from '../lib/supabaseAuthErrors.js';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -22,6 +26,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('signin');
   const [error, setError] = useState('');
+  const [infoNotice, setInfoNotice] = useState('');
   const [successNotice, setSuccessNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -45,6 +50,7 @@ export default function LoginPage() {
 
   const clearMessages = () => {
     setError('');
+    setInfoNotice('');
     setSuccessNotice('');
   };
 
@@ -58,14 +64,21 @@ export default function LoginPage() {
         navigate(from, { replace: true });
       } else {
         const data = await signUp(email.trim(), password);
-        if (!data?.session) {
-          setMode('signin');
-          setSuccessNotice(
-            'Almost there — we sent a confirmation link to your email. Open it, then sign in below.',
+        const outcome = classifySignUpResponse(data);
+        if (outcome === 'logged_in') {
+          navigate(from, { replace: true });
+          return;
+        }
+        setMode('signin');
+        if (outcome === 'likely_already_registered') {
+          setInfoNotice(
+            'That email already has an account. Sign in below, or use a different email.',
           );
           return;
         }
-        navigate(from, { replace: true });
+        setSuccessNotice(
+          'Almost there — we sent a confirmation link to your email. Open it, then sign in below.',
+        );
       }
     } catch (err) {
       if (mode === 'signup') {
@@ -99,6 +112,12 @@ export default function LoginPage() {
               Tip: In Supabase → Authentication → Providers → Email, you can turn off “Confirm email” for
               faster testing.
             </Typography>
+          </Alert>
+        ) : null}
+
+        {infoNotice ? (
+          <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+            {infoNotice}
           </Alert>
         ) : null}
 
