@@ -10,11 +10,9 @@ import {
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { loadNormalizedData, persistNormalizedData } from '../lib/supabaseSync.js';
 import {
-  EVENLY_DATA_LEGACY_KEY,
-  getEvenlyDataStorageKey,
-  readEvenlyDataJson,
-  writeEvenlyDataJson,
-  mergeCloudWithLocalOnlyGroups,
+  readLegacyEvenlyData,
+  writeLegacyEvenlyData,
+  purgeEvenlyDataFromLocalStorage,
 } from '../lib/evenlyStorageKey.js';
 import { useAuth } from './AuthContext.jsx';
 
@@ -24,44 +22,55 @@ const GroupsDataContext = createContext(null);
 
 export function GroupsDataProvider({ children }) {
   const { user, loading: authLoading } = useAuth();
-  const cloud = isSupabaseConfigured() && !!user;
+  const useServerOnly = isSupabaseConfigured();
+  const cloud = useServerOnly && !!user;
 
-  const [data, setStoredValue] = useState(() => readEvenlyDataJson(EVENLY_DATA_LEGACY_KEY));
-  const [dataReady, setDataReady] = useState(() => !isSupabaseConfigured());
+  const [data, setStoredValue] = useState(() =>
+    useServerOnly ? defaultData() : readLegacyEvenlyData(),
+  );
+  const [dataReady, setDataReady] = useState(() => !useServerOnly);
   const [syncError, setSyncError] = useState('');
 
   const storedValueRef = useRef(data);
   storedValueRef.current = data;
 
-  const storageKeyRef = useRef(EVENLY_DATA_LEGACY_KEY);
+  const setData = useCallback(
+    (updater) => {
+      const prev = storedValueRef.current;
+      const next = updater instanceof Function ? updater(prev) : updater;
+      if (!useServerOnly) {
+        writeLegacyEvenlyData(next);
+      }
+      storedValueRef.current = next;
+      setStoredValue(next);
+    },
+    [useServerOnly],
+  );
 
-  const setData = useCallback((updater) => {
-    const prev = storedValueRef.current;
-    const next = updater instanceof Function ? updater(prev) : updater;
-    writeEvenlyDataJson(storageKeyRef.current, next);
-    storedValueRef.current = next;
-    setStoredValue(next);
-  }, []);
-
-  // Load from cloud or local when auth / user changes
+  // Load: server-only from Supabase when configured + signed in; else legacy localStorage
   useEffect(() => {
     if (authLoading) {
-      if (isSupabaseConfigured()) setDataReady(false);
+      if (useServerOnly) setDataReady(false);
       return undefined;
     }
 
-    if (!isSupabaseConfigured() || !user) {
-      storageKeyRef.current = EVENLY_DATA_LEGACY_KEY;
+    if (!useServerOnly) {
       setSyncError('');
       setDataReady(true);
-      const local = readEvenlyDataJson(EVENLY_DATA_LEGACY_KEY);
+      const local = readLegacyEvenlyData();
       setStoredValue(local);
       storedValueRef.current = local;
       return undefined;
     }
 
-    const userKey = getEvenlyDataStorageKey(user.id);
-    storageKeyRef.current = userKey;
+    if (!user) {
+      setSyncError('');
+      setDataReady(true);
+      const empty = defaultData();
+      setStoredValue(empty);
+      storedValueRef.current = empty;
+      return undefined;
+    }
 
     let cancelled = false;
     setDataReady(false);
@@ -75,47 +84,15 @@ export function GroupsDataProvider({ children }) {
           return;
         }
 
-        // One-time: copy pre-account local data into this user's cache key
-        let localCached = readEvenlyDataJson(userKey);
-        if (Object.keys(localCached.groups || {}).length === 0) {
-          const legacy = readEvenlyDataJson(EVENLY_DATA_LEGACY_KEY);
-          if (Object.keys(legacy.groups || {}).length > 0) {
-            writeEvenlyDataJson(userKey, legacy);
-            try {
-              localStorage.removeItem(EVENLY_DATA_LEGACY_KEY);
-            } catch {
-              /* ignore */
-            }
-            localCached = legacy;
-          }
-        }
-
         const cloudData = await loadNormalizedData(client, user.id);
         if (cancelled) return;
 
-        const cloudEmpty =
-          !cloudData.groups || Object.keys(cloudData.groups).length === 0;
-        const cloudIds = new Set(Object.keys(cloudData.groups || {}));
-        const localIds = Object.keys(localCached.groups || {});
-
-        let merged = mergeCloudWithLocalOnlyGroups(cloudData, localCached);
-        const addedLocalOnly = localIds.some((id) => !cloudIds.has(id));
-
-        if (cloudEmpty && localIds.length > 0) {
-          merged = { groups: { ...localCached.groups } };
-        }
-
-        const shouldPersist =
-          (cloudEmpty && localIds.length > 0) || (!cloudEmpty && addedLocalOnly);
-
-        if (shouldPersist) {
-          await persistNormalizedData(client, user.id, merged);
-        }
+        const merged = cloudData?.groups ? { groups: { ...cloudData.groups } } : defaultData();
 
         if (!cancelled) {
           storedValueRef.current = merged;
           setStoredValue(merged);
-          writeEvenlyDataJson(userKey, merged);
+          purgeEvenlyDataFromLocalStorage();
           setDataReady(true);
         }
       } catch (e) {
@@ -137,9 +114,9 @@ export function GroupsDataProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user?.id]);
+  }, [authLoading, user?.id, useServerOnly]);
 
-  // Debounced persist to Supabase
+  // Debounced persist to Supabase (server-only mode)
   const persistTimer = useRef(null);
   useEffect(() => {
     if (!cloud || !dataReady || syncError) return undefined;

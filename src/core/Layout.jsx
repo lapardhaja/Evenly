@@ -136,7 +136,7 @@ export default function Layout({ children }) {
                   {cloudSync ? (
                     <MenuItem disabled sx={{ opacity: '1 !important' }}>
                       <Typography variant="caption" color="success.main">
-                        Cloud sync on
+                        Data on server
                       </Typography>
                     </MenuItem>
                   ) : null}
@@ -167,9 +167,9 @@ export default function Layout({ children }) {
               }
               sx={{ borderRadius: 0 }}
             >
-              Cloud sync failed: {syncError}. Your screen may be empty until this is fixed — check the browser
-              console, Supabase RLS policies, and that you ran the SQL migration. Old guest data is under a
-              different cache if you used the app before signing in.
+              Could not load your data from the server: {syncError}. Check the browser console, Supabase RLS
+              policies, and that you ran the SQL migration. Data is not stored in the browser when cloud sign-in
+              is enabled.
             </Alert>
           ) : null}
           {children}

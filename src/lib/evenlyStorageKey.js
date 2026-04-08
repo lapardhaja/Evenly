@@ -1,15 +1,35 @@
-/** Legacy key used when not signed in (guest / before accounts). */
+/** Old guest / pre-server-only keys — removed after successful cloud load when using Supabase. */
 export const EVENLY_DATA_LEGACY_KEY = 'evenly:data:v2';
+const USER_KEY_PREFIX = 'evenly:data:v2:user:';
 
-/** Per-user cache when signed in so two accounts on one browser don’t share data. */
-export function getEvenlyDataStorageKey(userId) {
-  if (!userId) return EVENLY_DATA_LEGACY_KEY;
-  return `evenly:data:v2:user:${userId}`;
+/**
+ * Remove all Evenly app-data keys from localStorage (server-only mode cleanup).
+ */
+export function purgeEvenlyDataFromLocalStorage() {
+  if (typeof localStorage === 'undefined') return;
+  const toRemove = [];
+  try {
+    toRemove.push(EVENLY_DATA_LEGACY_KEY);
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(USER_KEY_PREFIX)) toRemove.push(k);
+    }
+    for (const k of toRemove) {
+      try {
+        localStorage.removeItem(k);
+      } catch {
+        /* ignore */
+      }
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
-export function readEvenlyDataJson(key) {
+/** Read legacy guest blob (only when Supabase is not configured). */
+export function readLegacyEvenlyData() {
   try {
-    const item = localStorage.getItem(key);
+    const item = localStorage.getItem(EVENLY_DATA_LEGACY_KEY);
     if (!item) return { groups: {} };
     const parsed = JSON.parse(item);
     return parsed && typeof parsed === 'object' && parsed.groups ? parsed : { groups: {} };
@@ -18,23 +38,10 @@ export function readEvenlyDataJson(key) {
   }
 }
 
-export function writeEvenlyDataJson(key, data) {
+export function writeLegacyEvenlyData(data) {
   try {
-    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(EVENLY_DATA_LEGACY_KEY, JSON.stringify(data));
   } catch {
     /* quota */
   }
-}
-
-/**
- * Merge: start from cloud; add any groups that exist only in local (same id = cloud wins).
- */
-export function mergeCloudWithLocalOnlyGroups(cloudData, localData) {
-  const cloudGroups = cloudData?.groups && typeof cloudData.groups === 'object' ? cloudData.groups : {};
-  const localGroups = localData?.groups && typeof localData.groups === 'object' ? localData.groups : {};
-  const merged = { ...cloudGroups };
-  for (const [id, g] of Object.entries(localGroups)) {
-    if (!(id in merged)) merged[id] = g;
-  }
-  return { groups: merged };
 }
