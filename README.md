@@ -42,7 +42,7 @@ Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **
 4. Copy **Project URL** and **anon public** key into `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.  
 5. Rebuild/redeploy. Use the profile icon → **Sign in**. App data is read from and written to Supabase only (no `localStorage` mirror for groups/receipts). Any old `evenly:data:v2` keys are removed from the browser after a successful load.
 
-6. **Password reset** ([Supabase guide](https://supabase.com/docs/guides/auth/passwords#resetting-a-password)): In **Authentication → URL configuration**, add your site to **Redirect URLs** (e.g. `https://evenly.lapardhaja.com/**`). The app sends `resetPasswordForEmail` with `redirectTo` = `https://yoursite.com/#/update-password`. GoTrue may land on **`#/update-password#access_token=...`** (two `#` in one fragment); we parse that shape. **`index.html`** stashes params in `sessionStorage` before the PWA SW, then **`#/update-password`** calls `updateUser({ password })`. **Implicit** flow + `setSession` / `verifyOtp` / `exchangeCodeForSession` as needed.
+The app does not include **forgot password** / email reset; use **Supabase Dashboard → Authentication → Users** if you need to help someone access their account.
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
