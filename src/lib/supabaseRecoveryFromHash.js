@@ -2,10 +2,13 @@
  * HashRouter + Supabase recovery: tokens may appear as
  *   #/reset-password?access_token=...&refresh_token=...
  * or #/reset-password&access_token=...&refresh_token=...
- * Browsers only expose the fragment after `#`, so we split on ? and & and parse key=value parts.
+ *
+ * `index.html` may stash tokens in sessionStorage first (before SW/React) — see EVENLY_AUTH_PENDING_KEY.
  *
  * Some redirects use ?code=... (PKCE) on the main URL search — we check that too.
  */
+
+export const EVENLY_AUTH_PENDING_KEY = 'evenly:auth:pending';
 
 function parseQueryLikeSegments(fragmentWithoutHash) {
   /** @type {Record<string, string>} */
@@ -53,7 +56,25 @@ export async function applySupabaseSessionFromHash(supabase) {
   if (typeof window === 'undefined' || !supabase) return false;
 
   const params = extractAuthParamsFromWindow();
-  const { access_token, refresh_token, code } = params;
+  let access_token = params.access_token;
+  let refresh_token = params.refresh_token;
+  let code = params.code;
+
+  if ((!access_token || !refresh_token) && !code) {
+    try {
+      const raw = sessionStorage.getItem(EVENLY_AUTH_PENDING_KEY);
+      if (raw) {
+        const pending = JSON.parse(raw);
+        if (pending?.access_token && pending?.refresh_token) {
+          access_token = pending.access_token;
+          refresh_token = pending.refresh_token;
+        }
+        if (pending?.code) code = pending.code;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 
   let applied = false;
 
@@ -74,6 +95,12 @@ export async function applySupabaseSessionFromHash(supabase) {
   }
 
   if (!applied) return false;
+
+  try {
+    sessionStorage.removeItem(EVENLY_AUTH_PENDING_KEY);
+  } catch {
+    /* ignore */
+  }
 
   // Strip tokens from the address bar; keep only the hash route (e.g. #/reset-password)
   const h = window.location.hash;
