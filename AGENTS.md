@@ -27,7 +27,7 @@
 Groups → Receipts hierarchy. People are defined at the group level and shared across all receipts.
 
 - With **Supabase env vars set**, group/receipt data is **only** in Postgres (loaded on sign-in, saved after edits). `evenly:data:v2` localStorage is purged after a successful load. Without Supabase, data stays in `evenly:data:v2` (local-only build).
-- Supabase tables: `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations` — see `supabase/migrations/`.
+- Supabase tables: `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations` — see `supabase/migrations/` and `docs/SUPABASE_DATABASE.md`. Passwords live in **Auth** (`auth.users`), not `public`.
 - Each receipt has a `paidById` field (who paid the bill).
 - Settlement computed across all receipts in a group using greedy creditor/debtor pairing.
 
@@ -51,7 +51,7 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 
 ## Cursor Cloud specific instructions
 
-- **Optional Supabase** — set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; run SQL migration. When set, **sign-in is required** (`RequireAuth`); without env vars, app stays local-only with no login gate. No in-app forgot-password flow.
+- **Optional Supabase** — set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; run SQL migration. When set, **sign-in is required** (`RequireAuth`). **Forgot password** → `#/update-password` (`UpdatePasswordPage.jsx`, `supabaseAuthCallback.js`, `index.html` inline script for PWA).
 - Dev server: `npm run dev -- --host 0.0.0.0 --port 5173`
 - Build check: `npm run build`
 - No test framework configured yet

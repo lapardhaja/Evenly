@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
@@ -21,7 +21,8 @@ export default function LoginPage() {
   const location = useLocation();
   const rawFrom = location.state?.from?.pathname || '/';
   const from = rawFrom === '/login' ? '/' : rawFrom;
-  const { signIn, signUp, configured, user, loading: authLoading } = useAuth();
+  const { signIn, signUp, sendPasswordResetEmail, configured, user, loading: authLoading } =
+    useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +31,8 @@ export default function LoginPage() {
   const [signupWarning, setSignupWarning] = useState('');
   const [successNotice, setSuccessNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   if (!configured) {
     return (
@@ -49,10 +52,18 @@ export default function LoginPage() {
     return <Navigate to={from} replace />;
   }
 
+  useEffect(() => {
+    if (location.state?.passwordResetOk) {
+      setSuccessNotice('Your password was updated. Sign in with your new password.');
+      navigate('/login', { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
   const clearMessages = () => {
     setError('');
     setSignupWarning('');
     setSuccessNotice('');
+    setResetSent(false);
   };
 
   const handleSubmit = async (e) => {
@@ -60,6 +71,11 @@ export default function LoginPage() {
     clearMessages();
     setBusy(true);
     try {
+      if (forgotMode) {
+        await sendPasswordResetEmail(email.trim());
+        setResetSent(true);
+        return;
+      }
       if (mode === 'signin') {
         await signIn(email.trim(), password);
         navigate(from, { replace: true });
@@ -82,7 +98,9 @@ export default function LoginPage() {
         );
       }
     } catch (err) {
-      if (mode === 'signup') {
+      if (forgotMode) {
+        setError(String(err?.message || 'Could not send reset email.'));
+      } else if (mode === 'signup') {
         const { message, isEmailTaken } = formatSignUpError(err);
         if (isEmailTaken) {
           setSignupWarning(message);
@@ -101,11 +119,19 @@ export default function LoginPage() {
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Paper elevation={2} sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom fontWeight={700}>
-          {mode === 'signin' ? 'Sign in' : 'Create account'}
+          {forgotMode ? 'Reset password' : mode === 'signin' ? 'Sign in' : 'Create account'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Sign in is required to use Evenly. Your groups sync across devices (email + password).
+          {forgotMode
+            ? 'Enter your email and we’ll send a link to set a new password.'
+            : 'Sign in is required to use Evenly. Your groups sync across devices (email + password).'}
         </Typography>
+
+        {resetSent ? (
+          <Alert severity="success" variant="outlined" sx={{ mb: 2 }}>
+            If an account exists for that email, you’ll get a reset link shortly. Check your inbox and spam folder.
+          </Alert>
+        ) : null}
 
         {successNotice ? (
           <Alert severity="success" variant="outlined" sx={{ mb: 2 }}>
@@ -140,33 +166,68 @@ export default function LoginPage() {
             fullWidth
             sx={(theme) => muiTextFieldAutofillSx(theme)}
           />
-          <TextField
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-            fullWidth
-            sx={(theme) => muiTextFieldAutofillSx(theme)}
-          />
+          {!forgotMode ? (
+            <TextField
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              fullWidth
+              sx={(theme) => muiTextFieldAutofillSx(theme)}
+            />
+          ) : null}
           <Button type="submit" variant="contained" size="large" disabled={busy}>
-            {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Sign up'}
+            {busy
+              ? 'Please wait…'
+              : forgotMode
+                ? 'Send reset link'
+                : mode === 'signin'
+                  ? 'Sign in'
+                  : 'Sign up'}
           </Button>
         </Box>
 
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Link
-            component="button"
-            type="button"
-            variant="body2"
-            onClick={() => {
-              setMode(mode === 'signin' ? 'signup' : 'signin');
-              clearMessages();
-            }}
-          >
-            {mode === 'signin' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-          </Link>
+        <Box sx={{ mt: 2, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {mode === 'signin' && !forgotMode ? (
+            <Link
+              component="button"
+              type="button"
+              variant="body2"
+              onClick={() => {
+                setForgotMode(true);
+                clearMessages();
+              }}
+            >
+              Forgot password?
+            </Link>
+          ) : null}
+          {forgotMode ? (
+            <Link
+              component="button"
+              type="button"
+              variant="body2"
+              onClick={() => {
+                setForgotMode(false);
+                clearMessages();
+              }}
+            >
+              Back to sign in
+            </Link>
+          ) : (
+            <Link
+              component="button"
+              type="button"
+              variant="body2"
+              onClick={() => {
+                setMode(mode === 'signin' ? 'signup' : 'signin');
+                clearMessages();
+              }}
+            >
+              {mode === 'signin' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+            </Link>
+          )}
         </Box>
       </Paper>
     </Container>

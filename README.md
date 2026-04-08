@@ -42,7 +42,7 @@ Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **
 4. Copy **Project URL** and **anon public** key into `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.  
 5. Rebuild/redeploy. Use the profile icon → **Sign in**. App data is read from and written to Supabase only (no `localStorage` mirror for groups/receipts). Any old `evenly:data:v2` keys are removed from the browser after a successful load.
 
-The app does not include **forgot password** / email reset; use **Supabase Dashboard → Authentication → Users** if you need to help someone access their account.
+6. **Forgot password** ([Supabase passwords](https://supabase.com/docs/guides/auth/passwords#resetting-a-password)): **Authentication → URL configuration** → add **Redirect URLs** (e.g. `https://your-domain.com/**`). The app uses `redirectTo` = `https://your-domain.com/#/update-password`. After deploy, if reset fails, **unregister the PWA service worker** once (or hard refresh) so the latest `index.html` runs. See **`docs/SUPABASE_DATABASE.md`** for tables vs `auth.users`.
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
