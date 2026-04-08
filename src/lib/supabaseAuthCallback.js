@@ -10,11 +10,11 @@
 
 export const EVENLY_AUTH_PENDING_KEY = 'evenly:auth:pending';
 
-function parseQueryLikeSegments(fragmentWithoutHash) {
+function parseQueryLikeSegments(qs) {
   /** @type {Record<string, string>} */
   const out = {};
-  if (!fragmentWithoutHash) return out;
-  for (const seg of fragmentWithoutHash.split(/[?&]/)) {
+  if (!qs) return out;
+  for (const seg of qs.split(/[?&]/)) {
     if (!seg || !seg.includes('=')) continue;
     const eq = seg.indexOf('=');
     const key = decodeURIComponent(seg.slice(0, eq).replace(/\+/g, ' '));
@@ -22,6 +22,28 @@ function parseQueryLikeSegments(fragmentWithoutHash) {
     if (key) out[key] = val;
   }
   return out;
+}
+
+/**
+ * GoTrue sometimes redirects to: #/update-password#access_token=...&refresh_token=...
+ * (second # inside the single location.hash). Parse route ?query and the trailing #fragment.
+ */
+export function parseHashForAuth(fullHash) {
+  const raw = fullHash.startsWith('#') ? fullHash.slice(1) : fullHash;
+  /** @type {Record<string, string>} */
+  const out = {};
+  if (!raw) return out;
+
+  const secondHash = raw.indexOf('#');
+  if (secondHash >= 0) {
+    const routeAndMaybeQuery = raw.slice(0, secondHash);
+    const afterSecondHash = raw.slice(secondHash + 1);
+    Object.assign(out, parseQueryLikeSegments(routeAndMaybeQuery));
+    Object.assign(out, parseQueryLikeSegments(afterSecondHash));
+    return out;
+  }
+
+  return parseQueryLikeSegments(raw);
 }
 
 function parseSearchParams() {
@@ -38,10 +60,7 @@ function parseSearchParams() {
  */
 export function extractAuthParamsFromWindow() {
   if (typeof window === 'undefined') return {};
-  const raw = window.location.hash.startsWith('#')
-    ? window.location.hash.slice(1)
-    : window.location.hash;
-  const fromHash = parseQueryLikeSegments(raw);
+  const fromHash = parseHashForAuth(window.location.hash || '');
   const fromSearch = parseSearchParams();
   return { ...fromSearch, ...fromHash };
 }
