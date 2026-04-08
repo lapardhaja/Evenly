@@ -3,12 +3,14 @@ import GroupsPage from '../pages/GroupsPage.jsx';
 import GroupDetailPage from '../pages/GroupDetailPage.jsx';
 import ReceiptInfoPage from '../pages/ReceiptInfoPage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
+import ResetPasswordPage from '../pages/ResetPasswordPage.jsx';
 import RequireAuth from './RequireAuth.jsx';
 
 export default function BaseRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/"
         element={

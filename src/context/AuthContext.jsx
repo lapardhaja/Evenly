@@ -69,6 +69,26 @@ export function AuthProvider({ children }) {
     await client.auth.signOut();
   }, [client]);
 
+  /** Sends password reset email; user must add this redirect URL in Supabase → Auth → URL Configuration. */
+  const sendPasswordResetEmail = useCallback(
+    async (email) => {
+      if (!client) throw new Error('Supabase is not configured');
+      const redirectTo = `${window.location.origin}${window.location.pathname}#/reset-password`;
+      const { error } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      if (error) throw error;
+    },
+    [client],
+  );
+
+  const updatePassword = useCallback(
+    async (newPassword) => {
+      if (!client) throw new Error('Supabase is not configured');
+      const { error } = await client.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+    },
+    [client],
+  );
+
   const value = useMemo(
     () => ({
       user: session?.user ?? null,
@@ -77,9 +97,20 @@ export function AuthProvider({ children }) {
       signIn,
       signUp,
       signOut,
+      sendPasswordResetEmail,
+      updatePassword,
       configured,
     }),
-    [session, loading, signIn, signUp, signOut, configured],
+    [
+      session,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      sendPasswordResetEmail,
+      updatePassword,
+      configured,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

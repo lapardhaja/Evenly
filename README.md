@@ -41,6 +41,7 @@ Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **
 3. In **SQL Editor**, run the migration in `supabase/migrations/20260210120000_evenly_normalized.sql` (tables + RLS). The file is **idempotent** (safe to run again). If you still get errors, your project may already have a different `public.groups` table from another tutorial — use a fresh Supabase project or rename/drop the conflicting table first.  
 4. Copy **Project URL** and **anon public** key into `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.  
 5. Rebuild/redeploy. Use the profile icon → **Sign in**. First login uploads existing local data if the cloud is empty.
+6. **Password reset**: In Supabase → **Authentication** → **URL Configuration**, add your app’s URL to **Redirect URLs** (e.g. `https://your-app.vercel.app/**` or your GitHub Pages origin). Reset links open `#/reset-password` on that site.
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
