@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -11,16 +11,48 @@ import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Checkbox from '@mui/material/Checkbox';
+import Button from '@mui/material/Button';
+import Snackbar from '@mui/material/Snackbar';
+import Stack from '@mui/material/Stack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import IosShareIcon from '@mui/icons-material/IosShare';
 import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
 import { computeNetBalances, minimizeTransfers } from '../functions/settlement.js';
+import { formatSettlementSummaryText } from '../lib/formatSettlementSummary.js';
+
+async function copyPlainText(text) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall through */
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export default function GroupSettleTab({ groupId, groupData }) {
   const { group, people, receipts } = groupData;
   const [settledSet, setSettledSet] = useState(new Set());
+  const [snack, setSnack] = useState({ open: false, message: '' });
 
   const peopleMap = useMemo(() => {
     const map = {};
@@ -42,6 +74,47 @@ export default function GroupSettleTab({ groupId, groupData }) {
     () => receipts.filter((r) => r.total > 0 && !r.paidById),
     [receipts],
   );
+
+  const missingPayerTitles = useMemo(
+    () => missingPayers.map((r) => r.title || 'Untitled receipt'),
+    [missingPayers],
+  );
+
+  const summaryText = useMemo(
+    () =>
+      formatSettlementSummaryText({
+        groupName: group?.name,
+        transfers,
+        peopleById: peopleMap,
+        missingPayerReceiptTitles: missingPayerTitles,
+      }),
+    [group?.name, transfers, peopleMap, missingPayerTitles],
+  );
+
+  const showShareToast = useCallback((message) => {
+    setSnack({ open: true, message });
+  }, []);
+
+  const handleCopySummary = useCallback(async () => {
+    const ok = await copyPlainText(summaryText);
+    showShareToast(ok ? 'Copied. Paste it in your chat.' : 'Couldn’t copy. Try again or use Share.');
+  }, [summaryText, showShareToast]);
+
+  const handleShareSummary = useCallback(async () => {
+    const title = `${group?.name?.trim() || 'Group'} — Settle up`;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title, text: summaryText });
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+    const ok = await copyPlainText(summaryText);
+    showShareToast(
+      ok ? 'Copied. Paste it in your chat.' : 'Couldn’t copy. Try again.',
+    );
+  }, [summaryText, group?.name, showShareToast]);
 
   const toggleSettled = (idx) => {
     setSettledSet((prev) => {
@@ -147,6 +220,28 @@ export default function GroupSettleTab({ groupId, groupData }) {
       {/* Transfers */}
       <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
         Settle Up
+      </Typography>
+
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<ContentCopyIcon />}
+          onClick={handleCopySummary}
+        >
+          Copy summary
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<IosShareIcon />}
+          onClick={handleShareSummary}
+        >
+          Share
+        </Button>
+      </Stack>
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2, mt: -1 }}>
+        Sends who pays whom as plain text — easy to paste in Messages or WhatsApp.
       </Typography>
 
       {transfers.length === 0 ? (
@@ -265,6 +360,14 @@ export default function GroupSettleTab({ groupId, groupData }) {
           All transfers marked as settled!
         </Alert>
       )}
+
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={4000}
+        onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        message={snack.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }
