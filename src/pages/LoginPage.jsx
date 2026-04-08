@@ -9,6 +9,7 @@ import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
 import Link from '@mui/material/Link';
 import { useAuth } from '../context/AuthContext.jsx';
+import { formatSignInError, formatSignUpError } from '../lib/supabaseAuthErrors.js';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -67,7 +68,15 @@ export default function LoginPage() {
         navigate(from, { replace: true });
       }
     } catch (err) {
-      setError(err?.message || 'Something went wrong');
+      if (mode === 'signup') {
+        const { message, isEmailTaken } = formatSignUpError(err);
+        if (isEmailTaken) {
+          setMode('signin');
+        }
+        setError(message);
+      } else {
+        setError(formatSignInError(err));
+      }
     } finally {
       setBusy(false);
     }
