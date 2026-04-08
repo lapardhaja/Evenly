@@ -7,6 +7,7 @@ import {
   useCallback,
 } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { applySupabaseAuthFromUrl } from '../lib/supabaseAuthCallback.js';
 
 const AuthContext = createContext(null);
 
@@ -23,17 +24,22 @@ export function AuthProvider({ children }) {
     }
 
     let cancelled = false;
-    client.auth
-      .getSession()
-      .then(({ data: { session: s } }) => {
-        if (!cancelled) {
-          setSession(s);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
+    (async () => {
+      try {
+        await applySupabaseAuthFromUrl(client);
+      } catch {
+        /* ignore */
+      }
+      try {
+        const {
+          data: { session: s },
+        } = await client.auth.getSession();
+        if (!cancelled) setSession(s);
+      } catch {
+        /* ignore */
+      }
+      if (!cancelled) setLoading(false);
+    })();
 
     const { data: sub } = client.auth.onAuthStateChange((_event, s) => {
       setSession(s);
@@ -69,6 +75,26 @@ export function AuthProvider({ children }) {
     await client.auth.signOut();
   }, [client]);
 
+  /** @see https://supabase.com/docs/guides/auth/passwords#resetting-a-password */
+  const sendPasswordResetEmail = useCallback(
+    async (email) => {
+      if (!client) throw new Error('Supabase is not configured');
+      const redirectTo = `${window.location.origin}${window.location.pathname}#/update-password`;
+      const { error } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      if (error) throw error;
+    },
+    [client],
+  );
+
+  const updatePassword = useCallback(
+    async (newPassword) => {
+      if (!client) throw new Error('Supabase is not configured');
+      const { error } = await client.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+    },
+    [client],
+  );
+
   const value = useMemo(
     () => ({
       user: session?.user ?? null,
@@ -77,9 +103,20 @@ export function AuthProvider({ children }) {
       signIn,
       signUp,
       signOut,
+      sendPasswordResetEmail,
+      updatePassword,
       configured,
     }),
-    [session, loading, signIn, signUp, signOut, configured],
+    [
+      session,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      sendPasswordResetEmail,
+      updatePassword,
+      configured,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
