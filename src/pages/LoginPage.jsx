@@ -26,7 +26,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('signin');
   const [error, setError] = useState('');
-  const [infoNotice, setInfoNotice] = useState('');
+  const [signupWarning, setSignupWarning] = useState('');
   const [successNotice, setSuccessNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
 
   const clearMessages = () => {
     setError('');
-    setInfoNotice('');
+    setSignupWarning('');
     setSuccessNotice('');
   };
 
@@ -69,13 +69,13 @@ export default function LoginPage() {
           navigate(from, { replace: true });
           return;
         }
-        setMode('signin');
         if (outcome === 'likely_already_registered') {
-          setInfoNotice(
-            'That email already has an account. Sign in below, or use a different email.',
+          setSignupWarning(
+            'That email already has an account. Try a different email, or switch to Sign in below.',
           );
           return;
         }
+        setMode('signin');
         setSuccessNotice(
           'Almost there — we sent a confirmation link to your email. Open it, then sign in below.',
         );
@@ -84,9 +84,10 @@ export default function LoginPage() {
       if (mode === 'signup') {
         const { message, isEmailTaken } = formatSignUpError(err);
         if (isEmailTaken) {
-          setMode('signin');
+          setSignupWarning(message);
+        } else {
+          setError(message);
         }
-        setError(message);
       } else {
         setError(formatSignInError(err));
       }
@@ -115,9 +116,9 @@ export default function LoginPage() {
           </Alert>
         ) : null}
 
-        {infoNotice ? (
-          <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
-            {infoNotice}
+        {signupWarning ? (
+          <Alert severity="warning" variant="outlined" sx={{ mb: 2 }}>
+            {signupWarning}
           </Alert>
         ) : null}
 
