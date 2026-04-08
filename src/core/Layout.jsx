@@ -9,7 +9,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import useThemeMode from '../hooks/useThemeMode.js';
 import ThemeModeMenu from './ThemeModeMenu.jsx';
@@ -44,7 +44,9 @@ const darkTheme = createTheme({
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut, configured: supabaseConfigured, loading: authLoading } = useAuth();
+  const onLoginRoute = location.pathname === '/login';
   const { ready: dataReady, cloudSync } = useGroupsData();
   const [accountAnchor, setAccountAnchor] = useState(null);
   const { themeMode, setThemeMode, resolvedMode } = useThemeMode();
@@ -64,7 +66,9 @@ export default function Layout({ children }) {
   }, [resolvedMode]);
 
   const showBootstrap =
-    supabaseConfigured && (authLoading || !dataReady);
+    supabaseConfigured &&
+    !onLoginRoute &&
+    (authLoading || (!!user && !dataReady));
 
   return (
     <ThemeProvider theme={theme}>
@@ -81,7 +85,7 @@ export default function Layout({ children }) {
           <Toolbar>
             <Box
               component={Link}
-              to="/"
+              to={supabaseConfigured && !user ? '/login' : '/'}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -105,7 +109,7 @@ export default function Layout({ children }) {
               </Typography>
             </Box>
             <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} />
-            {supabaseConfigured ? (
+            {supabaseConfigured && user && !onLoginRoute ? (
               <>
                 <IconButton
                   color="inherit"
@@ -121,39 +125,27 @@ export default function Layout({ children }) {
                   onClose={() => setAccountAnchor(null)}
                   anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 >
-                  {user ? (
-                    <>
-                      <MenuItem disabled sx={{ opacity: '1 !important', maxWidth: 280 }}>
-                        <Typography variant="caption" noWrap title={user.email}>
-                          {user.email}
-                        </Typography>
-                      </MenuItem>
-                      {cloudSync ? (
-                        <MenuItem disabled sx={{ opacity: '1 !important' }}>
-                          <Typography variant="caption" color="success.main">
-                            Cloud sync on
-                          </Typography>
-                        </MenuItem>
-                      ) : null}
-                      <MenuItem
-                        onClick={() => {
-                          setAccountAnchor(null);
-                          signOut();
-                        }}
-                      >
-                        Sign out
-                      </MenuItem>
-                    </>
-                  ) : (
-                    <MenuItem
-                      onClick={() => {
-                        setAccountAnchor(null);
-                        navigate('/login');
-                      }}
-                    >
-                      Sign in
+                  <MenuItem disabled sx={{ opacity: '1 !important', maxWidth: 280 }}>
+                    <Typography variant="caption" noWrap title={user.email}>
+                      {user.email}
+                    </Typography>
+                  </MenuItem>
+                  {cloudSync ? (
+                    <MenuItem disabled sx={{ opacity: '1 !important' }}>
+                      <Typography variant="caption" color="success.main">
+                        Cloud sync on
+                      </Typography>
                     </MenuItem>
-                  )}
+                  ) : null}
+                  <MenuItem
+                    onClick={() => {
+                      setAccountAnchor(null);
+                      signOut();
+                      navigate('/login', { replace: true });
+                    }}
+                  >
+                    Sign out
+                  </MenuItem>
                 </Menu>
               </>
             ) : null}

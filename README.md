@@ -12,7 +12,7 @@ Split receipts easily — a clean, responsive web app for splitting shared expen
 - **Per-Person Breakdown** — See exactly what each person owes with itemized detail
 - **Lock Receipts** — Lock a receipt to prevent accidental edits
 - **Responsive** — Works on mobile (iPhone, Android) and desktop
-- **Offline-First** — Data stored locally in your browser; optional **Supabase** sign-in syncs groups/receipts to the cloud (normalized Postgres + row-level security)
+- **Offline-First** — Data cached in your browser; with **Supabase** configured, **sign-in is required** and groups/receipts sync to the cloud (normalized Postgres + row-level security). Without Supabase env vars, the app stays local-only with no login.
 - **Appearance** — Light, dark, or Auto (follow device); choice is saved in the browser
 - **Mobile** — Swipe left a short way to reveal **Delete** (red); tap it to remove; **Undo** appears on a snackbar for a few seconds
 

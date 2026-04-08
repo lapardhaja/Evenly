@@ -51,7 +51,7 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 
 ## Cursor Cloud specific instructions
 
-- **Optional Supabase** — set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; run SQL migration in Supabase. Without them, app stays local-only.
+- **Optional Supabase** — set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; run SQL migration. When set, **sign-in is required** (`RequireAuth`); without env vars, app stays local-only with no login gate.
 - Dev server: `npm run dev -- --host 0.0.0.0 --port 5173`
 - Build check: `npm run build`
 - No test framework configured yet

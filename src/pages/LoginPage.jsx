@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -12,7 +12,14 @@ import { useAuth } from '../context/AuthContext.jsx';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { signIn, signUp, configured } = useAuth();
+  const location = useLocation();
+  const rawFrom = location.state?.from?.pathname || '/';
+  const from = rawFrom === '/login' ? '/' : rawFrom;
+  const { signIn, signUp, configured, user, loading: authLoading } = useAuth();
+
+  if (configured && !authLoading && user) {
+    return <Navigate to={from} replace />;
+  }
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('signin');
@@ -40,7 +47,7 @@ export default function LoginPage() {
     try {
       if (mode === 'signin') {
         await signIn(email.trim(), password);
-        navigate('/');
+        navigate(from, { replace: true });
       } else {
         const data = await signUp(email.trim(), password);
         if (!data?.session) {
@@ -50,7 +57,7 @@ export default function LoginPage() {
           );
           return;
         }
-        navigate('/');
+        navigate(from, { replace: true });
       }
     } catch (err) {
       setError(err?.message || 'Something went wrong');
@@ -66,7 +73,7 @@ export default function LoginPage() {
           {mode === 'signin' ? 'Sign in' : 'Create account'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Sync your groups across devices with Supabase (email + password).
+          Sign in is required to use Evenly. Your groups sync across devices (email + password).
         </Typography>
 
         {error ? (
