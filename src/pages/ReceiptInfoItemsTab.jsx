@@ -44,6 +44,8 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
     getPersonCountForItem,
     getItemQuantityForPerson,
     setPersonItemQuantity,
+    assignAllPeopleToItem,
+    isEveryoneAssignedToItem,
     updateReceiptItemValue,
     addItem,
     removeItem,
@@ -79,7 +81,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
         <Table
           size="small"
           sx={{
-            minWidth: 400,
+            minWidth: 460,
             '& td, & th': {
               whiteSpace: 'nowrap',
               py: 1,
@@ -102,6 +104,9 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
               </TableCell>
               <TableCell align="center" sx={{ fontWeight: 700 }}>Qty</TableCell>
               <TableCell align="right" sx={{ fontWeight: 700 }}>Total cost</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700, minWidth: 56 }}>
+                All
+              </TableCell>
               {people.map((person) => (
                 <TableCell
                   key={person.id}
@@ -122,7 +127,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3 + people.length + (!receipt.locked ? 1 : 0)} align="center">
+                <TableCell colSpan={4 + people.length + (!receipt.locked ? 1 : 0)} align="center">
                   <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                     No items yet. Tap + to add one.
                   </Typography>
@@ -132,6 +137,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
               items.map((item) => {
                 const assigned = getPersonCountForItem(item.id);
                 const isFull = assigned >= item.quantity;
+                const everyoneOnItem = isEveryoneAssignedToItem(item.id);
                 const highlightBg = !isFull
                   ? theme.palette.highlightedRowBg
                   : undefined;
@@ -197,6 +203,25 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                         sx={{ borderRadius: 1, px: 0.5 }}
                       >
                         {currency(item.cost).format()}
+                      </ButtonBase>
+                    </TableCell>
+                    <TableCell align="center">
+                      <ButtonBase
+                        onClick={() =>
+                          !receipt.locked && people.length > 0 && assignAllPeopleToItem(item.id)
+                        }
+                        disabled={receipt.locked || people.length === 0}
+                        sx={{
+                          borderRadius: 1,
+                          px: 1,
+                          py: 0.25,
+                          typography: 'caption',
+                          fontWeight: 700,
+                          color: everyoneOnItem ? 'primary.main' : 'text.secondary',
+                          textDecoration: everyoneOnItem ? 'underline' : 'none',
+                        }}
+                      >
+                        All
                       </ButtonBase>
                     </TableCell>
                     {people.map((person) => {
@@ -294,7 +319,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
             {/* Spacer */}
             <TableRow>
               <TableCell
-                colSpan={3 + people.length + (!receipt.locked ? 1 : 0)}
+                colSpan={4 + people.length + (!receipt.locked ? 1 : 0)}
                 sx={{ bgcolor: 'transparent', borderBottom: 'none', py: 0.5 }}
               />
             </TableRow>
@@ -308,6 +333,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
               <TableCell align="right" sx={{ fontWeight: 700 }}>
                 {currency(subTotal).format()}
               </TableCell>
+              <TableCell />
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
             </TableRow>
 
@@ -341,6 +367,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                   </Typography>
                 </ButtonBase>
               </TableCell>
+              <TableCell />
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
             </TableRow>
 
@@ -359,6 +386,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                     {currency(taxableBaseAfterDiscount).format()}
                   </Typography>
                 </TableCell>
+                <TableCell />
                 <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
               </TableRow>
             )}
@@ -405,6 +433,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                   {currency(receipt.taxCost).format()}
                 </ButtonBase>
               </TableCell>
+              <TableCell />
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
             </TableRow>
 
@@ -450,6 +479,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                   {currency(receipt.tipCost).format()}
                 </ButtonBase>
               </TableCell>
+              <TableCell />
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
             </TableRow>
 
@@ -462,6 +492,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
               <TableCell align="right">
                 <Typography fontWeight={700}>{currency(total).format()}</Typography>
               </TableCell>
+              <TableCell />
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
             </TableRow>
           </TableBody>

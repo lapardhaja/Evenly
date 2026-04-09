@@ -410,6 +410,76 @@ export function useGroupReceipt(groupId, receiptId) {
     [mutateReceipt],
   );
 
+  const isEveryoneAssignedToItem = useCallback(
+    (itemId) => {
+      const item = receipt?.items?.[itemId];
+      if (!item || people.length === 0) return false;
+      const personIds = people.map((p) => p.id);
+      const itemQty = Math.max(1, Math.floor(Number(item.quantity) || 1));
+      if (itemQty === 1) {
+        return personIds.every((id) => getItemQuantityForPerson(id, itemId) === 1);
+      }
+      const n = personIds.length;
+      const base = Math.floor(itemQty / n);
+      const rem = itemQty % n;
+      return personIds.every((id, i) => {
+        const want = base + (i < rem ? 1 : 0);
+        return getItemQuantityForPerson(id, itemId) === want;
+      });
+    },
+    [receipt?.items, people, getItemQuantityForPerson],
+  );
+
+  /**
+   * Split an item across everyone: qty 1 → each person gets share weight 1 (cost/n);
+   * qty > 1 → integer split summing to item.quantity. Click again when already applied clears all.
+   */
+  const assignAllPeopleToItem = useCallback(
+    (itemId) => {
+      const item = receipt?.items?.[itemId];
+      if (!item || people.length === 0) return;
+      const personIds = people.map((p) => p.id);
+      const itemQty = Math.max(1, Math.floor(Number(item.quantity) || 1));
+      /** @type {Record<string, number>} */
+      const targets = {};
+      if (itemQty === 1) {
+        personIds.forEach((id) => {
+          targets[id] = 1;
+        });
+      } else {
+        const n = personIds.length;
+        const base = Math.floor(itemQty / n);
+        const rem = itemQty % n;
+        personIds.forEach((id, i) => {
+          targets[id] = base + (i < rem ? 1 : 0);
+        });
+      }
+      const allMatch = isEveryoneAssignedToItem(itemId);
+      mutateReceipt((r) => {
+        const p2i = { ...r.personToItemQuantityMap };
+        const i2p = { ...r.itemToPersonQuantityMap };
+        if (!i2p[itemId]) i2p[itemId] = {};
+        personIds.forEach((pid) => {
+          const q = allMatch ? 0 : targets[pid];
+          if (!p2i[pid]) p2i[pid] = {};
+          if (q <= 0) {
+            const nextP = { ...p2i[pid] };
+            delete nextP[itemId];
+            p2i[pid] = nextP;
+            const nextI = { ...i2p[itemId] };
+            delete nextI[pid];
+            i2p[itemId] = nextI;
+          } else {
+            p2i[pid] = { ...p2i[pid], [itemId]: q };
+            i2p[itemId] = { ...i2p[itemId], [pid]: q };
+          }
+        });
+        return { ...r, personToItemQuantityMap: p2i, itemToPersonQuantityMap: i2p };
+      });
+    },
+    [receipt, people, mutateReceipt, isEveryoneAssignedToItem],
+  );
+
   const setPersonPaid = useCallback(
     (personId, paid) => {
       mutateReceipt((r) => ({
@@ -556,6 +626,8 @@ export function useGroupReceipt(groupId, receiptId) {
     getPersonCountForItem,
     getItemQuantityForPerson,
     setPersonItemQuantity,
+    assignAllPeopleToItem,
+    isEveryoneAssignedToItem,
     getChargeForPerson,
     getTotalForPerson,
     getItemCostForPerson,
