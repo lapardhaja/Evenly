@@ -29,8 +29,7 @@ export default function SharedSettlementPage() {
           Link couldn’t be opened
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          This link may be broken or incomplete. Ask the person who sent it to create a new one from
-          their Settle tab.
+          Get a new Share Evenly link.
         </Typography>
         <Button component={RouterLink} to="/" variant="contained">
           Open Evenly
@@ -47,15 +46,9 @@ export default function SharedSettlementPage() {
       <Typography variant="h5" fontWeight={800} gutterBottom>
         {title}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Who pays whom (shared view — no sign-in needed).
-      </Typography>
 
       {note ? (
         <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            Note
-          </Typography>
           <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
             {note}
           </Typography>
@@ -75,7 +68,7 @@ export default function SharedSettlementPage() {
       {transfers.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
           <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 1 }} />
-          <Typography color="text.secondary">Everyone is settled up — no payments in this summary.</Typography>
+          <Typography color="text.secondary">Everyone is settled up!</Typography>
         </Paper>
       ) : (
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>

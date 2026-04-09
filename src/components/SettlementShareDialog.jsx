@@ -5,8 +5,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import Stack from '@mui/material/Stack';
 import Snackbar from '@mui/material/Snackbar';
 import LinkIcon from '@mui/icons-material/Link';
 import IosShareIcon from '@mui/icons-material/IosShare';
@@ -104,14 +102,11 @@ export default function SettlementShareDialog({
   return (
     <>
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-        <DialogTitle>Share a link</DialogTitle>
+        <DialogTitle>Share Evenly</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Anyone with the link can view this summary. It doesn’t sign them in or show your receipts.
-          </Typography>
           <TextField
-            label="Optional note"
-            placeholder="e.g. Pay by Friday"
+            label="Note (optional)"
+            placeholder="Pay by Friday"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             fullWidth
@@ -120,9 +115,6 @@ export default function SettlementShareDialog({
             inputProps={{ maxLength: 280 }}
             sx={{ mb: 2 }}
           />
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-            Your link
-          </Typography>
           <TextField
             value={shareUrl}
             fullWidth
@@ -130,19 +122,16 @@ export default function SettlementShareDialog({
             minRows={2}
             InputProps={{ readOnly: true }}
             size="small"
-            sx={{ mb: 1, '& textarea': { fontSize: '0.8rem', wordBreak: 'break-all' } }}
+            sx={{ '& textarea': { fontSize: '0.8rem', wordBreak: 'break-all' } }}
           />
-          <Typography variant="caption" color="text.secondary">
-            If the link is very long, use Copy link — some apps shorten pasted URLs.
-          </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
           <Button onClick={onClose}>Close</Button>
           <Button startIcon={<LinkIcon />} variant="outlined" onClick={handleCopyLink}>
-            Copy link
+            Copy
           </Button>
           <Button startIcon={<IosShareIcon />} variant="contained" onClick={handleShare}>
-            Share link
+            Share
           </Button>
         </DialogActions>
       </Dialog>
