@@ -137,7 +137,8 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
               items.map((item) => {
                 const assigned = getPersonCountForItem(item.id);
                 const isFull = assigned >= item.quantity;
-                const everyoneOnItem = isEveryoneAssignedToItem(item.id);
+                const qtyIsOne = Math.floor(Number(item.quantity) || 0) === 1;
+                const everyoneOnItem = qtyIsOne && isEveryoneAssignedToItem(item.id);
                 const highlightBg = !isFull
                   ? theme.palette.highlightedRowBg
                   : undefined;
@@ -208,17 +209,24 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                     <TableCell align="center">
                       <ButtonBase
                         onClick={() =>
-                          !receipt.locked && people.length > 0 && assignAllPeopleToItem(item.id)
+                          qtyIsOne &&
+                          !receipt.locked &&
+                          people.length > 0 &&
+                          assignAllPeopleToItem(item.id)
                         }
-                        disabled={receipt.locked || people.length === 0}
+                        disabled={!qtyIsOne || receipt.locked || people.length === 0}
                         sx={{
                           borderRadius: 1,
                           px: 1,
                           py: 0.25,
                           typography: 'caption',
                           fontWeight: 700,
-                          color: everyoneOnItem ? 'primary.main' : 'text.secondary',
-                          textDecoration: everyoneOnItem ? 'underline' : 'none',
+                          color: !qtyIsOne
+                            ? 'action.disabled'
+                            : everyoneOnItem
+                              ? 'primary.main'
+                              : 'text.secondary',
+                          textDecoration: everyoneOnItem && qtyIsOne ? 'underline' : 'none',
                         }}
                       >
                         All

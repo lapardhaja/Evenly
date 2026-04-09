@@ -414,46 +414,27 @@ export function useGroupReceipt(groupId, receiptId) {
     (itemId) => {
       const item = receipt?.items?.[itemId];
       if (!item || people.length === 0) return false;
+      if (Math.floor(Number(item.quantity) || 0) !== 1) return false;
       const personIds = people.map((p) => p.id);
-      const itemQty = Math.max(1, Math.floor(Number(item.quantity) || 1));
-      if (itemQty === 1) {
-        return personIds.every((id) => getItemQuantityForPerson(id, itemId) === 1);
-      }
-      const n = personIds.length;
-      const base = Math.floor(itemQty / n);
-      const rem = itemQty % n;
-      return personIds.every((id, i) => {
-        const want = base + (i < rem ? 1 : 0);
-        return getItemQuantityForPerson(id, itemId) === want;
-      });
+      return personIds.every((id) => getItemQuantityForPerson(id, itemId) === 1);
     },
     [receipt?.items, people, getItemQuantityForPerson],
   );
 
   /**
-   * Split an item across everyone: qty 1 → each person gets share weight 1 (cost/n);
-   * qty > 1 → integer split summing to item.quantity. Click again when already applied clears all.
+   * For items with quantity 1 only: give each person share weight 1, or clear if already all on.
    */
   const assignAllPeopleToItem = useCallback(
     (itemId) => {
       const item = receipt?.items?.[itemId];
       if (!item || people.length === 0) return;
+      if (Math.floor(Number(item.quantity) || 0) !== 1) return;
       const personIds = people.map((p) => p.id);
-      const itemQty = Math.max(1, Math.floor(Number(item.quantity) || 1));
       /** @type {Record<string, number>} */
       const targets = {};
-      if (itemQty === 1) {
-        personIds.forEach((id) => {
-          targets[id] = 1;
-        });
-      } else {
-        const n = personIds.length;
-        const base = Math.floor(itemQty / n);
-        const rem = itemQty % n;
-        personIds.forEach((id, i) => {
-          targets[id] = base + (i < rem ? 1 : 0);
-        });
-      }
+      personIds.forEach((id) => {
+        targets[id] = 1;
+      });
       const allMatch = isEveryoneAssignedToItem(itemId);
       mutateReceipt((r) => {
         const p2i = { ...r.personToItemQuantityMap };
