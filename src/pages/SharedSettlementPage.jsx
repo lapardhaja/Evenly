@@ -29,7 +29,7 @@ export default function SharedSettlementPage() {
           Link couldn’t be opened
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Get a new Share Evenly link.
+          Get a new Share Cost Evenly link.
         </Typography>
         <Button component={RouterLink} to="/" variant="contained">
           Open Evenly

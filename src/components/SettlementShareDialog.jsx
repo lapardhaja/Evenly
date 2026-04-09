@@ -102,7 +102,7 @@ export default function SettlementShareDialog({
   return (
     <>
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-        <DialogTitle>Share Evenly</DialogTitle>
+        <DialogTitle>Share Cost Evenly</DialogTitle>
         <DialogContent>
           <TextField
             label="Note (optional)"

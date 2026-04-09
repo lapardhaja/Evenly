@@ -187,7 +187,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         onClick={() => setShareLinkOpen(true)}
         sx={{ mb: 2 }}
       >
-        Share Evenly
+        Share Cost Evenly
       </Button>
 
       <SettlementShareDialog
