@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
@@ -8,6 +9,11 @@ import IconButton from '@mui/material/IconButton';
 import ButtonBase from '@mui/material/ButtonBase';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import LockIcon from '@mui/icons-material/Lock';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -25,6 +31,7 @@ export default function ReceiptInfoPage() {
   const receiptData = useGroupReceipt(groupId, receiptId);
   const { receipt, people, updateReceiptProperty, deleteReceipt } = receiptData;
   const { EditTextModal, showEditTextModal } = useEditTextModal();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const currentTab = TABS.indexOf(tab) >= 0 ? TABS.indexOf(tab) : 0;
 
@@ -39,9 +46,9 @@ export default function ReceiptInfoPage() {
   const dt = new Date(receipt.date);
   const dateStr = dt.toISOString().split('T')[0];
 
-  const handleDelete = () => {
-    if (!window.confirm('Delete this receipt? This cannot be undone.')) return;
+  const confirmDeleteReceipt = () => {
     deleteReceipt();
+    setDeleteDialogOpen(false);
     navigate(`/groups/${groupId}/receipts`);
   };
 
@@ -91,10 +98,30 @@ export default function ReceiptInfoPage() {
         >
           {receipt.locked ? <LockIcon /> : <LockOpenIcon />}
         </IconButton>
-        <IconButton onClick={handleDelete} size="small" color="error">
+        <IconButton
+          onClick={() => setDeleteDialogOpen(true)}
+          size="small"
+          color="error"
+          aria-label="Delete receipt"
+        >
           <DeleteOutlineIcon />
         </IconButton>
       </Box>
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Delete receipt?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            This can’t be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={confirmDeleteReceipt} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Date + Paid By row */}
       <Box
