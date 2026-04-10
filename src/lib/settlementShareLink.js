@@ -34,8 +34,14 @@ export function buildSettlementSharePayload({
   note = '',
   transfers = [],
   warnings = [],
+  settleCurrencyCode = 'USD',
 }) {
   const g = clampStr(groupName, MAX_TITLE);
+  const cur = String(settleCurrencyCode || 'USD')
+    .trim()
+    .toUpperCase()
+    .slice(0, 3);
+  const curSafe = /^[A-Z]{3}$/.test(cur) ? cur : 'USD';
   const n = clampStr(note, MAX_NOTE);
   const w = (warnings || [])
     .slice(0, MAX_WARNINGS)
@@ -47,7 +53,7 @@ export function buildSettlementSharePayload({
     c: Math.max(0, Math.min(999_999_999, moneyToCents(t.amount))),
   })).filter((row) => row.f && row.t && row.c > 0);
 
-  return { v: 1, g, ...(n ? { n } : {}), ...(w.length ? { w } : {}), p };
+  return { v: 2, g, cur: curSafe, ...(n ? { n } : {}), ...(w.length ? { w } : {}), p };
 }
 
 function jsonToBase64Url(obj) {
@@ -84,10 +90,15 @@ function base64UrlToJson(token) {
 export function parseSettlementShareToken(token) {
   try {
     const raw = base64UrlToJson(token);
-    if (!raw || raw.v !== 1 || !Array.isArray(raw.p)) {
+    if (!raw || (raw.v !== 1 && raw.v !== 2) || !Array.isArray(raw.p)) {
       return { ok: false, error: 'invalid' };
     }
     const g = clampStr(raw.g, MAX_TITLE);
+    let cur = 'USD';
+    if (raw.v === 2 && raw.cur != null) {
+      const c = String(raw.cur).trim().toUpperCase().slice(0, 3);
+      if (/^[A-Z]{3}$/.test(c)) cur = c;
+    }
     const n = raw.n != null ? clampStr(raw.n, MAX_NOTE) : '';
     const w = Array.isArray(raw.w)
       ? raw.w.slice(0, MAX_WARNINGS).map((x) => clampStr(x, MAX_WARNING_LEN)).filter(Boolean)
@@ -103,7 +114,7 @@ export function parseSettlementShareToken(token) {
 
     return {
       ok: true,
-      data: { groupName: g, note: n, warnings: w, transfers: p },
+      data: { groupName: g, note: n, warnings: w, transfers: p, currencyCode: cur },
     };
   } catch {
     return { ok: false, error: 'parse' };

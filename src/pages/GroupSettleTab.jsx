@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import CircularProgress from '@mui/material/CircularProgress';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
@@ -20,11 +22,21 @@ import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
 import { computeNetBalances, minimizeTransfers } from '../functions/settlement.js';
 import SettlementShareDialog from '../components/SettlementShareDialog.jsx';
+import {
+  SETTLEMENT_CURRENCY_OPTIONS,
+  fetchConversionRate,
+  formatMoneyWithCode,
+  normalizeCurrencyCode,
+} from '../lib/currencies.js';
+import { listReceiptsCurrencyMeta, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
 
 export default function GroupSettleTab({ groupId, groupData }) {
-  const { group, people, receipts } = groupData;
+  const { group, people, receipts, displayCurrency, setDisplayCurrency } = groupData;
   const [settledSet, setSettledSet] = useState(new Set());
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
+  const [fxLoading, setFxLoading] = useState(false);
+  const [fxError, setFxError] = useState('');
+  const [receiptFactors, setReceiptFactors] = useState({});
 
   const peopleMap = useMemo(() => {
     const map = {};
@@ -32,9 +44,66 @@ export default function GroupSettleTab({ groupId, groupData }) {
     return map;
   }, [people]);
 
+  const settleCode = normalizeCurrencyCode(displayCurrency || 'USD');
+
+  useEffect(() => {
+    if (!group?.receipts) {
+      setReceiptFactors({});
+      return undefined;
+    }
+    const target = settleCode;
+    const meta = listReceiptsCurrencyMeta(group);
+    if (meta.length === 0) {
+      setReceiptFactors({});
+      return undefined;
+    }
+
+    let cancelled = false;
+    setFxLoading(true);
+    setFxError('');
+
+    (async () => {
+      const factors = {};
+      const failed = [];
+      for (const row of meta) {
+        const from = normalizeCurrencyCode(row.currencyCode);
+        if (from === target) {
+          factors[row.id] = 1;
+          continue;
+        }
+        const rate = await fetchConversionRate(from, target, row.date);
+        if (cancelled) return;
+        if (rate == null || !Number.isFinite(rate) || rate <= 0) {
+          factors[row.id] = 1;
+          failed.push(row.id);
+        } else {
+          factors[row.id] = rate;
+        }
+      }
+      if (!cancelled) {
+        setReceiptFactors(factors);
+        if (failed.length > 0) {
+          setFxError(
+            'Couldn’t load exchange rates for some receipts — those amounts are shown without conversion.',
+          );
+        }
+        setFxLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [group, settleCode]);
+
+  const scaledGroup = useMemo(
+    () => (group ? scaleGroupMoneyForDisplay(group, receiptFactors) : null),
+    [group, receiptFactors],
+  );
+
   const netBalances = useMemo(
-    () => (group ? computeNetBalances(group) : {}),
-    [group],
+    () => (scaledGroup ? computeNetBalances(scaledGroup) : {}),
+    [scaledGroup],
   );
 
   const transfers = useMemo(
@@ -73,6 +142,8 @@ export default function GroupSettleTab({ groupId, groupData }) {
         .filter(Boolean),
     [transfers, peopleMap],
   );
+
+  const fmt = (amount) => formatMoneyWithCode(amount, settleCode);
 
   const toggleSettled = (idx) => {
     setSettledSet((prev) => {
@@ -116,6 +187,33 @@ export default function GroupSettleTab({ groupId, groupData }) {
         </Alert>
       )}
 
+      <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+        <TextField
+          select
+          size="small"
+          label="Show amounts in"
+          value={settleCode}
+          onChange={(e) => setDisplayCurrency(normalizeCurrencyCode(e.target.value))}
+          sx={{ minWidth: 220 }}
+          SelectProps={{ native: true }}
+        >
+          {SETTLEMENT_CURRENCY_OPTIONS.map((o) => (
+            <option key={o.code} value={o.code}>
+              {o.label}
+            </option>
+          ))}
+        </TextField>
+        {fxLoading && <CircularProgress size={22} />}
+      </Box>
+      {fxError ? (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+          {fxError}
+        </Alert>
+      ) : null}
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+        Rates are for reference (ECB via Frankfurter). Edit each receipt’s currency on its detail page if a scan guessed wrong.
+      </Typography>
+
       {/* Net Balances */}
       <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
         Net Balances
@@ -143,7 +241,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {isPositive && (
                       <Chip
-                        label={`gets back ${currency(bal).format()}`}
+                        label={`gets back ${fmt(bal)}`}
                         size="small"
                         color="success"
                         variant="outlined"
@@ -152,7 +250,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
                     )}
                     {isNegative && (
                       <Chip
-                        label={`owes ${currency(Math.abs(bal)).format()}`}
+                        label={`owes ${fmt(Math.abs(bal))}`}
                         size="small"
                         color="error"
                         variant="outlined"
@@ -196,6 +294,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         groupName={group?.name}
         transfers={transfersForShare}
         warnings={shareWarnings}
+        settleCurrencyCode={settleCode}
       />
 
       {transfers.length === 0 ? (
@@ -291,7 +390,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
                         {toPerson.name}
                       </Typography>
                       <Chip
-                        label={currency(t.amount).format()}
+                        label={fmt(t.amount)}
                         size="small"
                         color="primary"
                         sx={{ fontWeight: 700 }}

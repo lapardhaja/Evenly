@@ -4,6 +4,7 @@ import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { v4 as uuidv4 } from 'uuid';
 import { idMapToList } from '../functions/utils.js';
 import { receiptGrandTotal, taxableSubtotalAfterDiscount } from '../functions/receiptTotals.js';
+import { normalizeCurrencyCode } from '../lib/currencies.js';
 
 // ─── Groups list ────────────────────────────────────────────────────────
 
@@ -32,7 +33,13 @@ export function useGroups() {
         ...prev,
         groups: {
           ...prev.groups,
-          [id]: { name, date: Date.now(), people: {}, receipts: {} },
+          [id]: {
+            name,
+            date: Date.now(),
+            displayCurrency: 'USD',
+            people: {},
+            receipts: {},
+          },
         },
       }));
       return id;
@@ -85,7 +92,12 @@ export function useGroup(groupId) {
 
   const group = useMemo(() => {
     if (!data.groups?.[groupId]) return null;
-    return { ...data.groups[groupId], id: groupId };
+    const raw = data.groups[groupId];
+    return {
+      ...raw,
+      id: groupId,
+      displayCurrency: normalizeCurrencyCode(raw.displayCurrency || 'USD'),
+    };
   }, [data.groups, groupId]);
 
   const people = useMemo(() => idMapToList(group?.people), [group?.people]);
@@ -95,9 +107,14 @@ export function useGroup(groupId) {
       const items = idMapToList(r.items);
       const subTotal = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
       const total = receiptGrandTotal(subTotal, r.discountCost, r.taxCost, r.tipCost);
-      return { ...r, total, subTotal };
+      return {
+        ...r,
+        total,
+        subTotal,
+        currencyCode: normalizeCurrencyCode(r.currencyCode || group?.displayCurrency || 'USD'),
+      };
     });
-  }, [group?.receipts]);
+  }, [group?.receipts, group?.displayCurrency]);
 
   const updateGroup = useCallback(
     (key, value) => {
@@ -114,6 +131,11 @@ export function useGroup(groupId) {
 
   const renameGroup = useCallback(
     (name) => updateGroup('name', name),
+    [updateGroup],
+  );
+
+  const setDisplayCurrency = useCallback(
+    (code) => updateGroup('displayCurrency', normalizeCurrencyCode(code)),
     [updateGroup],
   );
 
@@ -183,6 +205,7 @@ export function useGroup(groupId) {
       const id = uuidv4();
       setData((prev) => {
         const g = { ...prev.groups[groupId] };
+        const cc = normalizeCurrencyCode(g.displayCurrency || 'USD');
         g.receipts = {
           ...g.receipts,
           [id]: {
@@ -190,6 +213,7 @@ export function useGroup(groupId) {
             date: Date.now(),
             locked: false,
             paidById: '',
+            currencyCode: cc,
             items: {},
             personToItemQuantityMap: {},
             itemToPersonQuantityMap: {},
@@ -232,6 +256,9 @@ export function useGroup(groupId) {
       }
       setData((prev) => {
         const g = { ...prev.groups[groupId] };
+        const receiptCc = normalizeCurrencyCode(
+          charges.currencyCode || g.displayCurrency || 'USD',
+        );
         g.receipts = {
           ...g.receipts,
           [receiptId]: {
@@ -239,6 +266,7 @@ export function useGroup(groupId) {
             date: dateMs,
             locked: false,
             paidById: '',
+            currencyCode: receiptCc,
             items,
             personToItemQuantityMap: {},
             itemToPersonQuantityMap: {},
@@ -294,10 +322,14 @@ export function useGroup(groupId) {
     [groupId, setData],
   );
 
+  const displayCurrency = normalizeCurrencyCode(group?.displayCurrency || 'USD');
+
   return {
     group,
     people,
     receipts,
+    displayCurrency,
+    setDisplayCurrency,
     renameGroup,
     addPerson,
     updatePerson,
@@ -318,7 +350,12 @@ export function useGroupReceipt(groupId, receiptId) {
   const group = data.groups?.[groupId];
   const receipt = useMemo(() => {
     if (!group?.receipts?.[receiptId]) return null;
-    return { ...group.receipts[receiptId], id: receiptId };
+    const raw = group.receipts[receiptId];
+    return {
+      ...raw,
+      id: receiptId,
+      currencyCode: normalizeCurrencyCode(raw.currencyCode || group.displayCurrency || 'USD'),
+    };
   }, [group, receiptId]);
 
   const people = useMemo(() => idMapToList(group?.people), [group?.people]);
@@ -370,7 +407,13 @@ export function useGroupReceipt(groupId, receiptId) {
   );
 
   const updateReceiptProperty = useCallback(
-    (key, value) => mutateReceipt((r) => ({ ...r, [key]: value })),
+    (key, value) =>
+      mutateReceipt((r) => {
+        if (key === 'currencyCode') {
+          return { ...r, currencyCode: normalizeCurrencyCode(value) };
+        }
+        return { ...r, [key]: value };
+      }),
     [mutateReceipt],
   );
 

@@ -47,8 +47,10 @@ export async function scanReceiptImage(dataUrl) {
     typeof data.discount === 'number' && Number.isFinite(data.discount)
       ? Math.max(0, data.discount)
       : 0;
+  let currencyCode = typeof data.currencyCode === 'string' ? data.currencyCode.trim().toUpperCase() : 'USD';
+  if (!/^[A-Z]{3}$/.test(currencyCode)) currencyCode = 'USD';
 
-  return { storeName, items, tax, tip, discount, receiptDate, grandTotal };
+  return { storeName, items, tax, tip, discount, receiptDate, grandTotal, currencyCode };
 }
 
 export function readFileAsDataUrl(file) {

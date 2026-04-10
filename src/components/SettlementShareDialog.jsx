@@ -45,6 +45,7 @@ export default function SettlementShareDialog({
   groupName,
   transfers,
   warnings = [],
+  settleCurrencyCode = 'USD',
 }) {
   const [note, setNote] = useState('');
   const [snack, setSnack] = useState({ open: false, message: '' });
@@ -59,6 +60,7 @@ export default function SettlementShareDialog({
       note: note.trim(),
       transfers,
       warnings,
+      settleCurrencyCode,
     });
     try {
       const token = encodeSettlementShareToken(payload);
@@ -66,7 +68,7 @@ export default function SettlementShareDialog({
     } catch {
       return '';
     }
-  }, [groupName, note, transfers, warnings]);
+  }, [groupName, note, transfers, warnings, settleCurrencyCode]);
 
   const title = `${(groupName && String(groupName).trim()) || 'Group'} — Settle up`;
 

@@ -7,13 +7,14 @@
 
 ## Application data (`public` schema)
 
-Run `supabase/migrations/20260210120000_evenly_normalized.sql` in the Supabase SQL editor (idempotent).
+Run `supabase/migrations/20260210120000_evenly_normalized.sql` in the Supabase SQL editor (idempotent).  
+Also run `supabase/migrations/20260215120000_currency_columns.sql` for `display_currency` on groups and `currency_code` on receipts (ISO 4217).
 
 | Table | Purpose |
 |--------|--------|
-| **`groups`** | One row per split group; `user_id` = owner (`auth.users.id`). |
+| **`groups`** | One row per split group; `user_id` = owner (`auth.users.id`). Optional `display_currency` (default USD) for Settle tab display. |
 | **`group_people`** | People in a group (`group_id` FK). |
-| **`receipts`** | Receipts in a group; tax/tip/discount, `person_paid_map`, etc. |
+| **`receipts`** | Receipts in a group; tax/tip/discount, `person_paid_map`, `currency_code` (default USD), etc. |
 | **`receipt_items`** | Line items on a receipt. |
 | **`receipt_allocations`** | Who claimed how much of each line item. |
 

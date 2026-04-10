@@ -13,9 +13,9 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
 import { parseSettlementShareToken } from '../lib/settlementShareLink.js';
+import { formatMoneyWithCode } from '../lib/currencies.js';
 
 export default function SharedSettlementPage() {
   const { token } = useParams();
@@ -38,8 +38,9 @@ export default function SharedSettlementPage() {
     );
   }
 
-  const { groupName, note, warnings, transfers } = parsed.data;
+  const { groupName, note, warnings, transfers, currencyCode } = parsed.data;
   const title = groupName || 'Settle up';
+  const fmt = (amount) => formatMoneyWithCode(amount, currencyCode || 'USD');
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 2, sm: 3 } }}>
@@ -102,7 +103,7 @@ export default function SharedSettlementPage() {
                     </Typography>
                   </Box>
                   <Chip
-                    label={currency(row.cents / 100).format()}
+                    label={fmt(row.cents / 100)}
                     color="primary"
                     sx={{ fontWeight: 800 }}
                   />

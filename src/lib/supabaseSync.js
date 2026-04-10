@@ -2,6 +2,8 @@
  * Maps between app shape (useGroupData / localStorage v2) and normalized Supabase tables.
  */
 
+import { normalizeCurrencyCode } from './currencies.js';
+
 /**
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase
  * @param {string} userId
@@ -77,6 +79,7 @@ export async function loadNormalizedData(supabase, userId) {
         date: Number(rec.date_ms),
         locked: !!rec.locked,
         paidById: rec.paid_by_id || '',
+        currencyCode: normalizeCurrencyCode(rec.currency_code || 'USD'),
         items: itemsMap,
         personToItemQuantityMap: p2i,
         itemToPersonQuantityMap: i2p,
@@ -90,6 +93,7 @@ export async function loadNormalizedData(supabase, userId) {
     out.groups[gid] = {
       name: g.name,
       date: Number(g.date_ms),
+      displayCurrency: normalizeCurrencyCode(g.display_currency || 'USD'),
       people: peopleMap,
       receipts: receiptsMap,
     };
@@ -130,6 +134,7 @@ export async function persistNormalizedData(supabase, userId, data) {
         user_id: userId,
         name: g.name,
         date_ms: g.date,
+        display_currency: normalizeCurrencyCode(g.displayCurrency || 'USD'),
         updated_at: nowIso,
       },
       { onConflict: 'id' },
@@ -188,6 +193,7 @@ export async function persistNormalizedData(supabase, userId, data) {
           date_ms: r.date,
           locked: !!r.locked,
           paid_by_id: paidBy,
+          currency_code: normalizeCurrencyCode(r.currencyCode || 'USD'),
           tax_cost: r.taxCost ?? 0,
           tip_cost: r.tipCost ?? 0,
           discount_cost: r.discountCost ?? 0,

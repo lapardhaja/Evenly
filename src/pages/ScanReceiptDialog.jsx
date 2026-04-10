@@ -16,6 +16,7 @@ import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import currency from 'currency.js';
 import { receiptGrandTotal } from '../functions/receiptTotals.js';
+import { SETTLEMENT_CURRENCY_OPTIONS, formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 
 export default function ScanReceiptDialog({
   open,
@@ -26,12 +27,14 @@ export default function ScanReceiptDialog({
   discountCost = 0,
   defaultTitle = '',
   defaultReceiptDateISO = '',
+  defaultCurrencyCode = 'USD',
   scannedGrandTotal = 0,
   onConfirm,
   error: externalError,
 }) {
   const [title, setTitle] = useState('Scanned receipt');
   const [receiptDateISO, setReceiptDateISO] = useState('');
+  const [currencyCode, setCurrencyCode] = useState('USD');
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const itemsSubtotal = useMemo(
@@ -53,9 +56,10 @@ export default function ScanReceiptDialog({
       setTitle(t || 'Scanned receipt');
       const d = defaultReceiptDateISO?.trim();
       setReceiptDateISO(/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : '');
+      setCurrencyCode(normalizeCurrencyCode(defaultCurrencyCode));
       setPreviewOpen(false);
     }
-  }, [open, defaultTitle, defaultReceiptDateISO]);
+  }, [open, defaultTitle, defaultReceiptDateISO, defaultCurrencyCode]);
 
   const handleConfirm = () => {
     const t = title.trim() || 'Scanned receipt';
@@ -64,6 +68,7 @@ export default function ScanReceiptDialog({
       tipCost,
       discountCost,
       receiptDate: receiptDateISO.trim() || undefined,
+      currencyCode,
     });
     onClose();
   };
@@ -121,36 +126,61 @@ export default function ScanReceiptDialog({
             }
           />
         </Box>
+        <Box>
+          <Typography
+            component="label"
+            variant="subtitle2"
+            htmlFor="scan-receipt-currency"
+            sx={{ display: 'block', mb: 1, fontWeight: 600 }}
+          >
+            Currency
+          </Typography>
+          <TextField
+            id="scan-receipt-currency"
+            select
+            fullWidth
+            value={currencyCode}
+            onChange={(e) => setCurrencyCode(normalizeCurrencyCode(e.target.value))}
+            variant="outlined"
+            SelectProps={{ native: true }}
+          >
+            {SETTLEMENT_CURRENCY_OPTIONS.map((o) => (
+              <option key={o.code} value={o.code}>
+                {o.label}
+              </option>
+            ))}
+          </TextField>
+        </Box>
         {scannedGrandTotal > 0 && (
           <Typography variant="body2" color="text.secondary">
-            Total on receipt: <strong>{currency(scannedGrandTotal).format()}</strong>
+            Total on receipt: <strong>{formatMoneyWithCode(scannedGrandTotal, currencyCode)}</strong>
             {items.length > 0 && (
               <>
                 {' '}
-                · Line items subtotal: <strong>{currency(itemsSubtotal).format()}</strong>
+                · Line items subtotal: <strong>{formatMoneyWithCode(itemsSubtotal, currencyCode)}</strong>
               </>
             )}
           </Typography>
         )}
         {totalMismatch && (
           <Alert severity="info">
-            The total from your items ({currency(totalMismatch.expected).format()}) doesn’t match the total on the
-            receipt ({currency(totalMismatch.scanned).format()}). Double-check the numbers after you save.
+            The total from your items ({formatMoneyWithCode(totalMismatch.expected, currencyCode)}) doesn’t match the total on the
+            receipt ({formatMoneyWithCode(totalMismatch.scanned, currencyCode)}). Double-check the numbers after you save.
           </Alert>
         )}
         {(taxCost > 0 || tipCost > 0 || discountCost > 0) && (
           <Typography variant="body2" color="text.secondary">
-            {taxCost > 0 && <>Tax: <strong>{currency(taxCost).format()}</strong></>}
+            {taxCost > 0 && <>Tax: <strong>{formatMoneyWithCode(taxCost, currencyCode)}</strong></>}
             {taxCost > 0 && (tipCost > 0 || discountCost > 0) && ' · '}
             {tipCost > 0 && (
               <>
-                Tip / gratuity / service: <strong>{currency(tipCost).format()}</strong>
+                Tip / gratuity / service: <strong>{formatMoneyWithCode(tipCost, currencyCode)}</strong>
               </>
             )}
             {tipCost > 0 && discountCost > 0 && ' · '}
             {discountCost > 0 && (
               <>
-                Discount: <strong>−{currency(discountCost).format()}</strong>
+                Discount: <strong>−{formatMoneyWithCode(discountCost, currencyCode)}</strong>
               </>
             )}
           </Typography>
@@ -183,7 +213,7 @@ export default function ScanReceiptDialog({
                   <ListItem key={i} disablePadding sx={{ py: 0.25, px: 1 }}>
                     <ListItemText
                       primary={row.name}
-                      secondary={`Qty ${row.quantity} · ${currency(row.cost).format()} line total`}
+                      secondary={`Qty ${row.quantity} · ${formatMoneyWithCode(row.cost, currencyCode)} line total`}
                       primaryTypographyProps={{ variant: 'body2' }}
                       secondaryTypographyProps={{ variant: 'caption' }}
                     />

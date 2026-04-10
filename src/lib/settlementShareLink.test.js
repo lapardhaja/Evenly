@@ -23,6 +23,7 @@ test('roundtrip encode/decode', () => {
   assert.ok(!token.includes('+'));
   const parsed = parseSettlementShareToken(token);
   assert.equal(parsed.ok, true);
+  assert.equal(parsed.data.currencyCode, 'USD');
   assert.equal(parsed.data.groupName, 'Dinner crew');
   assert.equal(parsed.data.note, 'Pay by Friday!');
   assert.equal(parsed.data.transfers.length, 2);
@@ -50,4 +51,17 @@ test('empty transfers still valid payload', () => {
   const parsed = parseSettlementShareToken(encodeSettlementShareToken(payload));
   assert.equal(parsed.ok, true);
   assert.equal(parsed.data.transfers.length, 0);
+});
+
+test('settle currency in payload', () => {
+  const payload = buildSettlementSharePayload({
+    groupName: 'Trip',
+    transfers: [{ from: 'A', to: 'B', amount: 10 }],
+    settleCurrencyCode: 'EUR',
+  });
+  assert.equal(payload.v, 2);
+  assert.equal(payload.cur, 'EUR');
+  const parsed = parseSettlementShareToken(encodeSettlementShareToken(payload));
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.data.currencyCode, 'EUR');
 });

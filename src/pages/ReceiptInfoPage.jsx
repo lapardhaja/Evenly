@@ -9,6 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import ButtonBase from '@mui/material/ButtonBase';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
+import { SETTLEMENT_CURRENCY_OPTIONS, normalizeCurrencyCode } from '../lib/currencies.js';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -163,6 +164,23 @@ export default function ReceiptInfoPage() {
             <MenuItem key={p.id} value={p.id}>
               {p.name}
             </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Receipt currency"
+          value={receipt.currencyCode || 'USD'}
+          onChange={(e) => updateReceiptProperty('currencyCode', normalizeCurrencyCode(e.target.value))}
+          variant="standard"
+          size="small"
+          disabled={receipt.locked}
+          sx={{ minWidth: 200 }}
+          SelectProps={{ native: true }}
+        >
+          {SETTLEMENT_CURRENCY_OPTIONS.map((o) => (
+            <option key={o.code} value={o.code}>
+              {o.label}
+            </option>
           ))}
         </TextField>
       </Box>

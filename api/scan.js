@@ -144,6 +144,7 @@ export default async function handler(req, res) {
 Return ONLY a valid JSON object (no markdown, no code fences):
 {
   "storeName": "business name if visible, else empty string",
+  "currencyCode": "USD",
   "items": [
     { "name": "item name", "quantity": 1, "price": 0.00 }
   ],
@@ -153,6 +154,11 @@ Return ONLY a valid JSON object (no markdown, no code fences):
   "receiptDate": "",
   "grandTotal": 0.00
 }
+
+Rules for "currencyCode":
+- ISO 4217 three-letter code for the currency shown on the receipt (USD, EUR, GBP, CAD, etc.).
+- Infer from currency symbols ($, €, £), text like "USD" or "EUR", or the store's region if obvious.
+- If unclear, use "USD".
 
 Rules for "receiptDate":
 - If a transaction date appears on the receipt (not future-dated promos), return it as "YYYY-MM-DD" only (e.g. "2024-03-15").
@@ -181,8 +187,8 @@ Rules for "discount":
 - Use 0 if none or unclear.
 - This discount applies to the item subtotal before tax and tip (typical register behavior).
 
-If nothing is readable, return {"storeName":"","items":[],"tax":0,"tip":0,"discount":0,"receiptDate":"","grandTotal":0}
-Always return valid JSON with keys storeName, items, tax, tip, discount, receiptDate, grandTotal.`;
+If nothing is readable, return {"storeName":"","currencyCode":"USD","items":[],"tax":0,"tip":0,"discount":0,"receiptDate":"","grandTotal":0}
+Always return valid JSON with keys storeName, currencyCode, items, tax, tip, discount, receiptDate, grandTotal.`;
 
   try {
     const response = await fetch(geminiUrl(model, apiKey), {
@@ -231,6 +237,11 @@ Always return valid JSON with keys storeName, items, tax, tip, discount, receipt
     }
 
     const storeName = String(parsed.storeName ?? '').trim().slice(0, 200);
+    let currencyCode = String(parsed.currencyCode ?? parsed.currency ?? 'USD')
+      .trim()
+      .toUpperCase()
+      .slice(0, 3);
+    if (!/^[A-Z]{3}$/.test(currencyCode)) currencyCode = 'USD';
     const items = normalizeItems(parsed.items);
     const tax = normalizeMoney(parsed.tax ?? parsed.taxAmount);
     const tip = normalizeMoney(
@@ -251,6 +262,7 @@ Always return valid JSON with keys storeName, items, tax, tip, discount, receipt
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
       storeName,
+      currencyCode,
       items,
       tax,
       tip,
