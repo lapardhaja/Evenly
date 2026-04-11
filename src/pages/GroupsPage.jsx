@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
@@ -21,9 +21,11 @@ import InputAdornment from '@mui/material/InputAdornment';
 import AddIcon from '@mui/icons-material/Add';
 import FolderSharedIcon from '@mui/icons-material/FolderShared';
 import SearchIcon from '@mui/icons-material/Search';
-import currency from 'currency.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useGroups } from '../hooks/useGroupData.js';
+import { useGroupsData } from '../context/GroupsDataContext.jsx';
+import { getUsdRatesTable, formatMoneyWithCode } from '../lib/currencies.js';
+import { sumGroupReceiptsInDisplayCurrency } from '../lib/groupSpendConvert.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
 import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
 
@@ -32,6 +34,37 @@ export default function GroupsPage() {
   const theme = useTheme();
   const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
   const { groups, addGroup, deleteGroup, getGroupSnapshot, restoreGroup } = useGroups();
+  const { data } = useGroupsData();
+  const [convertedTotals, setConvertedTotals] = useState({});
+  const [totalsLoading, setTotalsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTotalsLoading(true);
+    (async () => {
+      const rates = await getUsdRatesTable();
+      if (cancelled) return;
+      const raw = data.groups || {};
+      const next = {};
+      const ids = Object.keys(raw);
+      if (rates) {
+        for (const [id, g] of Object.entries(raw)) {
+          next[id] = sumGroupReceiptsInDisplayCurrency(g, rates, g.displayCurrency || 'USD');
+        }
+      } else {
+        ids.forEach((id) => {
+          next[id] = null;
+        });
+      }
+      if (!cancelled) {
+        setConvertedTotals(next);
+        setTotalsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [data.groups]);
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const [searchQuery, setSearchQuery] = useState('');
   const [undoDelete, setUndoDelete] = useState(null);
@@ -114,8 +147,17 @@ export default function GroupsPage() {
         fontWeight={600}
         color="text.secondary"
         sx={{ ml: 2, whiteSpace: 'nowrap' }}
+        title={
+          convertedTotals[g.id] != null
+            ? `Total in ${g.displayCurrency || 'USD'} (converted from each receipt’s currency)`
+            : undefined
+        }
       >
-        {currency(g.totalSpent).format()}
+        {totalsLoading
+          ? '…'
+          : convertedTotals[g.id] != null
+            ? formatMoneyWithCode(convertedTotals[g.id], g.displayCurrency || 'USD')
+            : `${formatMoneyWithCode(g.totalSpent, g.displayCurrency || 'USD')} *`}
       </Typography>
     </ListItemButton>
   );
@@ -231,6 +273,9 @@ export default function GroupsPage() {
           </Button>
         }
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{
+          bottom: { xs: 'calc(16px + env(safe-area-inset-bottom, 0px))', sm: 24 },
+        }}
       />
     </Container>
   );

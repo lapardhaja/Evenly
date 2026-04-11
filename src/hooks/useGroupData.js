@@ -21,7 +21,14 @@ export function useGroups() {
           const sub = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
           return currency(sum).add(sub).add(r.taxCost || 0).add(r.tipCost || 0).value;
         }, 0);
-        return { ...g, id, receiptCount: receipts.length, peopleCount: people.length, totalSpent };
+        return {
+          ...g,
+          id,
+          receiptCount: receipts.length,
+          peopleCount: people.length,
+          totalSpent,
+          displayCurrency: normalizeCurrencyCode(g.displayCurrency || 'USD'),
+        };
       }),
     [data.groups],
   );

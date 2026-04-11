@@ -20,7 +20,7 @@ import AddIcon from '@mui/icons-material/Add';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import currency from 'currency.js';
+import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
@@ -216,7 +216,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           color="text.secondary"
           sx={{ ml: 2, whiteSpace: 'nowrap' }}
         >
-          {currency(r.total).format()}
+          {formatMoneyWithCode(r.total, normalizeCurrencyCode(r.currencyCode || 'USD'))}
         </Typography>
       </ListItemButton>
     );
@@ -359,6 +359,9 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           </Button>
         }
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{
+          bottom: { xs: 'calc(16px + env(safe-area-inset-bottom, 0px))', sm: 24 },
+        }}
       />
     </Box>
   );
