@@ -28,37 +28,82 @@ export function normalizeCurrencyCode(code) {
 }
 
 /**
- * Frankfurter API (ECB-based, no key). date: YYYY-MM-DD or 'latest'
- * @returns {Promise<number>} rate such that 1 `from` = rate × `to` — actually API returns rates object.
- * frankfurter: GET /{date}?from=USD&to=EUR returns { rates: { EUR: 0.92 } } meaning 1 USD = 0.92 EUR
+ * Frankfurter returns `rates[to]` = how many units of `to` equal 1 unit of `from`.
+ * ECB publishes many crosses only vs EUR; direct ?from=A&to=B often 404s — use inverse + EUR bridge.
+ */
+
+function dateToIsoUtc(ms) {
+  const d = new Date(Number(ms));
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+/** Future / invalid receipt dates break historical endpoints — clamp to today (UTC). */
+export function clampDateMsForFxRates(dateMs) {
+  const now = Date.now();
+  let t = Number(dateMs);
+  if (!Number.isFinite(t)) t = now;
+  if (t > now) return now;
+  return t;
+}
+
+async function frankfurterRate(from, to, pathDate) {
+  const url = `https://api.frankfurter.app/${pathDate}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const r = data?.rates?.[to];
+  if (typeof r !== 'number' || !Number.isFinite(r) || r <= 0) return null;
+  return r;
+}
+
+/**
+ * `to` per 1 `from`. Tries: direct → inverse → via EUR (ECB hub).
+ */
+async function conversionFactorOnce(from, to, pathDate) {
+  if (from === to) return 1;
+
+  let r = await frankfurterRate(from, to, pathDate);
+  if (r != null) return r;
+
+  const inv = await frankfurterRate(to, from, pathDate);
+  if (inv != null && inv > 0) return 1 / inv;
+
+  if (from !== 'EUR' && to !== 'EUR') {
+    const toEur = await frankfurterRate(from, 'EUR', pathDate);
+    const eurTo = await frankfurterRate('EUR', to, pathDate);
+    if (toEur != null && eurTo != null && toEur > 0 && eurTo > 0) {
+      return toEur * eurTo;
+    }
+  }
+
+  return null;
+}
+
+async function conversionFactorWithFallbacks(from, to, dateMs) {
+  const clamped = clampDateMsForFxRates(dateMs);
+  const iso = dateToIsoUtc(clamped);
+  const datesToTry = [];
+  if (iso) datesToTry.push(iso);
+  datesToTry.push('latest');
+
+  for (const pathDate of datesToTry) {
+    const r = await conversionFactorOnce(from, to, pathDate);
+    if (r != null && Number.isFinite(r) && r > 0) return r;
+  }
+  return null;
+}
+
+/**
+ * Frankfurter API (ECB-based, no key).
+ * @returns {Promise<number|null>} multiplier: amount in `to` = amount in `from` × return value
  */
 export async function fetchConversionRate(fromCurrency, toCurrency, dateMs) {
   const from = normalizeCurrencyCode(fromCurrency);
   const to = normalizeCurrencyCode(toCurrency);
   if (from === to) return 1;
 
-  const d = new Date(Number(dateMs) || Date.now());
-  const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-
-  const tryFetch = async (pathDate) => {
-    const url = `https://api.frankfurter.app/${pathDate}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`rate ${res.status}`);
-    const data = await res.json();
-    const r = data?.rates?.[to];
-    if (typeof r !== 'number' || !Number.isFinite(r) || r <= 0) throw new Error('bad rate');
-    return r;
-  };
-
-  try {
-    return await tryFetch(iso);
-  } catch {
-    try {
-      return await tryFetch('latest');
-    } catch {
-      return null;
-    }
-  }
+  return conversionFactorWithFallbacks(from, to, dateMs);
 }
 
 export function formatMoneyWithCode(amount, currencyCode) {

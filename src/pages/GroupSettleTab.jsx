@@ -84,7 +84,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         setReceiptFactors(factors);
         if (failed.length > 0) {
           setFxError(
-            'Couldn’t load exchange rates for some receipts — those amounts are shown without conversion.',
+            'Some receipts couldn’t be converted (check their currency code, or try again). Those lines use the original amounts.',
           );
         }
         setFxLoading(false);
