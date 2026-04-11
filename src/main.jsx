@@ -8,7 +8,14 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import { GroupsDataProvider } from './context/GroupsDataContext.jsx';
 import './index.css';
 
-registerSW({ immediate: true });
+/** When a new build is deployed, activate it immediately so users aren’t stuck on an old cached app (e.g. removed features). */
+let updateSW;
+updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    updateSW(true);
+  },
+});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
