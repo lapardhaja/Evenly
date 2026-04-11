@@ -16,7 +16,8 @@ import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import currency from 'currency.js';
 import { receiptGrandTotal } from '../functions/receiptTotals.js';
-import { SETTLEMENT_CURRENCY_OPTIONS, formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
+import CurrencyAutocomplete from '../components/CurrencyAutocomplete.jsx';
+import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 
 export default function ScanReceiptDialog({
   open,
@@ -127,29 +128,15 @@ export default function ScanReceiptDialog({
           />
         </Box>
         <Box>
-          <Typography
-            component="label"
-            variant="subtitle2"
-            htmlFor="scan-receipt-currency"
-            sx={{ display: 'block', mb: 1, fontWeight: 600 }}
-          >
-            Currency
-          </Typography>
-          <TextField
+          <CurrencyAutocomplete
             id="scan-receipt-currency"
-            select
-            fullWidth
+            label="Currency"
             value={currencyCode}
-            onChange={(e) => setCurrencyCode(normalizeCurrencyCode(e.target.value))}
+            onChange={setCurrencyCode}
             variant="outlined"
-            SelectProps={{ native: true }}
-          >
-            {SETTLEMENT_CURRENCY_OPTIONS.map((o) => (
-              <option key={o.code} value={o.code}>
-                {o.label}
-              </option>
-            ))}
-          </TextField>
+            size="small"
+            fullWidth
+          />
         </Box>
         {scannedGrandTotal > 0 && (
           <Typography variant="body2" color="text.secondary">

@@ -1,24 +1,49 @@
-/** Common ISO 4217 codes for UI pickers (subset). */
-export const SETTLEMENT_CURRENCY_OPTIONS = [
-  { code: 'USD', label: 'US Dollar (USD)' },
-  { code: 'EUR', label: 'Euro (EUR)' },
-  { code: 'GBP', label: 'British Pound (GBP)' },
-  { code: 'CAD', label: 'Canadian Dollar (CAD)' },
-  { code: 'AUD', label: 'Australian Dollar (AUD)' },
-  { code: 'CHF', label: 'Swiss Franc (CHF)' },
-  { code: 'JPY', label: 'Japanese Yen (JPY)' },
-  { code: 'INR', label: 'Indian Rupee (INR)' },
-  { code: 'MXN', label: 'Mexican Peso (MXN)' },
-  { code: 'BRL', label: 'Brazilian Real (BRL)' },
-  { code: 'NZD', label: 'New Zealand Dollar (NZD)' },
-  { code: 'SEK', label: 'Swedish Krona (SEK)' },
-  { code: 'NOK', label: 'Norwegian Krone (NOK)' },
-  { code: 'DKK', label: 'Danish Krone (DKK)' },
-  { code: 'PLN', label: 'Polish Złoty (PLN)' },
-  { code: 'TRY', label: 'Turkish Lira (TRY)' },
-];
+import STATIC_ISO_CODES from '../data/iso4217CurrencyCodes.js';
 
 const FALLBACK = 'USD';
+
+/** @type {{ code: string, label: string }[] | null} */
+let currencySelectOptionsCache = null;
+
+function collectIsoCurrencyCodes() {
+  const set = new Set(STATIC_ISO_CODES);
+  try {
+    if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
+      for (const c of Intl.supportedValuesOf('currency')) {
+        if (typeof c === 'string' && /^[A-Za-z]{3}$/.test(c)) set.add(c.toUpperCase());
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return [...set].sort();
+}
+
+function currencyEnglishName(code) {
+  try {
+    if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
+      const dn = new Intl.DisplayNames(['en'], { type: 'currency' });
+      const n = dn.of(code);
+      if (n && typeof n === 'string' && n.trim()) return n.trim();
+    }
+  } catch {
+    /* ignore */
+  }
+  return code;
+}
+
+/**
+ * All ISO 4217 codes we know about, with searchable labels (code + English name).
+ * Cached for the lifetime of the app tab.
+ */
+export function getCurrencySelectOptions() {
+  if (currencySelectOptionsCache) return currencySelectOptionsCache;
+  currencySelectOptionsCache = collectIsoCurrencyCodes().map((code) => ({
+    code,
+    label: `${code} — ${currencyEnglishName(code)}`,
+  }));
+  return currencySelectOptionsCache;
+}
 
 export function normalizeCurrencyCode(code) {
   if (code == null || typeof code !== 'string') return FALLBACK;

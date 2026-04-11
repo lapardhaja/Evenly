@@ -4,6 +4,7 @@ import {
   normalizeCurrencyCode,
   clampDateMsForFxRates,
   conversionFactorFromUsdRates,
+  getCurrencySelectOptions,
 } from './currencies.js';
 
 test('normalizeCurrencyCode', () => {
@@ -30,4 +31,13 @@ test('conversionFactorFromUsdRates: USD table cross', () => {
   const eurPerGbp = conversionFactorFromUsdRates(rates, 'GBP', 'EUR');
   assert.ok(eurPerGbp != null);
   assert.ok(Math.abs(eurPerGbp - 0.9 / 0.8) < 1e-9);
+});
+
+test('getCurrencySelectOptions includes major codes', () => {
+  const opts = getCurrencySelectOptions();
+  assert.ok(opts.length >= 150);
+  const codes = new Set(opts.map((o) => o.code));
+  assert.ok(codes.has('USD'));
+  assert.ok(codes.has('EUR'));
+  assert.ok(opts.every((o) => o.label.includes(o.code)));
 });

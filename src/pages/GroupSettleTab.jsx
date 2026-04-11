@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -22,8 +21,8 @@ import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
 import { computeNetBalances, minimizeTransfers } from '../functions/settlement.js';
 import SettlementShareDialog from '../components/SettlementShareDialog.jsx';
+import CurrencyAutocomplete from '../components/CurrencyAutocomplete.jsx';
 import {
-  SETTLEMENT_CURRENCY_OPTIONS,
   getUsdRatesTable,
   conversionFactorFromUsdRates,
   formatMoneyWithCode,
@@ -196,21 +195,15 @@ export default function GroupSettleTab({ groupId, groupData }) {
       )}
 
       <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
-        <TextField
-          select
-          size="small"
+        <CurrencyAutocomplete
+          id="settle-display-currency"
           label="Show amounts in"
           value={settleCode}
-          onChange={(e) => setDisplayCurrency(normalizeCurrencyCode(e.target.value))}
-          sx={{ minWidth: 220 }}
-          SelectProps={{ native: true }}
-        >
-          {SETTLEMENT_CURRENCY_OPTIONS.map((o) => (
-            <option key={o.code} value={o.code}>
-              {o.label}
-            </option>
-          ))}
-        </TextField>
+          onChange={setDisplayCurrency}
+          variant="outlined"
+          size="small"
+          sx={{ minWidth: { xs: '100%', sm: 300 }, maxWidth: 400 }}
+        />
         {fxLoading && <CircularProgress size={22} />}
       </Box>
       {fxError ? (
