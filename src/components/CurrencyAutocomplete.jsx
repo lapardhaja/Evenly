@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
-import { getCurrencySelectOptions, normalizeCurrencyCode } from '../lib/currencies.js';
+import { ensureCurrencySelectOptions, normalizeCurrencyCode } from '../lib/currencies.js';
 
 function optionForCode(options, code) {
   const c = normalizeCurrencyCode(code);
@@ -9,7 +9,7 @@ function optionForCode(options, code) {
 }
 
 /**
- * Searchable currency picker (MUI Autocomplete).
+ * Searchable currency picker — list matches the live FX API (actively quoted currencies).
  */
 export default function CurrencyAutocomplete({
   value,
@@ -22,13 +22,31 @@ export default function CurrencyAutocomplete({
   sx,
   id,
 }) {
-  const options = useMemo(() => getCurrencySelectOptions(), []);
+  const [options, setOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    ensureCurrencySelectOptions()
+      .then((opts) => {
+        if (!cancelled) setOptions(opts);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const code = normalizeCurrencyCode(value);
-  const selected = optionForCode(options, code);
+  const selected = useMemo(() => optionForCode(options, code), [options, code]);
 
   return (
     <Autocomplete
       id={id}
+      loading={loading}
       options={options}
       value={selected}
       onChange={(_, opt) => {
@@ -48,7 +66,7 @@ export default function CurrencyAutocomplete({
       autoHighlight
       selectOnFocus
       handleHomeEndKeys
-      disabled={disabled}
+      disabled={disabled || loading}
       size={size}
       sx={sx}
       renderInput={(params) => (
@@ -56,7 +74,7 @@ export default function CurrencyAutocomplete({
           {...params}
           label={label}
           variant={variant}
-          placeholder="Search code or name"
+          placeholder={loading ? 'Loading currencies…' : 'Search code or name'}
           inputProps={{
             ...params.inputProps,
             autoComplete: 'off',
@@ -64,6 +82,7 @@ export default function CurrencyAutocomplete({
         />
       )}
       ListboxProps={{ style: { maxHeight: 280 } }}
+      fullWidth={fullWidth}
     />
   );
 }

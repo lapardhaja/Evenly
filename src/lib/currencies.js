@@ -1,22 +1,64 @@
 import STATIC_ISO_CODES from '../data/iso4217CurrencyCodes.js';
 
 const FALLBACK = 'USD';
+const FETCH_TIMEOUT_MS = 10000;
+
+async function fetchJsonWithTimeout(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Withdrawn or not used as a day-to-day currency in our picker (API may still return legacy keys). */
+const WITHDRAWN_OR_NON_CASH = new Set([
+  'HRK', // Croatia → EUR
+  'SLL', // Sierra Leone → SLE
+  'CUC', // Cuba → CUP
+  'CLF', // Chile UF (index unit), not a cash currency for receipts
+]);
 
 /** @type {{ code: string, label: string }[] | null} */
 let currencySelectOptionsCache = null;
 
-function collectIsoCurrencyCodes() {
-  const set = new Set(STATIC_ISO_CODES);
-  try {
-    if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
-      for (const c of Intl.supportedValuesOf('currency')) {
-        if (typeof c === 'string' && /^[A-Za-z]{3}$/.test(c)) set.add(c.toUpperCase());
+/** @type {Promise<string[]> | null} */
+let activeCurrencyCodesPromise = null;
+
+/**
+ * ISO codes the live rate API currently publishes (same source as settlement FX).
+ */
+export function fetchActiveCurrencyCodes() {
+  if (!activeCurrencyCodesPromise) {
+    activeCurrencyCodesPromise = (async () => {
+      const data = await fetchJsonWithTimeout('https://open.er-api.com/v6/latest/USD');
+      if (!data || data.result !== 'success' || !data.rates || typeof data.rates !== 'object') {
+        return [...STATIC_ISO_CODES].filter((c) => !WITHDRAWN_OR_NON_CASH.has(c)).sort();
       }
-    }
-  } catch {
-    /* ignore */
+      const set = new Set(['USD']);
+      for (const k of Object.keys(data.rates)) {
+        if (typeof k !== 'string' || !/^[A-Za-z]{3}$/.test(k)) continue;
+        const c = k.toUpperCase();
+        if (!WITHDRAWN_OR_NON_CASH.has(c)) set.add(c);
+      }
+      return [...set].sort();
+    })();
   }
-  return [...set].sort();
+  return activeCurrencyCodesPromise;
+}
+
+async function collectIsoCurrencyCodes() {
+  try {
+    return await fetchActiveCurrencyCodes();
+  } catch {
+    return [...STATIC_ISO_CODES].filter((c) => !WITHDRAWN_OR_NON_CASH.has(c)).sort();
+  }
 }
 
 function currencyEnglishName(code) {
@@ -33,15 +75,25 @@ function currencyEnglishName(code) {
 }
 
 /**
- * All ISO 4217 codes we know about, with searchable labels (code + English name).
- * Cached for the lifetime of the app tab.
+ * Actively traded currencies from the same API as settlement rates, with searchable labels.
+ * First call may be async — use `ensureCurrencySelectOptions()` from the UI.
  */
-export function getCurrencySelectOptions() {
-  if (currencySelectOptionsCache) return currencySelectOptionsCache;
-  currencySelectOptionsCache = collectIsoCurrencyCodes().map((code) => ({
+export function buildCurrencySelectOptions(codes) {
+  return codes.map((code) => ({
     code,
     label: `${code} — ${currencyEnglishName(code)}`,
   }));
+}
+
+export function getCurrencySelectOptionsSync() {
+  return currencySelectOptionsCache;
+}
+
+/** Load list from API once; returns options array. */
+export async function ensureCurrencySelectOptions() {
+  if (currencySelectOptionsCache) return currencySelectOptionsCache;
+  const codes = await collectIsoCurrencyCodes();
+  currencySelectOptionsCache = buildCurrencySelectOptions(codes);
   return currencySelectOptionsCache;
 }
 
@@ -50,22 +102,6 @@ export function normalizeCurrencyCode(code) {
   const c = code.trim().toUpperCase();
   if (/^[A-Z]{3}$/.test(c)) return c;
   return FALLBACK;
-}
-
-const FETCH_TIMEOUT_MS = 10000;
-
-async function fetchJsonWithTimeout(url) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 /**

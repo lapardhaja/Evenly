@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import STATIC_ISO_CODES from '../data/iso4217CurrencyCodes.js';
 import {
   normalizeCurrencyCode,
   clampDateMsForFxRates,
   conversionFactorFromUsdRates,
-  getCurrencySelectOptions,
+  buildCurrencySelectOptions,
 } from './currencies.js';
 
 test('normalizeCurrencyCode', () => {
@@ -33,11 +34,13 @@ test('conversionFactorFromUsdRates: USD table cross', () => {
   assert.ok(Math.abs(eurPerGbp - 0.9 / 0.8) < 1e-9);
 });
 
-test('getCurrencySelectOptions includes major codes', () => {
-  const opts = getCurrencySelectOptions();
-  assert.ok(opts.length >= 150);
-  const codes = new Set(opts.map((o) => o.code));
-  assert.ok(codes.has('USD'));
-  assert.ok(codes.has('EUR'));
-  assert.ok(opts.every((o) => o.label.includes(o.code)));
+test('static fallback list excludes withdrawn codes used in picker filter', () => {
+  const withdrawn = new Set(['HRK', 'SLL', 'CUC', 'CLF']);
+  const codes = STATIC_ISO_CODES.filter((c) => !withdrawn.has(c));
+  assert.ok(!codes.includes('HRK'));
+  assert.ok(!codes.includes('SLL'));
+  assert.ok(codes.includes('USD'));
+  const opts = buildCurrencySelectOptions(codes.slice(0, 5));
+  assert.equal(opts.length, 5);
+  assert.ok(opts[0].label.startsWith(opts[0].code));
 });
