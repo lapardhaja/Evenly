@@ -24,7 +24,8 @@ import { computeNetBalances, minimizeTransfers } from '../functions/settlement.j
 import SettlementShareDialog from '../components/SettlementShareDialog.jsx';
 import {
   SETTLEMENT_CURRENCY_OPTIONS,
-  fetchConversionRate,
+  getUsdRatesTable,
+  conversionFactorFromUsdRates,
   formatMoneyWithCode,
   normalizeCurrencyCode,
 } from '../lib/currencies.js';
@@ -65,14 +66,21 @@ export default function GroupSettleTab({ groupId, groupData }) {
     (async () => {
       const factors = {};
       const failed = [];
+      const rates = await getUsdRatesTable();
+      if (cancelled) return;
+      if (!rates) {
+        for (const row of meta) {
+          factors[row.id] = 1;
+          failed.push(row.id);
+        }
+        setReceiptFactors(factors);
+        setFxError('Couldn’t load exchange rates. Check your connection and try again.');
+        setFxLoading(false);
+        return;
+      }
       for (const row of meta) {
         const from = normalizeCurrencyCode(row.currencyCode);
-        if (from === target) {
-          factors[row.id] = 1;
-          continue;
-        }
-        const rate = await fetchConversionRate(from, target, row.date);
-        if (cancelled) return;
+        const rate = conversionFactorFromUsdRates(rates, from, target);
         if (rate == null || !Number.isFinite(rate) || rate <= 0) {
           factors[row.id] = 1;
           failed.push(row.id);
@@ -84,7 +92,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         setReceiptFactors(factors);
         if (failed.length > 0) {
           setFxError(
-            'Some receipts couldn’t be converted (check their currency code, or try again). Those lines use the original amounts.',
+            'Some currencies couldn’t be converted — those receipts show original amounts.',
           );
         }
         setFxLoading(false);
@@ -211,7 +219,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         </Alert>
       ) : null}
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        Rates are for reference (ECB via Frankfurter). Edit each receipt’s currency on its detail page if a scan guessed wrong.
+        Rates update daily and are for reference only. Edit each receipt’s currency on its detail page if a scan guessed wrong.
       </Typography>
 
       {/* Net Balances */}

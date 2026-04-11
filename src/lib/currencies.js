@@ -27,18 +27,94 @@ export function normalizeCurrencyCode(code) {
   return FALLBACK;
 }
 
-/**
- * Frankfurter returns `rates[to]` = how many units of `to` equal 1 unit of `from`.
- * ECB publishes many crosses only vs EUR; direct ?from=A&to=B often 404s — use inverse + EUR bridge.
- */
+const FETCH_TIMEOUT_MS = 10000;
 
-function dateToIsoUtc(ms) {
-  const d = new Date(Number(ms));
-  if (Number.isNaN(d.getTime())) return null;
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+async function fetchJsonWithTimeout(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-/** Future / invalid receipt dates break historical endpoints — clamp to today (UTC). */
+/**
+ * Open Exchange Rates (no key): `rates[X]` = how many units of X equal 1 USD.
+ * @returns {Record<string, number>|null}
+ */
+async function fetchUsdRatesOpenErApi() {
+  const data = await fetchJsonWithTimeout('https://open.er-api.com/v6/latest/USD');
+  if (!data || data.result !== 'success' || !data.rates || typeof data.rates !== 'object') {
+    return null;
+  }
+  const rates = { ...data.rates };
+  rates.USD = 1;
+  return rates;
+}
+
+/**
+ * Fawaz Ahmed currency-api on jsDelivr (no key). Keys are lowercase currency codes.
+ */
+async function fetchUsdRatesFawazFallback() {
+  const data = await fetchJsonWithTimeout(
+    'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
+  );
+  if (!data || typeof data !== 'object') return null;
+  const raw = data.usd || data.USD;
+  if (!raw || typeof raw !== 'object') return null;
+  const rates = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) {
+      rates[k.toUpperCase()] = v;
+    }
+  }
+  rates.USD = 1;
+  return Object.keys(rates).length > 1 ? rates : null;
+}
+
+let cachedUsdRates = null;
+let cachedAt = 0;
+const CACHE_MS = 5 * 60 * 1000;
+
+export async function getUsdRatesTable() {
+  const now = Date.now();
+  if (cachedUsdRates && now - cachedAt < CACHE_MS) {
+    return cachedUsdRates;
+  }
+  let rates = await fetchUsdRatesOpenErApi();
+  if (!rates) {
+    rates = await fetchUsdRatesFawazFallback();
+  }
+  if (rates) {
+    cachedUsdRates = rates;
+    cachedAt = now;
+  }
+  return rates;
+}
+
+/**
+ * How many units of `to` equal 1 unit of `from`, using USD-quoted table
+ * (1 USD = rates[X] units of X).
+ */
+export function conversionFactorFromUsdRates(rates, from, to) {
+  const f = normalizeCurrencyCode(from);
+  const t = normalizeCurrencyCode(to);
+  if (f === t) return 1;
+  if (!rates) return null;
+  const rf = rates[f];
+  const rt = rates[t];
+  if (typeof rf !== 'number' || typeof rt !== 'number' || !Number.isFinite(rf) || !Number.isFinite(rt) || rf <= 0 || rt <= 0) {
+    return null;
+  }
+  return rt / rf;
+}
+
+/** Future receipt dates are invalid for “historical” APIs we don’t use — still useful for callers. */
 export function clampDateMsForFxRates(dateMs) {
   const now = Date.now();
   let t = Number(dateMs);
@@ -47,63 +123,15 @@ export function clampDateMsForFxRates(dateMs) {
   return t;
 }
 
-async function frankfurterRate(from, to, pathDate) {
-  const url = `https://api.frankfurter.app/${pathDate}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data = await res.json();
-  const r = data?.rates?.[to];
-  if (typeof r !== 'number' || !Number.isFinite(r) || r <= 0) return null;
-  return r;
-}
-
 /**
- * `to` per 1 `from`. Tries: direct → inverse → via EUR (ECB hub).
- */
-async function conversionFactorOnce(from, to, pathDate) {
-  if (from === to) return 1;
-
-  let r = await frankfurterRate(from, to, pathDate);
-  if (r != null) return r;
-
-  const inv = await frankfurterRate(to, from, pathDate);
-  if (inv != null && inv > 0) return 1 / inv;
-
-  if (from !== 'EUR' && to !== 'EUR') {
-    const toEur = await frankfurterRate(from, 'EUR', pathDate);
-    const eurTo = await frankfurterRate('EUR', to, pathDate);
-    if (toEur != null && eurTo != null && toEur > 0 && eurTo > 0) {
-      return toEur * eurTo;
-    }
-  }
-
-  return null;
-}
-
-async function conversionFactorWithFallbacks(from, to, dateMs) {
-  const clamped = clampDateMsForFxRates(dateMs);
-  const iso = dateToIsoUtc(clamped);
-  const datesToTry = [];
-  if (iso) datesToTry.push(iso);
-  datesToTry.push('latest');
-
-  for (const pathDate of datesToTry) {
-    const r = await conversionFactorOnce(from, to, pathDate);
-    if (r != null && Number.isFinite(r) && r > 0) return r;
-  }
-  return null;
-}
-
-/**
- * Frankfurter API (ECB-based, no key).
  * @returns {Promise<number|null>} multiplier: amount in `to` = amount in `from` × return value
  */
-export async function fetchConversionRate(fromCurrency, toCurrency, dateMs) {
+export async function fetchConversionRate(fromCurrency, toCurrency) {
   const from = normalizeCurrencyCode(fromCurrency);
   const to = normalizeCurrencyCode(toCurrency);
   if (from === to) return 1;
-
-  return conversionFactorWithFallbacks(from, to, dateMs);
+  const rates = await getUsdRatesTable();
+  return conversionFactorFromUsdRates(rates, from, to);
 }
 
 export function formatMoneyWithCode(amount, currencyCode) {
