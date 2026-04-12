@@ -3,7 +3,11 @@ import currency from 'currency.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { v4 as uuidv4 } from 'uuid';
 import { idMapToList } from '../functions/utils.js';
-import { receiptGrandTotal, taxableSubtotalAfterDiscount } from '../functions/receiptTotals.js';
+import {
+  receiptGrandTotal,
+  taxableSubtotalAfterDiscount,
+  isTaxInclusive,
+} from '../functions/receiptTotals.js';
 import { normalizeCurrencyCode } from '../lib/currencies.js';
 
 // ─── Groups list ────────────────────────────────────────────────────────
@@ -113,7 +117,8 @@ export function useGroup(groupId) {
     return idMapToList(group?.receipts).map((r) => {
       const items = idMapToList(r.items);
       const subTotal = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
-      const total = receiptGrandTotal(subTotal, r.discountCost, r.taxCost, r.tipCost);
+      const tb = r.taxBehavior === 'inclusive' ? 'inclusive' : 'exclusive';
+      const total = receiptGrandTotal(subTotal, r.discountCost, r.taxCost, r.tipCost, tb);
       return {
         ...r,
         total,
@@ -228,6 +233,7 @@ export function useGroup(groupId) {
             taxCost: 0,
             tipCost: 0,
             discountCost: 0,
+            taxBehavior: 'exclusive',
           },
         };
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };
@@ -253,6 +259,10 @@ export function useGroup(groupId) {
       const taxCost = currency(charges.taxCost ?? 0).value;
       const tipCost = currency(charges.tipCost ?? 0).value;
       const discountCost = currency(charges.discountCost ?? 0).value;
+      const taxBehavior =
+        charges.taxBehavior === 'inclusive' || charges.taxBehavior === 'exclusive'
+          ? charges.taxBehavior
+          : 'exclusive';
       let dateMs = Date.now();
       if (charges.receiptDate && typeof charges.receiptDate === 'string') {
         const iso = charges.receiptDate.trim();
@@ -282,6 +292,7 @@ export function useGroup(groupId) {
             tipCost: Number.isFinite(tipCost) && tipCost >= 0 ? tipCost : 0,
             discountCost:
               Number.isFinite(discountCost) && discountCost >= 0 ? discountCost : 0,
+            taxBehavior,
           },
         };
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };
@@ -362,6 +373,7 @@ export function useGroupReceipt(groupId, receiptId) {
       ...raw,
       id: receiptId,
       currencyCode: normalizeCurrencyCode(raw.currencyCode || group.displayCurrency || 'USD'),
+      taxBehavior: raw.taxBehavior === 'inclusive' ? 'inclusive' : 'exclusive',
     };
   }, [group, receiptId]);
 
@@ -396,8 +408,9 @@ export function useGroupReceipt(groupId, receiptId) {
         receipt?.discountCost,
         receipt?.taxCost,
         receipt?.tipCost,
+        receipt?.taxBehavior,
       ),
-    [subTotal, receipt?.taxCost, receipt?.tipCost, receipt?.discountCost],
+    [subTotal, receipt?.taxCost, receipt?.tipCost, receipt?.discountCost, receipt?.taxBehavior],
   );
 
   const mutateReceipt = useCallback(
@@ -418,6 +431,9 @@ export function useGroupReceipt(groupId, receiptId) {
       mutateReceipt((r) => {
         if (key === 'currencyCode') {
           return { ...r, currencyCode: normalizeCurrencyCode(value) };
+        }
+        if (key === 'taxBehavior') {
+          return { ...r, taxBehavior: value === 'inclusive' ? 'inclusive' : 'exclusive' };
         }
         return { ...r, [key]: value };
       }),
@@ -558,9 +574,12 @@ export function useGroupReceipt(groupId, receiptId) {
       const afterDiscount = currency(personSub)
         .multiply(taxableBaseAfterDiscount)
         .divide(subTotal).value;
-      return currency(afterDiscount).add(tax).add(tip).value;
+      const inc = isTaxInclusive(receipt?.taxBehavior);
+      return currency(afterDiscount)
+        .add(inc ? 0 : tax)
+        .add(tip).value;
     },
-    [personSubTotalMap, getChargeForPerson, subTotal, taxableBaseAfterDiscount],
+    [personSubTotalMap, getChargeForPerson, subTotal, taxableBaseAfterDiscount, receipt?.taxBehavior],
   );
 
   const getItemCostForPerson = useCallback(

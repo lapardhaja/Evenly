@@ -55,6 +55,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   const [scannedReceiptDate, setScannedReceiptDate] = useState('');
   const [scannedGrandTotal, setScannedGrandTotal] = useState(0);
   const [scannedCurrencyCode, setScannedCurrencyCode] = useState('USD');
+  const [scannedTaxBehavior, setScannedTaxBehavior] = useState('exclusive');
   const [scanFlowError, setScanFlowError] = useState('');
   const [undoReceiptDelete, setUndoReceiptDelete] = useState(null);
 
@@ -97,7 +98,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     setScanFlowError('');
     try {
       const dataUrl = await readFileAsDataUrl(file);
-      const { items, storeName, tax, tip, discount, receiptDate, grandTotal, currencyCode } =
+      const { items, storeName, tax, tip, discount, receiptDate, grandTotal, currencyCode, taxBehavior } =
         await scanReceiptImage(dataUrl);
       setScannedItems(Array.isArray(items) ? items : []);
       setScannedStoreName(storeName || '');
@@ -107,6 +108,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       setScannedReceiptDate(typeof receiptDate === 'string' ? receiptDate : '');
       setScannedGrandTotal(typeof grandTotal === 'number' ? grandTotal : 0);
       setScannedCurrencyCode(currencyCode || 'USD');
+      setScannedTaxBehavior(taxBehavior === 'inclusive' ? 'inclusive' : 'exclusive');
       setScanDialogOpen(true);
     } catch (err) {
       setScannedItems([]);
@@ -117,6 +119,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       setScannedReceiptDate('');
       setScannedGrandTotal(0);
       setScannedCurrencyCode('USD');
+      setScannedTaxBehavior('exclusive');
       setScanFlowError(
         err?.message && String(err.message).length < 120
           ? err.message
@@ -129,12 +132,17 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   };
 
   const handleScanConfirm = (title, items, charges = {}) => {
+    const taxBehavior =
+      charges.taxBehavior === 'inclusive' || charges.taxBehavior === 'exclusive'
+        ? charges.taxBehavior
+        : scannedTaxBehavior;
     const id = addReceiptWithItems(title, items, {
       taxCost: charges.taxCost ?? 0,
       tipCost: charges.tipCost ?? 0,
       discountCost: charges.discountCost ?? 0,
       receiptDate: charges.receiptDate,
       currencyCode: charges.currencyCode || scannedCurrencyCode,
+      taxBehavior,
     });
     if (id) navigate(`/groups/${groupId}/receipt/${id}`);
   };
@@ -326,6 +334,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           setScannedReceiptDate('');
           setScannedGrandTotal(0);
           setScannedCurrencyCode('USD');
+          setScannedTaxBehavior('exclusive');
         }}
         items={scannedItems}
         taxCost={scannedTax}
@@ -335,6 +344,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         scannedGrandTotal={scannedGrandTotal}
         defaultTitle={scannedStoreName}
         defaultCurrencyCode={scannedCurrencyCode}
+        defaultTaxBehavior={scannedTaxBehavior}
         error={scanFlowError}
         onConfirm={handleScanConfirm}
       />

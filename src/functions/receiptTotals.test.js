@@ -15,4 +15,12 @@ describe('receiptTotals', () => {
     const t = receiptGrandTotal(100, 10, 8, 5);
     assert.strictEqual(t, 100 - 10 + 8 + 5);
   });
+  it('inclusive tax: line total matches grand total without adding tax again', () => {
+    const sub = 10.8;
+    const tax = 0.61;
+    const grandExclusive = receiptGrandTotal(sub, 0, tax, 0, 'exclusive');
+    const grandInclusive = receiptGrandTotal(sub, 0, tax, 0, 'inclusive');
+    assert.ok(Math.abs(grandExclusive - (sub + tax)) < 0.01);
+    assert.ok(Math.abs(grandInclusive - sub) < 0.01);
+  });
 });

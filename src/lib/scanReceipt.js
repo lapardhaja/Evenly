@@ -1,4 +1,5 @@
 import { compressImageDataUrl } from './compressImageForScan.js';
+import { classifyTaxBehaviorFromTotals } from './receiptTaxBehavior.js';
 
 /**
  * Image data URL → compress → /api/scan (Vercel) → Gemini (images only).
@@ -50,7 +51,17 @@ export async function scanReceiptImage(dataUrl) {
   let currencyCode = typeof data.currencyCode === 'string' ? data.currencyCode.trim().toUpperCase() : 'USD';
   if (!/^[A-Z]{3}$/.test(currencyCode)) currencyCode = 'USD';
 
-  return { storeName, items, tax, tip, discount, receiptDate, grandTotal, currencyCode };
+  let taxBehavior = 'exclusive';
+  if (data.taxBehavior === 'inclusive' || data.taxBehavior === 'exclusive') {
+    taxBehavior = data.taxBehavior;
+  } else if (data.taxInclusive === true) {
+    taxBehavior = 'inclusive';
+  } else {
+    const c = classifyTaxBehaviorFromTotals(items, tax, tip, discount, grandTotal);
+    taxBehavior = c.taxBehavior;
+  }
+
+  return { storeName, items, tax, tip, discount, receiptDate, grandTotal, currencyCode, taxBehavior };
 }
 
 export function readFileAsDataUrl(file) {

@@ -62,6 +62,8 @@ function normalizeReceiptDateISO(str) {
   return s;
 }
 
+import { classifyTaxBehaviorFromTotals } from '../src/lib/receiptTaxBehavior.js';
+
 function normalizeItems(raw) {
   if (!Array.isArray(raw)) return [];
   const out = [];
@@ -152,7 +154,8 @@ Return ONLY a valid JSON object (no markdown, no code fences):
   "tip": 0.00,
   "discount": 0.00,
   "receiptDate": "",
-  "grandTotal": 0.00
+  "grandTotal": 0.00,
+  "taxInclusive": false
 }
 
 Rules for "currencyCode":
@@ -177,6 +180,12 @@ Rules for "items":
 
 Rules for "tax":
 - Put the receipt's sales tax / VAT / "Tax" line amount here. Use 0 if not shown or unclear.
+- If the receipt shows BOTH a net/subtotal before tax (HT) AND tax (TVA) AND total with tax (TTC), put the TAX amount in "tax" (not the net).
+
+Rules for "taxInclusive" (boolean):
+- Set to TRUE when item line totals already include VAT/sales tax (common in EU): the final amount due equals sum of taxed line items (after discount) + tip, and any separate "tax" line is a breakdown, NOT added again.
+- Set to FALSE when tax is added on top of pre-tax prices (common in US): total ≈ items (after discount) + tax + tip.
+- If unsure, prefer FALSE.
 
 Rules for "tip":
 - Put the combined amount of: tip, gratuity, service fee (when it is a discretionary/tip-style fee), service charge, auto gratuity—if multiple such lines exist, sum them into one number. Use 0 if none.
@@ -187,8 +196,8 @@ Rules for "discount":
 - Use 0 if none or unclear.
 - This discount applies to the item subtotal before tax and tip (typical register behavior).
 
-If nothing is readable, return {"storeName":"","currencyCode":"USD","items":[],"tax":0,"tip":0,"discount":0,"receiptDate":"","grandTotal":0}
-Always return valid JSON with keys storeName, currencyCode, items, tax, tip, discount, receiptDate, grandTotal.`;
+If nothing is readable, return {"storeName":"","currencyCode":"USD","items":[],"tax":0,"tip":0,"discount":0,"receiptDate":"","grandTotal":0,"taxInclusive":false}
+Always return valid JSON with keys storeName, currencyCode, items, tax, tip, discount, receiptDate, grandTotal, taxInclusive.`;
 
   try {
     const response = await fetch(geminiUrl(model, apiKey), {
@@ -243,7 +252,7 @@ Always return valid JSON with keys storeName, currencyCode, items, tax, tip, dis
       .slice(0, 3);
     if (!/^[A-Z]{3}$/.test(currencyCode)) currencyCode = 'USD';
     const items = normalizeItems(parsed.items);
-    const tax = normalizeMoney(parsed.tax ?? parsed.taxAmount);
+    let tax = normalizeMoney(parsed.tax ?? parsed.taxAmount);
     const tip = normalizeMoney(
       parsed.tip ?? parsed.tipAmount ?? parsed.gratuity ?? parsed.serviceFee,
     );
@@ -259,6 +268,15 @@ Always return valid JSON with keys storeName, currencyCode, items, tax, tip, dis
         parsed.promoDiscount,
     );
 
+    let taxBehavior = 'exclusive';
+    if (parsed.taxInclusive === true || parsed.tax_inclusive === true) {
+      taxBehavior = 'inclusive';
+    } else {
+      const classified = classifyTaxBehaviorFromTotals(items, tax, tip, discount, grandTotal);
+      taxBehavior = classified.taxBehavior;
+      tax = classified.taxCost;
+    }
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
       storeName,
@@ -269,6 +287,7 @@ Always return valid JSON with keys storeName, currencyCode, items, tax, tip, dis
       discount,
       receiptDate: receiptDate || '',
       grandTotal,
+      taxBehavior,
     });
   } catch (err) {
     console.error('Scan error:', err);

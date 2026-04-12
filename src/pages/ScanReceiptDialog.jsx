@@ -5,6 +5,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import List from '@mui/material/List';
@@ -15,7 +16,7 @@ import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import currency from 'currency.js';
-import { receiptGrandTotal } from '../functions/receiptTotals.js';
+import { receiptGrandTotal, isTaxInclusive } from '../functions/receiptTotals.js';
 import CurrencyAutocomplete from '../components/CurrencyAutocomplete.jsx';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 
@@ -29,6 +30,7 @@ export default function ScanReceiptDialog({
   defaultTitle = '',
   defaultReceiptDateISO = '',
   defaultCurrencyCode = 'USD',
+  defaultTaxBehavior = 'exclusive',
   scannedGrandTotal = 0,
   onConfirm,
   error: externalError,
@@ -36,6 +38,7 @@ export default function ScanReceiptDialog({
   const [title, setTitle] = useState('Scanned receipt');
   const [receiptDateISO, setReceiptDateISO] = useState('');
   const [currencyCode, setCurrencyCode] = useState('USD');
+  const [taxBehavior, setTaxBehavior] = useState('exclusive');
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const itemsSubtotal = useMemo(
@@ -45,11 +48,11 @@ export default function ScanReceiptDialog({
 
   const totalMismatch = useMemo(() => {
     if (items.length === 0 || scannedGrandTotal <= 0) return null;
-    const expected = receiptGrandTotal(itemsSubtotal, discountCost, taxCost, tipCost);
+    const expected = receiptGrandTotal(itemsSubtotal, discountCost, taxCost, tipCost, taxBehavior);
     const diff = Math.abs(currency(scannedGrandTotal).subtract(expected).value);
     if (diff <= 0.02) return null;
     return { expected, scanned: scannedGrandTotal };
-  }, [items.length, itemsSubtotal, taxCost, tipCost, discountCost, scannedGrandTotal]);
+  }, [items.length, itemsSubtotal, taxCost, tipCost, discountCost, scannedGrandTotal, taxBehavior]);
 
   useEffect(() => {
     if (open) {
@@ -58,9 +61,10 @@ export default function ScanReceiptDialog({
       const d = defaultReceiptDateISO?.trim();
       setReceiptDateISO(/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : '');
       setCurrencyCode(normalizeCurrencyCode(defaultCurrencyCode));
+      setTaxBehavior(defaultTaxBehavior === 'inclusive' ? 'inclusive' : 'exclusive');
       setPreviewOpen(false);
     }
-  }, [open, defaultTitle, defaultReceiptDateISO, defaultCurrencyCode]);
+  }, [open, defaultTitle, defaultReceiptDateISO, defaultCurrencyCode, defaultTaxBehavior]);
 
   const handleConfirm = () => {
     const t = title.trim() || 'Scanned receipt';
@@ -70,6 +74,7 @@ export default function ScanReceiptDialog({
       discountCost,
       receiptDate: receiptDateISO.trim() || undefined,
       currencyCode,
+      taxBehavior,
     });
     onClose();
   };
@@ -138,6 +143,36 @@ export default function ScanReceiptDialog({
             fullWidth
           />
         </Box>
+        {(taxCost > 0 || defaultTaxBehavior === 'inclusive') && (
+          <Box>
+            <Typography
+              component="label"
+              variant="subtitle2"
+              htmlFor="scan-tax-behavior"
+              sx={{ display: 'block', mb: 1, fontWeight: 600 }}
+            >
+              Tax on this receipt
+            </Typography>
+            <TextField
+              id="scan-tax-behavior"
+              hiddenLabel
+              select
+              fullWidth
+              size="small"
+              value={taxBehavior}
+              onChange={(e) => setTaxBehavior(e.target.value === 'inclusive' ? 'inclusive' : 'exclusive')}
+              variant="outlined"
+              helperText={
+                isTaxInclusive(taxBehavior)
+                  ? 'Item prices already include tax. The tax amount is for reference only — it is not added again.'
+                  : 'Tax is added on top of the discounted item total (typical in the US).'
+              }
+            >
+              <MenuItem value="exclusive">Added on top</MenuItem>
+              <MenuItem value="inclusive">Already in item prices</MenuItem>
+            </TextField>
+          </Box>
+        )}
         {scannedGrandTotal > 0 && (
           <Typography variant="body2" color="text.secondary">
             Total on receipt: <strong>{formatMoneyWithCode(scannedGrandTotal, currencyCode)}</strong>

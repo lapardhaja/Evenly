@@ -28,7 +28,8 @@ import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
-import { appliedDiscountAmount } from '../functions/receiptTotals.js';
+import { appliedDiscountAmount, isTaxInclusive } from '../functions/receiptTotals.js';
+import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import useAddItemModal from './components/UseAddItemModal.jsx';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
@@ -59,10 +60,14 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
     onAddItem: addItem,
   });
 
+  const receiptCurrency = normalizeCurrencyCode(receipt.currencyCode || 'USD');
+  const taxInclusive = isTaxInclusive(receipt.taxBehavior);
   const pctBase = taxableBaseAfterDiscount > 0 ? taxableBaseAfterDiscount : subTotal;
-  const taxPct = pctBase > 0
-    ? ((currency(receipt.taxCost).value / currency(pctBase).value) * 100).toFixed(2)
-    : '0.00';
+  const taxPct = taxInclusive
+    ? '—'
+    : pctBase > 0
+      ? ((currency(receipt.taxCost).value / currency(pctBase).value) * 100).toFixed(2)
+      : '0.00';
   const tipPct = pctBase > 0
     ? ((currency(receipt.tipCost).value / currency(pctBase).value) * 100).toFixed(2)
     : '0.00';
@@ -402,25 +407,31 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
             {/* Tax */}
             <TableRow>
               <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}>
-                Tax
+                <Typography variant="body2">Tax</Typography>
+                {taxInclusive && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Already in item prices — not added again
+                  </Typography>
+                )}
               </TableCell>
               <TableCell align="center">
                 <ButtonBase
                   onClick={() =>
                     !receipt.locked &&
+                    !taxInclusive &&
                     showEditTextModal({
                       setValue: (v) =>
                         updateChargeValueByPct('taxCost', v, taxableBaseAfterDiscount),
                       title: 'Edit Tax %',
-                      value: taxPct,
+                      value: taxPct === '—' ? '0' : taxPct,
                       inputKind: 'decimal',
                     })
                   }
-                  disabled={receipt.locked}
+                  disabled={receipt.locked || taxInclusive}
                   sx={{ borderRadius: 1, px: 0.5 }}
                 >
                   <Typography variant="body2" color="text.secondary">
-                    {taxPct}%
+                    {taxInclusive ? '—' : `${taxPct}%`}
                   </Typography>
                 </ButtonBase>
               </TableCell>
@@ -438,7 +449,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                   disabled={receipt.locked}
                   sx={{ borderRadius: 1, px: 0.5 }}
                 >
-                  {currency(receipt.taxCost).format()}
+                  {formatMoneyWithCode(receipt.taxCost, receiptCurrency)}
                 </ButtonBase>
               </TableCell>
               <TableCell />
@@ -498,7 +509,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
               </TableCell>
               <TableCell />
               <TableCell align="right">
-                <Typography fontWeight={700}>{currency(total).format()}</Typography>
+                <Typography fontWeight={700}>{formatMoneyWithCode(total, receiptCurrency)}</Typography>
               </TableCell>
               <TableCell />
               <TableCell colSpan={people.length + (!receipt.locked ? 1 : 0)} />
@@ -565,6 +576,8 @@ function PersonTotalListItem({ person, receiptData }) {
   } = receiptData;
 
   const [open, setOpen] = useState(false);
+  const receiptCurrency = normalizeCurrencyCode(receipt?.currencyCode || 'USD');
+  const taxInclusive = isTaxInclusive(receipt?.taxBehavior);
   const personTotal = getTotalForPerson(person.id);
   const personSub = personSubTotalMap[person.id]?.subTotal || 0;
   const appliedDisc = appliedDiscountAmount(subTotal, receipt?.discountCost);
@@ -623,7 +636,7 @@ function PersonTotalListItem({ person, receiptData }) {
                 fontWeight={600}
                 color="primary"
               >
-                {currency(personTotal).format()}
+                {formatMoneyWithCode(personTotal, receiptCurrency)}
               </Typography>
             )
           }
@@ -684,8 +697,10 @@ function PersonTotalListItem({ person, receiptData }) {
           )}
           <ListItem sx={{ py: 0.25, px: 0 }}>
             <ListItemText primary={<Typography variant="body2">Tax</Typography>} />
-            <Typography variant="body2">
-              {currency(getChargeForPerson('taxCost', person.id)).format()}
+            <Typography variant="body2" color={taxInclusive ? 'text.secondary' : 'text.primary'}>
+              {taxInclusive
+                ? 'Included in items'
+                : formatMoneyWithCode(getChargeForPerson('taxCost', person.id), receiptCurrency)}
             </Typography>
           </ListItem>
           <ListItem sx={{ py: 0.25, px: 0 }}>

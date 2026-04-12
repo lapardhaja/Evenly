@@ -176,6 +176,29 @@ export default function ReceiptInfoPage() {
           disabled={receipt.locked}
           sx={{ minWidth: { xs: '100%', sm: 280 }, maxWidth: 360 }}
         />
+        {((receipt.taxCost || 0) > 0 || receipt.taxBehavior === 'inclusive') && (
+          <TextField
+            select
+            label="Tax"
+            value={receipt.taxBehavior === 'inclusive' ? 'inclusive' : 'exclusive'}
+            onChange={(e) =>
+              updateReceiptProperty('taxBehavior', e.target.value === 'inclusive' ? 'inclusive' : 'exclusive')
+            }
+            variant="standard"
+            size="small"
+            disabled={receipt.locked}
+            sx={{ minWidth: { xs: '100%', sm: 220 } }}
+            helperText={
+              receipt.taxBehavior === 'inclusive'
+                ? 'Already in item prices'
+                : 'Added on top'
+            }
+            FormHelperTextProps={{ sx: { mt: 0 } }}
+          >
+            <MenuItem value="exclusive">Added on top</MenuItem>
+            <MenuItem value="inclusive">Already in item prices</MenuItem>
+          </TextField>
+        )}
       </Box>
 
       <Tabs

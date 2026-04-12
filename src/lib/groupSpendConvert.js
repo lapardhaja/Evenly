@@ -15,7 +15,8 @@ export function sumGroupReceiptsInDisplayCurrency(group, rates, displayCurrencyR
   for (const r of receipts) {
     const items = idMapToList(r.items);
     const sub = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
-    const total = receiptGrandTotal(sub, r.discountCost, r.taxCost, r.tipCost);
+    const tb = r.taxBehavior === 'inclusive' ? 'inclusive' : 'exclusive';
+    const total = receiptGrandTotal(sub, r.discountCost, r.taxCost, r.tipCost, tb);
     const from = normalizeCurrencyCode(r.currencyCode || 'USD');
     const f = conversionFactorFromUsdRates(rates, from, target);
     if (f == null) return null;
