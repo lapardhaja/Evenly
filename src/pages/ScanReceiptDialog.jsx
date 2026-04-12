@@ -151,7 +151,7 @@ export default function ScanReceiptDialog({
               htmlFor="scan-tax-behavior"
               sx={{ display: 'block', mb: 1, fontWeight: 600 }}
             >
-              Tax on this receipt
+              Tax
             </Typography>
             <TextField
               id="scan-tax-behavior"
@@ -164,12 +164,12 @@ export default function ScanReceiptDialog({
               variant="outlined"
               helperText={
                 isTaxInclusive(taxBehavior)
-                  ? 'Item prices already include tax. The tax amount is for reference only — it is not added again.'
-                  : 'Tax is added on top of the discounted item total (typical in the US).'
+                  ? 'The tax line is for your records. Totals already include it.'
+                  : 'Tax is added after the items (common in the US).'
               }
             >
-              <MenuItem value="exclusive">Added on top</MenuItem>
-              <MenuItem value="inclusive">Already in item prices</MenuItem>
+              <MenuItem value="exclusive">Added after items</MenuItem>
+              <MenuItem value="inclusive">Included in prices</MenuItem>
             </TextField>
           </Box>
         )}

@@ -190,13 +190,13 @@ export default function ReceiptInfoPage() {
             sx={{ minWidth: { xs: '100%', sm: 220 } }}
             helperText={
               receipt.taxBehavior === 'inclusive'
-                ? 'Already in item prices'
-                : 'Added on top'
+                ? 'Included in prices'
+                : 'Added after items'
             }
             FormHelperTextProps={{ sx: { mt: 0 } }}
           >
-            <MenuItem value="exclusive">Added on top</MenuItem>
-            <MenuItem value="inclusive">Already in item prices</MenuItem>
+            <MenuItem value="exclusive">Added after items</MenuItem>
+            <MenuItem value="inclusive">Included in prices</MenuItem>
           </TextField>
         )}
       </Box>

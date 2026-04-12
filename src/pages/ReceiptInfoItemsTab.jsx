@@ -410,7 +410,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                 <Typography variant="body2">Tax</Typography>
                 {taxInclusive && (
                   <Typography variant="caption" color="text.secondary" display="block">
-                    Already in item prices — not added again
+                    Included in prices
                   </Typography>
                 )}
               </TableCell>
@@ -699,7 +699,7 @@ function PersonTotalListItem({ person, receiptData }) {
             <ListItemText primary={<Typography variant="body2">Tax</Typography>} />
             <Typography variant="body2" color={taxInclusive ? 'text.secondary' : 'text.primary'}>
               {taxInclusive
-                ? 'Included in items'
+                ? 'Included in prices'
                 : formatMoneyWithCode(getChargeForPerson('taxCost', person.id), receiptCurrency)}
             </Typography>
           </ListItem>
