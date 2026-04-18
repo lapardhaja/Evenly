@@ -10,6 +10,7 @@ import ButtonBase from '@mui/material/ButtonBase';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import useEditTextModal from '../components/useEditTextModal.jsx';
+import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 import { useGroup, useGroups } from '../hooks/useGroupData.js';
 import GroupReceiptsTab from './GroupReceiptsTab.jsx';
 import GroupPeopleTab from './GroupPeopleTab.jsx';
@@ -24,6 +25,7 @@ export default function GroupDetailPage() {
   const { deleteGroup } = useGroups();
   const { group, renameGroup } = groupData;
   const { EditTextModal, showEditTextModal } = useEditTextModal();
+  const { ask, confirmDialog } = useConfirmDialog();
 
   // Default tab when URL has no :tab — Receipts (People only right after "create group")
   const currentTab = TABS.indexOf(tab) >= 0 ? TABS.indexOf(tab) : 1;
@@ -43,8 +45,14 @@ export default function GroupDetailPage() {
     );
   }
 
-  const handleDelete = () => {
-    if (!window.confirm('Delete this group and all its receipts? This cannot be undone.')) return;
+  const handleDelete = async () => {
+    const ok = await ask({
+      title: 'Delete group?',
+      message: 'This removes the group and all its receipts. This can’t be undone.',
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteGroup(groupId);
     navigate('/');
   };
@@ -105,6 +113,7 @@ export default function GroupDetailPage() {
       {currentTab === 2 && <GroupSettleTab groupId={groupId} groupData={groupData} />}
 
       {EditTextModal}
+      {confirmDialog}
     </Container>
   );
 }

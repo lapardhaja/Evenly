@@ -14,10 +14,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { nameToInitials } from '../functions/utils.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
+import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 
 export default function GroupPeopleTab({ groupData }) {
   const { people, addPerson, updatePerson, removePerson } = groupData;
   const { EditTextModal, showEditTextModal } = useEditTextModal();
+  const { ask, confirmDialog } = useConfirmDialog();
   const newPersonRef = useRef(null);
 
   const handleAddPerson = () => {
@@ -43,9 +45,14 @@ export default function GroupPeopleTab({ groupData }) {
                 <IconButton
                   edge="end"
                   color="error"
-                  onClick={() => {
-                    if (window.confirm(`Remove ${person.name}? They'll be removed from all receipts in this group.`))
-                      removePerson(person.id);
+                  onClick={async () => {
+                    const ok = await ask({
+                      title: 'Remove person?',
+                      message: `${person.name} will be removed from every receipt in this group.`,
+                      confirmText: 'Remove',
+                      destructive: true,
+                    });
+                    if (ok) removePerson(person.id);
                   }}
                 >
                   <DeleteIcon />
@@ -105,6 +112,7 @@ export default function GroupPeopleTab({ groupData }) {
       </Box>
 
       {EditTextModal}
+      {confirmDialog}
     </Box>
   );
 }

@@ -57,6 +57,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   const [scannedCurrencyCode, setScannedCurrencyCode] = useState('USD');
   const [scannedTaxBehavior, setScannedTaxBehavior] = useState('exclusive');
   const [scanFlowError, setScanFlowError] = useState('');
+  const [wrongFileHint, setWrongFileHint] = useState('');
   const [undoReceiptDelete, setUndoReceiptDelete] = useState(null);
 
   const sorted = useMemo(
@@ -91,7 +92,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     e.target.value = ''; // allow re-selecting same file
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      window.alert('Please choose a photo (not a PDF).');
+      setWrongFileHint('Use a photo, not a PDF.');
       return;
     }
     setScanLoading(true);
@@ -350,6 +351,17 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       />
 
       {EditTextModal}
+
+      <Snackbar
+        open={!!wrongFileHint}
+        autoHideDuration={4000}
+        onClose={() => setWrongFileHint('')}
+        message={wrongFileHint}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{
+          bottom: { xs: 'calc(16px + env(safe-area-inset-bottom, 0px))', sm: 24 },
+        }}
+      />
 
       <Snackbar
         open={!!undoReceiptDelete}

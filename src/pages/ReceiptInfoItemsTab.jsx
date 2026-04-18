@@ -31,6 +31,7 @@ import { nameToInitials } from '../functions/utils.js';
 import { appliedDiscountAmount, isTaxInclusive } from '../functions/receiptTotals.js';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
+import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 import useAddItemModal from './components/UseAddItemModal.jsx';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
 
@@ -56,6 +57,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
 
   const theme = useTheme();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
+  const { ask, confirmDialog } = useConfirmDialog();
   const { AddItemModal, showAddItemModal } = useAddItemModal({
     onAddItem: addItem,
   });
@@ -316,8 +318,14 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
-                            if (window.confirm('Remove this item?')) removeItem(item.id);
+                          onClick={async () => {
+                            const ok = await ask({
+                              title: 'Remove item?',
+                              message: 'This line will be removed from the receipt.',
+                              confirmText: 'Remove',
+                              destructive: true,
+                            });
+                            if (ok) removeItem(item.id);
                           }}
                         >
                           <DeleteIcon fontSize="small" />
@@ -557,6 +565,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
 
       {EditTextModal}
       {AddItemModal}
+      {confirmDialog}
     </Box>
   );
 }
