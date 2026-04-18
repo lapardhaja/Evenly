@@ -63,7 +63,7 @@ The build is a **Progressive Web App**: **Web App Manifest** + **service worker*
 
 - React 18 + Vite 6
 - MUI 5 (Material UI)
-- react-router-dom v6 (HashRouter)
+- react-router-dom v6 (`createHashRouter` — same `#/` URLs as before)
 - currency.js
 - localStorage persistence; optional Supabase Auth + Postgres sync (`@supabase/supabase-js`)
 

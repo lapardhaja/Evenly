@@ -11,7 +11,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import useThemeMode from '../hooks/useThemeMode.js';
 import ThemeModeMenu from './ThemeModeMenu.jsx';
@@ -44,7 +44,7 @@ const darkTheme = createTheme({
   shape: { borderRadius: 12 },
 });
 
-export default function Layout({ children }) {
+export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut, configured: supabaseConfigured, loading: authLoading } = useAuth();
@@ -172,7 +172,7 @@ export default function Layout({ children }) {
               We couldn’t load your data. Tap Retry. If that doesn’t help, sign out and sign in again.
             </Alert>
           ) : null}
-          {children}
+          <Outlet />
         </Box>
 
         <Box

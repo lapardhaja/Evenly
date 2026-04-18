@@ -7,7 +7,7 @@
 ## Tech stack
 
 - **UI**: React 18, MUI 5 (Material UI), @emotion
-- **Routing**: react-router-dom v6 with `HashRouter` (GitHub Pages compatible)
+- **Routing**: react-router-dom v6 with `createHashRouter` + `RouterProvider` (hash URLs, GitHub Pages compatible; enables `useBlocker` for navigation guards)
 - **State**: `localStorage` + optional cloud: `AuthContext`, `GroupsDataContext`, `src/lib/supabaseSync.js` (normalized tables). Hooks in `useGroupData.js` read/write via `useGroupsData()`.
 - **Currency**: `currency.js` for precise monetary math
 - **IDs**: `uuid` v4
@@ -32,9 +32,9 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 - Settlement computed across all receipts in a group using greedy creditor/debtor pairing.
 
 ### Files
-- `src/main.jsx` — Entry point, renders HashRouter + Layout + BaseRouter
-- `src/core/Layout.jsx` — AppBar, theme (auto light/dark), footer
-- `src/core/BaseRouter.jsx` — Routes: `/`, `/groups/:id/:tab?`, `/groups/:id/receipt/:rid/:tab?`
+- `src/main.jsx` — Entry point, `RouterProvider` + `router.jsx`
+- `src/router.jsx` — `createHashRouter` route tree (nested under `Layout` via `<Outlet />`)
+- `src/core/Layout.jsx` — AppBar, theme (auto light/dark), footer, `<Outlet />` for child routes
 - `src/pages/GroupsPage.jsx` — Groups list (home)
 - `src/pages/GroupDetailPage.jsx` — People / Receipts / Settle tabs; open group → Receipts by default; new group from list → `/people` once then Receipts on revisit
 - `src/pages/GroupReceiptsTab.jsx` — Receipt list within a group

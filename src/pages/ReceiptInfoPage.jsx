@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
+import { useParams, useNavigate, useBlocker, useLocation } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -29,10 +30,49 @@ const TABS = ['items', 'people'];
 export default function ReceiptInfoPage() {
   const { groupId, receiptId, tab } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const receiptData = useGroupReceipt(groupId, receiptId);
   const { receipt, people, updateReceiptProperty, deleteReceipt } = receiptData;
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [payerGuardPayerId, setPayerGuardPayerId] = useState('');
+  const skipPaidByBlockRef = useRef(false);
+
+  const needsPaidByBeforeLeave =
+    !!receipt &&
+    !receipt.locked &&
+    people.length > 0 &&
+    !receipt.paidById;
+
+  const shouldBlockNavigation = useCallback(
+    ({ currentLocation, nextLocation }) => {
+      if (!needsPaidByBeforeLeave || skipPaidByBlockRef.current) return false;
+      if (currentLocation.pathname === nextLocation.pathname) return false;
+      const stillOnReceipt = nextLocation.pathname.startsWith(
+        `/groups/${groupId}/receipt/${receiptId}`,
+      );
+      if (stillOnReceipt) return false;
+      return true;
+    },
+    [needsPaidByBeforeLeave, groupId, receiptId],
+  );
+
+  const blocker = useBlocker(shouldBlockNavigation);
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      setPayerGuardPayerId('');
+    }
+  }, [blocker.state]);
+
+  useEffect(() => {
+    const onReceipt = location.pathname.startsWith(
+      `/groups/${groupId}/receipt/${receiptId}`,
+    );
+    if (!onReceipt) {
+      skipPaidByBlockRef.current = false;
+    }
+  }, [location.pathname, groupId, receiptId]);
 
   const currentTab = TABS.indexOf(tab) >= 0 ? TABS.indexOf(tab) : 0;
 
@@ -48,9 +88,33 @@ export default function ReceiptInfoPage() {
   const dateStr = dt.toISOString().split('T')[0];
 
   const confirmDeleteReceipt = () => {
+    skipPaidByBlockRef.current = true;
     deleteReceipt();
     setDeleteDialogOpen(false);
     navigate(`/groups/${groupId}/receipts`);
+  };
+
+  const navigateAwayFromReceipt = (to) => {
+    skipPaidByBlockRef.current = true;
+    navigate(to);
+  };
+
+  const handleSavePayerAndLeave = () => {
+    if (!payerGuardPayerId) return;
+    flushSync(() => {
+      updateReceiptProperty('paidById', payerGuardPayerId);
+    });
+    skipPaidByBlockRef.current = true;
+    blocker.proceed?.();
+  };
+
+  const handleLeaveWithoutPayer = () => {
+    skipPaidByBlockRef.current = true;
+    blocker.proceed?.();
+  };
+
+  const handleStayOnReceipt = () => {
+    blocker.reset?.();
   };
 
   return (
@@ -58,8 +122,9 @@ export default function ReceiptInfoPage() {
       {/* Header row */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <IconButton
-          onClick={() => navigate(`/groups/${groupId}/receipts`)}
+          onClick={() => navigateAwayFromReceipt(`/groups/${groupId}/receipts`)}
           size="small"
+          aria-label="Back to receipts"
         >
           <ArrowBackIcon />
         </IconButton>
@@ -108,6 +173,51 @@ export default function ReceiptInfoPage() {
           <DeleteOutlineIcon />
         </IconButton>
       </Box>
+
+      <Dialog
+        open={blocker.state === 'blocked'}
+        onClose={handleStayOnReceipt}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Who paid?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Choose who paid before you leave, or leave without choosing.
+          </Typography>
+          <TextField
+            select
+            label="Paid by"
+            value={payerGuardPayerId}
+            onChange={(e) => setPayerGuardPayerId(e.target.value)}
+            fullWidth
+            size="small"
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="">
+              <em>Choose…</em>
+            </MenuItem>
+            {people.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Button onClick={handleStayOnReceipt}>Stay</Button>
+          <Button onClick={handleLeaveWithoutPayer} color="inherit">
+            Leave without choosing
+          </Button>
+          <Button
+            onClick={handleSavePayerAndLeave}
+            variant="contained"
+            disabled={!payerGuardPayerId}
+          >
+            Save and leave
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>Delete receipt?</DialogTitle>
