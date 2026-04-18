@@ -94,11 +94,6 @@ export default function ReceiptInfoPage() {
     navigate(`/groups/${groupId}/receipts`);
   };
 
-  const navigateAwayFromReceipt = (to) => {
-    skipPaidByBlockRef.current = true;
-    navigate(to);
-  };
-
   const handleSavePayerAndLeave = () => {
     if (!payerGuardPayerId) return;
     flushSync(() => {
@@ -122,7 +117,7 @@ export default function ReceiptInfoPage() {
       {/* Header row */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <IconButton
-          onClick={() => navigateAwayFromReceipt(`/groups/${groupId}/receipts`)}
+          onClick={() => navigate(`/groups/${groupId}/receipts`)}
           size="small"
           aria-label="Back to receipts"
         >
