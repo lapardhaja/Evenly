@@ -15,6 +15,7 @@ import {
   formatSignInError,
   formatSignUpError,
 } from '../lib/supabaseAuthErrors.js';
+import { isValidUsername, upsertMyProfile } from '../lib/friendsApi.js';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function LoginPage() {
     useAuth();
 
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('signin');
   const [error, setError] = useState('');
@@ -79,9 +81,23 @@ export default function LoginPage() {
         await signIn(email.trim(), password);
         navigate(from, { replace: true });
       } else {
-        const data = await signUp(email.trim(), password);
+        const u = username.trim();
+        if (!isValidUsername(u)) {
+          setError('Username must be 3–30 characters (letters, numbers, or underscores).');
+          setBusy(false);
+          return;
+        }
+        const data = await signUp(email.trim(), password, {
+          username: u,
+          displayName: u,
+        });
         const outcome = classifySignUpResponse(data);
         if (outcome === 'logged_in') {
+          try {
+            await upsertMyProfile({ username: u, displayName: u });
+          } catch {
+            /* profile row may be created by trigger; ProfileSetup will prompt */
+          }
           navigate(from, { replace: true });
           return;
         }
@@ -161,6 +177,18 @@ export default function LoginPage() {
             fullWidth
             sx={(theme) => muiTextFieldAutofillSx(theme)}
           />
+          {mode === 'signup' && !forgotMode ? (
+            <TextField
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+              required
+              autoComplete="username"
+              helperText="3–30 characters: letters, numbers, or underscores"
+              fullWidth
+              sx={(theme) => muiTextFieldAutofillSx(theme)}
+            />
+          ) : null}
           {!forgotMode ? (
             <TextField
               label="Password"

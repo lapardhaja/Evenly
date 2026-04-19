@@ -94,7 +94,10 @@ export async function loadNormalizedData(supabase, userId) {
     const gid = g.id;
     const peopleMap = {};
     for (const p of peopleByGroup.get(gid) || []) {
-      peopleMap[p.id] = { name: p.name };
+      peopleMap[p.id] = {
+        name: p.name,
+        ...(p.linked_user_id ? { linkedUserId: p.linked_user_id } : {}),
+      };
     }
 
     const receiptsMap = {};
@@ -214,11 +217,16 @@ export async function persistNormalizedData(supabase, userId, data) {
       }
     }
     for (const pid of localPeopleIds) {
+      const linked =
+        g.people[pid].linkedUserId && String(g.people[pid].linkedUserId).length > 0
+          ? g.people[pid].linkedUserId
+          : null;
       const { error } = await supabase.from('group_people').upsert(
         {
           id: pid,
           group_id: gid,
           name: g.people[pid].name,
+          linked_user_id: linked,
           updated_at: nowIso,
         },
         { onConflict: 'id' },

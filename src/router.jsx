@@ -7,6 +7,8 @@ import ReceiptInfoPage from './pages/ReceiptInfoPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import UpdatePasswordPage from './pages/UpdatePasswordPage.jsx';
 import SharedSettlementPage from './pages/SharedSettlementPage.jsx';
+import FriendsPage from './pages/FriendsPage.jsx';
+import ProfileSetupPage from './pages/ProfileSetupPage.jsx';
 
 export const router = createHashRouter([
   {
@@ -15,6 +17,22 @@ export const router = createHashRouter([
     children: [
       { path: 'login', element: <LoginPage /> },
       { path: 'update-password', element: <UpdatePasswordPage /> },
+      {
+        path: 'profile-setup',
+        element: (
+          <RequireAuth>
+            <ProfileSetupPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'friends',
+        element: (
+          <RequireAuth>
+            <FriendsPage />
+          </RequireAuth>
+        ),
+      },
       { path: 'shared-settlement/:token', element: <SharedSettlementPage /> },
       {
         index: true,

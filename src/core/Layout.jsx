@@ -17,6 +17,7 @@ import useThemeMode from '../hooks/useThemeMode.js';
 import ThemeModeMenu from './ThemeModeMenu.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
+import { useProfileGate } from '../hooks/useProfileGate.js';
 
 const lightTheme = createTheme({
   palette: {
@@ -51,7 +52,9 @@ export default function Layout() {
   const onLoginRoute =
     location.pathname === '/login' ||
     location.pathname === '/update-password' ||
+    location.pathname === '/profile-setup' ||
     location.pathname.startsWith('/shared-settlement/');
+  useProfileGate();
   const { ready: dataReady, cloudSync, syncError, clearSyncError } = useGroupsData();
   const [accountAnchor, setAccountAnchor] = useState(null);
   const { themeMode, setThemeMode, resolvedMode } = useThemeMode();
@@ -70,9 +73,12 @@ export default function Layout() {
     }
   }, [resolvedMode]);
 
+  const skipDataWait =
+    location.pathname === '/friends' || location.pathname === '/profile-setup';
   const showBootstrap =
     supabaseConfigured &&
     !onLoginRoute &&
+    !skipDataWait &&
     (authLoading || (!!user && !dataReady));
 
   return (
@@ -114,6 +120,16 @@ export default function Layout() {
               </Typography>
             </Box>
             <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} />
+            {supabaseConfigured && user && !onLoginRoute ? (
+              <Button
+                color="inherit"
+                component={Link}
+                to="/friends"
+                sx={{ mr: 1, textTransform: 'none' }}
+              >
+                Friends
+              </Button>
+            ) : null}
             {supabaseConfigured && user && !onLoginRoute ? (
               <>
                 <IconButton

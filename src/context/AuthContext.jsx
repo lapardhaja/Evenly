@@ -61,9 +61,18 @@ export function AuthProvider({ children }) {
   );
 
   const signUp = useCallback(
-    async (email, password) => {
+    async (email, password, meta = {}) => {
       if (!client) throw new Error('Supabase is not configured');
-      const { data, error } = await client.auth.signUp({ email, password });
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: meta.username,
+            display_name: meta.displayName || meta.username,
+          },
+        },
+      });
       if (error) throw error;
       return data;
     },

@@ -164,11 +164,18 @@ export function useGroup(groupId) {
   // ── People CRUD ───────────────────────────────────────────────────
 
   const addPerson = useCallback(
-    (name) => {
+    (name, options = {}) => {
       const id = uuidv4();
+      const linked =
+        options.linkedUserId && String(options.linkedUserId).length > 0
+          ? String(options.linkedUserId)
+          : undefined;
       setData((prev) => {
         const g = { ...prev.groups[groupId] };
-        g.people = { ...g.people, [id]: { name } };
+        g.people = {
+          ...g.people,
+          [id]: linked ? { name, linkedUserId: linked } : { name },
+        };
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };
       });
       return id;

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
@@ -10,17 +10,44 @@ import Button from '@mui/material/Button';
 import ButtonBase from '@mui/material/ButtonBase';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import { nameToInitials } from '../functions/utils.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { listFriends } from '../lib/friendsApi.js';
 
 export default function GroupPeopleTab({ groupData }) {
   const { people, addPerson, updatePerson, removePerson } = groupData;
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const { ask, confirmDialog } = useConfirmDialog();
   const newPersonRef = useRef(null);
+  const [friendsMenuAnchor, setFriendsMenuAnchor] = useState(null);
+  const [friendsList, setFriendsList] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+
+  const loadFriends = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    setFriendsLoading(true);
+    try {
+      const f = await listFriends();
+      setFriendsList(f);
+    } catch {
+      setFriendsList([]);
+    } finally {
+      setFriendsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (friendsMenuAnchor) loadFriends();
+  }, [friendsMenuAnchor, loadFriends]);
+
+  const linkedIds = new Set(people.map((p) => p.linkedUserId).filter(Boolean));
 
   const handleAddPerson = () => {
     const name = newPersonRef.current?.value?.trim();
@@ -73,9 +100,14 @@ export default function GroupPeopleTab({ groupData }) {
                     setValue: (value) => updatePerson({ ...person, name: value }),
                   })
                 }
-                sx={{ borderRadius: 1, px: 1, py: 0.5 }}
+                sx={{ borderRadius: 1, px: 1, py: 0.5, alignItems: 'flex-start', flexDirection: 'column' }}
               >
                 <Typography fontWeight={500}>{person.name}</Typography>
+                {person.linkedUserId ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Friend account
+                  </Typography>
+                ) : null}
               </ButtonBase>
             </ListItem>
           ))}
@@ -94,13 +126,14 @@ export default function GroupPeopleTab({ groupData }) {
         </List>
       </Paper>
 
-      <Box sx={{ display: 'flex', gap: 1, mt: 2, alignItems: 'center' }}>
-        <PersonAddIcon color="action" />
+      <Box sx={{ display: 'flex', gap: 1, mt: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <PersonAddIcon color="action" sx={{ display: { xs: 'none', sm: 'block' } }} />
         <TextField
           inputRef={newPersonRef}
           placeholder="Person name"
           size="small"
           fullWidth
+          sx={{ flex: '1 1 160px' }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleAddPerson();
           }}
@@ -109,6 +142,46 @@ export default function GroupPeopleTab({ groupData }) {
         <Button variant="contained" onClick={handleAddPerson} sx={{ whiteSpace: 'nowrap' }}>
           Add
         </Button>
+        {isSupabaseConfigured() ? (
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<GroupAddIcon />}
+              onClick={(e) => setFriendsMenuAnchor(e.currentTarget)}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              From friends
+            </Button>
+            <Menu
+              anchorEl={friendsMenuAnchor}
+              open={Boolean(friendsMenuAnchor)}
+              onClose={() => setFriendsMenuAnchor(null)}
+            >
+              {friendsLoading ? (
+                <MenuItem disabled>Loading…</MenuItem>
+              ) : friendsList.length === 0 ? (
+                <MenuItem disabled onClick={() => {}}>
+                  No friends yet — open Friends to add some
+                </MenuItem>
+              ) : (
+                friendsList.map((f) => (
+                  <MenuItem
+                    key={f.user_id}
+                    disabled={linkedIds.has(f.user_id)}
+                    onClick={() => {
+                      const label = f.display_name || f.username || 'Friend';
+                      addPerson(label, { linkedUserId: f.user_id });
+                      setFriendsMenuAnchor(null);
+                    }}
+                  >
+                    {f.username ? `@${f.username}` : f.display_name}
+                    {linkedIds.has(f.user_id) ? ' (already in group)' : ''}
+                  </MenuItem>
+                ))
+              )}
+            </Menu>
+          </>
+        ) : null}
       </Box>
 
       {EditTextModal}
