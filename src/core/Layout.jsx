@@ -152,68 +152,81 @@ export default function Layout() {
                 Evenly
               </Typography>
             </Box>
-            <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} />
             {supabaseConfigured && user && !onLoginRoute ? (
-              <Badge
-                badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
-                color="warning"
-                max={99}
-                invisible={pendingFriendRequests === 0}
+              <Box
                 sx={{
-                  mr: 0.5,
-                  '& .MuiBadge-badge': {
-                    fontWeight: 700,
-                    fontSize: '0.65rem',
-                    minWidth: 16,
-                    height: 16,
-                    padding: '0 4px',
-                    top: 4,
-                    right: 4,
-                  },
+                  ml: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.25,
+                  flexShrink: 0,
+                  pl: 1,
                 }}
               >
-                <Button
-                  component={Link}
-                  to="/friends"
-                  size="small"
-                  aria-label={
-                    pendingFriendRequests > 0
-                      ? `Friends, ${pendingFriendRequests} pending requests`
-                      : 'Friends'
-                  }
-                  variant={pendingFriendRequests > 0 ? 'contained' : 'text'}
-                  color={pendingFriendRequests > 0 ? 'warning' : 'inherit'}
+                <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
+                <Badge
+                  badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
+                  color="warning"
+                  max={99}
+                  invisible={pendingFriendRequests === 0}
                   sx={{
-                    mr: 0,
-                    minWidth: 'auto',
-                    px: 1,
-                    py: 0.35,
-                    textTransform: 'none',
-                    fontSize: '0.8125rem',
-                    fontWeight: pendingFriendRequests > 0 ? 700 : 400,
-                    lineHeight: 1.2,
-                    ...(pendingFriendRequests > 0 && {
-                      boxShadow: (t) =>
-                        t.palette.mode === 'dark'
-                          ? '0 0 0 1px rgba(255,180,80,0.35)'
-                          : '0 0 0 1px rgba(200,120,0,0.25)',
-                    }),
+                    flexShrink: 0,
+                    '& .MuiBadge-badge': {
+                      fontWeight: 700,
+                      fontSize: '0.65rem',
+                      minWidth: 16,
+                      height: 16,
+                      padding: '0 4px',
+                      top: 4,
+                      right: 4,
+                    },
                   }}
                 >
-                  Friends
-                </Button>
-              </Badge>
-            ) : null}
-            {supabaseConfigured && user && !onLoginRoute ? (
-              <>
+                  <Button
+                    component={Link}
+                    to="/friends"
+                    size="small"
+                    aria-label={
+                      pendingFriendRequests > 0
+                        ? `Friends, ${pendingFriendRequests} pending requests`
+                        : 'Friends'
+                    }
+                    variant={pendingFriendRequests > 0 ? 'contained' : 'text'}
+                    color={pendingFriendRequests > 0 ? 'warning' : 'inherit'}
+                    sx={{
+                      mr: 0,
+                      minWidth: 'auto',
+                      px: 1,
+                      py: 0.35,
+                      textTransform: 'none',
+                      fontSize: '0.8125rem',
+                      fontWeight: pendingFriendRequests > 0 ? 700 : 400,
+                      lineHeight: 1.2,
+                      ...(pendingFriendRequests > 0 && {
+                        boxShadow: (t) =>
+                          t.palette.mode === 'dark'
+                            ? '0 0 0 1px rgba(255,180,80,0.35)'
+                            : '0 0 0 1px rgba(200,120,0,0.25)',
+                      }),
+                    }}
+                  >
+                    Friends
+                  </Button>
+                </Badge>
                 <IconButton
                   color="inherit"
                   aria-label="account"
                   onClick={(e) => setAccountAnchor(e.currentTarget)}
-                  edge="end"
+                  edge={false}
                 >
                   <AccountCircleIcon />
                 </IconButton>
+              </Box>
+            ) : (
+              <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{ ml: 'auto' }} />
+            )}
+            {supabaseConfigured && user && !onLoginRoute ? (
+              <>
                 <Menu
                   anchorEl={accountAnchor}
                   open={Boolean(accountAnchor)}

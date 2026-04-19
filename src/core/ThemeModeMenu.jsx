@@ -15,7 +15,7 @@ const OPTIONS = [
   { value: 'system', label: 'Auto', icon: BrightnessAutoIcon, hint: 'Match device' },
 ];
 
-export default function ThemeModeMenu({ themeMode, onChange }) {
+export default function ThemeModeMenu({ themeMode, onChange, iconButtonSx = {} }) {
   const [anchor, setAnchor] = useState(null);
   const open = Boolean(anchor);
 
@@ -31,8 +31,8 @@ export default function ThemeModeMenu({ themeMode, onChange }) {
           aria-label="Choose light or dark mode"
           aria-haspopup="true"
           aria-expanded={open ? 'true' : undefined}
-          edge="end"
-          sx={{ ml: 'auto' }}
+          edge={false}
+          sx={iconButtonSx}
         >
           <CurrentIcon />
         </IconButton>
