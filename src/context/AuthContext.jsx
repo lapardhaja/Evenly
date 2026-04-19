@@ -94,7 +94,9 @@ export function AuthProvider({ children }) {
     async (email) => {
       if (!client) throw new Error('Supabase is not configured');
       const redirectTo = `${window.location.origin}${window.location.pathname}#/update-password`;
-      const { error } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      const { error } = await client.auth.resetPasswordForEmail(String(email).trim(), {
+        redirectTo,
+      });
       if (error) throw error;
     },
     [client],

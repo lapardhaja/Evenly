@@ -21,6 +21,49 @@ export async function checkUsernameAvailability(username) {
   return data === true;
 }
 
+const SIMPLE_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmailFormat(s) {
+  return typeof s === 'string' && SIMPLE_EMAIL_RE.test(s.trim());
+}
+
+/** Requires migration `is_email_available`. Returns null if not configured. */
+export async function checkEmailAvailability(email) {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const e = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  if (!isValidEmailFormat(e)) return false;
+  const { data, error } = await sb.rpc('is_email_available', { candidate_email: e });
+  if (error) throw error;
+  return data === true;
+}
+
+/**
+ * Email as-is, or look up profile email by username (for Supabase password sign-in).
+ * @throws if username not found
+ */
+export async function resolveSignInEmail(identifier) {
+  const sb = getSupabase();
+  if (!sb) throw new Error('Not configured');
+  const raw = typeof identifier === 'string' ? identifier.trim() : '';
+  if (!raw) {
+    const err = new Error('Enter email or username.');
+    err.code = 'EMPTY_IDENTIFIER';
+    throw err;
+  }
+  if (raw.includes('@')) {
+    return raw.toLowerCase();
+  }
+  const { data, error } = await sb.rpc('resolve_sign_in_email', { id: raw });
+  if (error) throw error;
+  if (!data) {
+    const err = new Error('No account with that username.');
+    err.code = 'USERNAME_NOT_FOUND';
+    throw err;
+  }
+  return String(data).trim().toLowerCase();
+}
+
 /** "First Last" for UI when both set */
 export function formatFullName(profile) {
   if (!profile) return '';

@@ -15,7 +15,14 @@ import {
   formatSignInError,
   formatSignUpError,
 } from '../lib/supabaseAuthErrors.js';
-import { isValidUsername, upsertMyProfile, checkUsernameAvailability } from '../lib/friendsApi.js';
+import {
+  isValidUsername,
+  upsertMyProfile,
+  checkUsernameAvailability,
+  checkEmailAvailability,
+  isValidEmailFormat,
+  resolveSignInEmail,
+} from '../lib/friendsApi.js';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -40,6 +47,9 @@ export default function LoginPage() {
   /** @type {'idle' | 'checking' | 'available' | 'taken' | 'error' | 'unknown'} */
   const [usernameStatus, setUsernameStatus] = useState('idle');
   const usernameDebounceRef = useRef(null);
+  /** @type {'idle' | 'checking' | 'available' | 'taken' | 'error' | 'unknown'} */
+  const [emailStatus, setEmailStatus] = useState('idle');
+  const emailDebounceRef = useRef(null);
 
   if (!configured) {
     return (
@@ -69,6 +79,40 @@ export default function LoginPage() {
     setSuccessNotice('');
     setResetSent(false);
   };
+
+  useEffect(() => {
+    if (mode !== 'signup' || forgotMode) {
+      setEmailStatus('idle');
+      return undefined;
+    }
+    const em = email.trim().toLowerCase();
+    if (emailDebounceRef.current) {
+      clearTimeout(emailDebounceRef.current);
+      emailDebounceRef.current = null;
+    }
+    if (!em) {
+      setEmailStatus('idle');
+      return undefined;
+    }
+    if (!isValidEmailFormat(em)) {
+      setEmailStatus('idle');
+      return undefined;
+    }
+    setEmailStatus('checking');
+    emailDebounceRef.current = window.setTimeout(async () => {
+      emailDebounceRef.current = null;
+      try {
+        const ok = await checkEmailAvailability(em);
+        if (ok === null) setEmailStatus('unknown');
+        else setEmailStatus(ok ? 'available' : 'taken');
+      } catch {
+        setEmailStatus('error');
+      }
+    }, 400);
+    return () => {
+      if (emailDebounceRef.current) clearTimeout(emailDebounceRef.current);
+    };
+  }, [email, mode, forgotMode]);
 
   useEffect(() => {
     if (mode !== 'signup' || forgotMode) {
@@ -108,7 +152,10 @@ export default function LoginPage() {
   }, [username, mode, forgotMode]);
 
   useEffect(() => {
-    if (mode !== 'signup' || forgotMode) setUsernameStatus('idle');
+    if (mode !== 'signup' || forgotMode) {
+      setUsernameStatus('idle');
+      setEmailStatus('idle');
+    }
   }, [mode, forgotMode]);
 
   const handleSubmit = async (e) => {
@@ -117,14 +164,37 @@ export default function LoginPage() {
     setBusy(true);
     try {
       if (forgotMode) {
-        await sendPasswordResetEmail(email.trim());
+        const resetEmail = await resolveSignInEmail(email);
+        await sendPasswordResetEmail(resetEmail);
         setResetSent(true);
         return;
       }
       if (mode === 'signin') {
-        await signIn(email.trim(), password);
+        const signInEmail = await resolveSignInEmail(email);
+        await signIn(signInEmail, password);
         navigate(from, { replace: true });
       } else {
+        const em = email.trim().toLowerCase();
+        if (!isValidEmailFormat(em)) {
+          setError('Enter a valid email.');
+          setBusy(false);
+          return;
+        }
+        if (
+          emailStatus === 'taken' ||
+          emailStatus === 'checking' ||
+          emailStatus === 'error'
+        ) {
+          setError(
+            emailStatus === 'taken'
+              ? 'That email is already registered. Sign in instead.'
+              : emailStatus === 'checking'
+                ? 'Wait for the email check to finish.'
+                : 'Couldn’t check email. Try again.',
+          );
+          setBusy(false);
+          return;
+        }
         const u = username.trim();
         if (!isValidUsername(u)) {
           setError('Username: 3–30 letters, numbers, or underscores.');
@@ -153,7 +223,7 @@ export default function LoginPage() {
           setBusy(false);
           return;
         }
-        const data = await signUp(email.trim(), password, {
+        const data = await signUp(em, password, {
           username: u,
           displayName: [fn, ln].filter(Boolean).join(' ') || u,
           firstName: fn || undefined,
@@ -186,7 +256,19 @@ export default function LoginPage() {
       }
     } catch (err) {
       if (forgotMode) {
-        setError('We couldn’t send the email. Try again in a moment.');
+        if (err?.code === 'USERNAME_NOT_FOUND') {
+          setError('No account with that email or username.');
+        } else {
+          setError('We couldn’t send the email. Try again in a moment.');
+        }
+      } else if (mode === 'signin') {
+        if (err?.code === 'USERNAME_NOT_FOUND') {
+          setError('No account with that username.');
+        } else if (err?.code === 'EMPTY_IDENTIFIER') {
+          setError('Enter your email or username.');
+        } else {
+          setError(formatSignInError(err));
+        }
       } else if (mode === 'signup') {
         const { message, isEmailTaken } = formatSignUpError(err);
         if (isEmailTaken) {
@@ -194,8 +276,6 @@ export default function LoginPage() {
         } else {
           setError(message);
         }
-      } else {
-        setError(formatSignInError(err));
       }
     } finally {
       setBusy(false);
@@ -209,7 +289,11 @@ export default function LoginPage() {
           {forgotMode ? 'Reset password' : mode === 'signin' ? 'Sign in' : 'Create account'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {forgotMode ? 'We’ll email you a link to choose a new password.' : 'Sign in to use Evenly.'}
+          {forgotMode
+            ? 'We’ll email you a link to choose a new password. Use your email or username.'
+            : mode === 'signin'
+              ? 'Use your email or username and password.'
+              : 'Create your account.'}
         </Typography>
 
         {resetSent ? (
@@ -238,12 +322,48 @@ export default function LoginPage() {
 
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
-            label="Email"
-            type="email"
+            label={
+              mode === 'signup' && !forgotMode
+                ? 'Email'
+                : 'Email or username'
+            }
+            type={mode === 'signup' && !forgotMode ? 'email' : 'text'}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            autoComplete="email"
+            autoComplete={mode === 'signup' && !forgotMode ? 'email' : 'username'}
+            error={mode === 'signup' && !forgotMode && emailStatus === 'taken'}
+            helperText={
+              mode === 'signup' && !forgotMode
+                ? !email.trim()
+                  ? 'We’ll send a confirmation link here'
+                  : !isValidEmailFormat(email.trim())
+                    ? 'Enter a valid email'
+                    : emailStatus === 'checking'
+                      ? 'Checking…'
+                      : emailStatus === 'available'
+                        ? 'Available'
+                        : emailStatus === 'taken'
+                          ? 'Already registered — sign in instead'
+                          : emailStatus === 'error'
+                            ? 'Couldn’t check — try again'
+                            : 'We’ll send a confirmation link here'
+                : mode === 'signin' && !forgotMode
+                  ? 'Your account email, or the username you chose'
+                  : forgotMode
+                    ? 'Your account email, or your username'
+                    : undefined
+            }
+            FormHelperTextProps={{
+              sx: {
+                color:
+                  mode === 'signup' && !forgotMode && emailStatus === 'available'
+                    ? 'success.main'
+                    : mode === 'signup' && !forgotMode && emailStatus === 'taken'
+                      ? 'error.main'
+                      : undefined,
+              },
+            }}
             fullWidth
             sx={(theme) => muiTextFieldAutofillSx(theme)}
           />
@@ -287,6 +407,16 @@ export default function LoginPage() {
                 sx={(theme) => muiTextFieldAutofillSx(theme)}
               />
               <TextField
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                fullWidth
+                sx={(theme) => muiTextFieldAutofillSx(theme)}
+              />
+              <TextField
                 label="First name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
@@ -306,14 +436,14 @@ export default function LoginPage() {
               />
             </>
           ) : null}
-          {!forgotMode ? (
+          {mode === 'signin' && !forgotMode ? (
             <TextField
               label="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              autoComplete="current-password"
               fullWidth
               sx={(theme) => muiTextFieldAutofillSx(theme)}
             />
@@ -326,10 +456,14 @@ export default function LoginPage() {
               busy ||
               (mode === 'signup' &&
                 !forgotMode &&
-                isValidUsername(username.trim()) &&
-                (usernameStatus === 'checking' ||
-                  usernameStatus === 'taken' ||
-                  usernameStatus === 'error'))
+                ((isValidEmailFormat(email.trim()) &&
+                  (emailStatus === 'checking' ||
+                    emailStatus === 'taken' ||
+                    emailStatus === 'error')) ||
+                  (isValidUsername(username.trim()) &&
+                    (usernameStatus === 'checking' ||
+                      usernameStatus === 'taken' ||
+                      usernameStatus === 'error'))))
             }
           >
             {busy
