@@ -215,8 +215,18 @@ export default function FriendsPage() {
                 }
               >
                 <ListItemText
-                  primary={row.username || row.display_name || 'User'}
-                  secondary={row.display_name && row.username ? row.display_name : null}
+                  primary={
+                    row.username
+                      ? `@${row.username}`
+                      : row.display_name || 'User'
+                  }
+                  secondary={
+                    row.username &&
+                    row.display_name &&
+                    row.display_name.trim().toLowerCase() !== row.username.trim().toLowerCase()
+                      ? row.display_name
+                      : null
+                  }
                 />
               </ListItem>
             ))}
