@@ -395,16 +395,27 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
             {(receipt.discountCost || 0) > 0 && (
               <TableRow>
                 <TableCell
-                  sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}
-                  colSpan={2}
+                  sx={{
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 1,
+                    bgcolor: 'background.paper',
+                    whiteSpace: 'normal',
+                    maxWidth: { xs: 140, sm: 220 },
+                    verticalAlign: 'middle',
+                  }}
                 >
-                  <Typography variant="body2" color="text.secondary">
-                    After discount (tax/tip on this)
+                  <Typography variant="body2" color="text.secondary" component="span" display="block">
+                    After discount
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" component="span" display="block">
+                    Tax &amp; tip use this
                   </Typography>
                 </TableCell>
+                <TableCell />
                 <TableCell align="right">
                   <Typography variant="body2" fontWeight={600}>
-                    {currency(taxableBaseAfterDiscount).format()}
+                    {formatMoneyWithCode(taxableBaseAfterDiscount, receiptCurrency)}
                   </Typography>
                 </TableCell>
                 <TableCell />
