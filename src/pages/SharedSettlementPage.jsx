@@ -26,10 +26,10 @@ export default function SharedSettlementPage() {
     return (
       <Container maxWidth="sm" sx={{ py: 6, textAlign: 'center' }}>
         <Typography variant="h6" fontWeight={700} gutterBottom>
-          Link couldn’t be opened
+          Link didn’t work
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Get a new Share Cost Evenly link.
+          Ask for a new link.
         </Typography>
         <Button component={RouterLink} to="/" variant="contained">
           Open Evenly

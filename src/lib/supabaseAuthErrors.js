@@ -34,12 +34,11 @@ export function formatSignUpError(err) {
   if (emailTaken) {
     return {
       isEmailTaken: true,
-      message:
-        'That email already has an account. Sign in instead, or use a different email.',
+      message: 'That email is already in use. Sign in or use a different email.',
     };
   }
 
-  const generic = 'Something went wrong. Please try again.';
+  const generic = 'Something went wrong. Try again.';
   if (!raw) return { isEmailTaken: false, message: generic };
   if (/supabase|gotrue|fetch|network|500|401|403/i.test(raw) && raw.length > 80) {
     return { isEmailTaken: false, message: generic };
@@ -59,16 +58,16 @@ export function formatSignInError(err) {
     /invalid login credentials/i.test(raw) ||
     /invalid email or password/i.test(raw)
   ) {
-    return 'Incorrect email or password. Try again or use “Sign up” if you need a new account.';
+    return 'Wrong email or password.';
   }
 
   if (/email not confirmed/i.test(raw)) {
-    return 'Confirm your email first (check your inbox), then try signing in.';
+    return 'Confirm your email from your inbox, then try again.';
   }
 
-  if (!raw) return 'Sign in failed. Please try again.';
+  if (!raw) return 'Couldn’t sign in. Try again.';
   if (/supabase|gotrue|fetch|network/i.test(raw) && raw.length > 80) {
-    return 'Sign in failed. Please try again.';
+    return 'Couldn’t sign in. Try again.';
   }
   return raw;
 }

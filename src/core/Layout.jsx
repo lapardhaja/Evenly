@@ -301,7 +301,7 @@ export default function Layout() {
               }
               sx={{ borderRadius: 0 }}
             >
-              Couldn’t load your data. Tap Retry or sign out and back in.
+              Couldn’t load your data. Tap Retry, or sign out and sign in again.
             </Alert>
           ) : null}
           {user && !onLoginRoute ? (

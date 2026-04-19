@@ -162,7 +162,7 @@ export default function ProfileSetupPage() {
                       : usernameStatus === 'taken'
                         ? 'Not available — try another'
                         : usernameStatus === 'error'
-                          ? 'Couldn’t check — try again'
+                            ? 'Couldn’t check. Try again.'
                           : '3–30 characters: letters, numbers, underscores'
             }
             FormHelperTextProps={{

@@ -161,7 +161,7 @@ export default function GroupPeopleTab({ groupData }) {
                 <MenuItem disabled>Loading…</MenuItem>
               ) : friendsList.length === 0 ? (
                 <MenuItem disabled onClick={() => {}}>
-                  No friends yet — add some under Friends in the menu
+                  No friends yet — add some from Friends (person icon, top right)
                 </MenuItem>
               ) : (
                 friendsList.map((f) => (

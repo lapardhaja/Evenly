@@ -54,7 +54,7 @@ export default function LoginPage() {
   if (!configured) {
     return (
       <Container maxWidth="sm" sx={{ py: 4 }}>
-        <Alert severity="info">Sign-in isn’t available in this version.</Alert>
+        <Alert severity="info">Sign-in isn’t set up here.</Alert>
         <Button sx={{ mt: 2 }} onClick={() => navigate('/')}>
           Back to groups
         </Button>
@@ -68,7 +68,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (location.state?.passwordResetOk) {
-      setSuccessNotice('Your password was updated. Sign in with your new password.');
+      setSuccessNotice('Password updated. Sign in.');
       navigate('/login', { replace: true, state: {} });
     }
   }, [location.state, navigate]);
@@ -176,7 +176,7 @@ export default function LoginPage() {
       } else {
         const em = email.trim().toLowerCase();
         if (!isValidEmailFormat(em)) {
-          setError('Enter a valid email.');
+          setError('Check the email address.');
           setBusy(false);
           return;
         }
@@ -187,10 +187,10 @@ export default function LoginPage() {
         ) {
           setError(
             emailStatus === 'taken'
-              ? 'That email is already registered. Sign in instead.'
+              ? 'That email is already in use. Sign in.'
               : emailStatus === 'checking'
-                ? 'Wait for the email check to finish.'
-                : 'Couldn’t check email. Try again.',
+                ? 'Still checking…'
+                : 'Couldn’t check. Try again.',
           );
           setBusy(false);
           return;
@@ -210,8 +210,8 @@ export default function LoginPage() {
             usernameStatus === 'taken'
               ? 'That username is taken. Try another.'
               : usernameStatus === 'checking'
-                ? 'Wait for the username check to finish.'
-                : 'Couldn’t check username. Try again.',
+                ? 'Still checking…'
+                : 'Couldn’t check. Try again.',
           );
           setBusy(false);
           return;
@@ -244,26 +244,22 @@ export default function LoginPage() {
           return;
         }
         if (outcome === 'likely_already_registered') {
-          setSignupWarning(
-            'That email already has an account. Try a different email, or switch to Sign in below.',
-          );
+          setSignupWarning('That email is already in use. Sign in or use a different email.');
           return;
         }
         setMode('signin');
-        setSuccessNotice(
-          'Almost there — we sent a confirmation link to your email. Open it, then sign in below.',
-        );
+        setSuccessNotice('We emailed you a link. Open it, then sign in.');
       }
     } catch (err) {
       if (forgotMode) {
         if (err?.code === 'USERNAME_NOT_FOUND') {
-          setError('No account with that email or username.');
+          setError('No account found.');
         } else {
           setError('We couldn’t send the email. Try again in a moment.');
         }
       } else if (mode === 'signin') {
         if (err?.code === 'USERNAME_NOT_FOUND') {
-          setError('No account with that username.');
+          setError('No account found.');
         } else if (err?.code === 'EMPTY_IDENTIFIER') {
           setError('Enter your email or username.');
         } else {
@@ -290,15 +286,15 @@ export default function LoginPage() {
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {forgotMode
-            ? 'We’ll email you a link to choose a new password. Use your email or username.'
+            ? 'Enter the email or username for your account.'
             : mode === 'signin'
-              ? 'Use your email or username and password.'
+              ? 'Email or username, then password.'
               : 'Create your account.'}
         </Typography>
 
         {resetSent ? (
           <Alert severity="success" variant="outlined" sx={{ mb: 2 }}>
-            If that email has an account, we sent a reset link. Check your inbox and spam.
+            If we found an account, we sent a reset link. Check your email.
           </Alert>
         ) : null}
 
@@ -336,22 +332,22 @@ export default function LoginPage() {
             helperText={
               mode === 'signup' && !forgotMode
                 ? !email.trim()
-                  ? 'We’ll send a confirmation link here'
+                  ? 'We’ll email a confirmation link'
                   : !isValidEmailFormat(email.trim())
-                    ? 'Enter a valid email'
+                    ? 'Use a real email address'
                     : emailStatus === 'checking'
                       ? 'Checking…'
                       : emailStatus === 'available'
                         ? 'Available'
                         : emailStatus === 'taken'
-                          ? 'Already registered — sign in instead'
+                          ? 'In use — sign in instead'
                           : emailStatus === 'error'
-                            ? 'Couldn’t check — try again'
-                            : 'We’ll send a confirmation link here'
+                            ? 'Couldn’t check. Try again.'
+                            : 'We’ll email a confirmation link'
                 : mode === 'signin' && !forgotMode
-                  ? 'Your account email, or the username you chose'
+                  ? 'Email or username'
                   : forgotMode
-                    ? 'Your account email, or your username'
+                    ? 'Email or username'
                     : undefined
             }
             FormHelperTextProps={{
@@ -386,9 +382,9 @@ export default function LoginPage() {
                         : usernameStatus === 'available'
                           ? 'Available'
                           : usernameStatus === 'taken'
-                            ? 'Not available — try another'
+                            ? 'Taken — try another'
                             : usernameStatus === 'error'
-                              ? 'Couldn’t check — try again'
+                              ? 'Couldn’t check. Try again.'
                               : '3–30 characters: letters, numbers, underscores'
                 }
                 FormHelperTextProps={{

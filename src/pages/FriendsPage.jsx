@@ -113,7 +113,7 @@ export default function FriendsPage() {
         Friends
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Search by username or email. When they accept, you can add them from a group’s People tab.
+        Search by name or email. After they accept, add them from People in a group.
       </Typography>
 
       {message ? (

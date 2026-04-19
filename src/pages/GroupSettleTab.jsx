@@ -248,7 +248,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
           {missingPayers.length === 1
             ? `"${missingPayers[0].title}" has no payer set.`
             : `${missingPayers.length} receipts have no payer set.`}{' '}
-          Choose who paid on each receipt so totals match.
+          Choose who paid on each receipt.
         </Alert>
       )}
 

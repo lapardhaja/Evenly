@@ -80,7 +80,7 @@ export default function UpdatePasswordPage() {
       await getSupabase()?.auth.signOut();
       navigate('/login', { replace: true, state: { passwordResetOk: true } });
     } catch (err) {
-      setError('Couldn’t update your password. Try again or request a new reset link.');
+      setError('Couldn’t save password. Try again or get a new reset email.');
     } finally {
       setBusy(false);
     }
@@ -96,14 +96,13 @@ export default function UpdatePasswordPage() {
           Set a new password
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Enter a new password for your account. If this doesn’t work, try opening the link in your browser, or
-          request a new reset email from the sign-in page.
+          Choose a new password. If this page stays blank, open the email link in your browser or get a new link from
+          Sign in → Forgot password.
         </Typography>
 
         {showError ? (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            This reset link didn’t work. It may have expired. Tap <strong>Forgot password?</strong> on the sign-in
-            page to get a new one.
+            This link didn’t open or expired. On Sign in, tap <strong>Forgot password?</strong> for a new email.
           </Alert>
         ) : null}
 

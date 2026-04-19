@@ -31,7 +31,7 @@ describe('supabaseAuthErrors', () => {
   it('detects email already registered on sign up', () => {
     const r = formatSignUpError({ message: 'User already registered', code: '' });
     assert.strictEqual(r.isEmailTaken, true);
-    assert.match(r.message, /already has an account/i);
+    assert.match(r.message, /already in use/i);
   });
 
   it('maps user_already_exists code', () => {
@@ -41,7 +41,7 @@ describe('supabaseAuthErrors', () => {
 
   it('sign in keeps invalid credentials generic', () => {
     const m = formatSignInError({ message: 'Invalid login credentials', code: 'invalid_credentials' });
-    assert.match(m, /incorrect email or password/i);
+    assert.match(m, /wrong email or password/i);
     assert.ok(!/not found/i.test(m));
   });
 
@@ -52,6 +52,6 @@ describe('supabaseAuthErrors', () => {
       code: '',
     });
     assert.strictEqual(r.isEmailTaken, false);
-    assert.strictEqual(r.message, 'Something went wrong. Please try again.');
+    assert.strictEqual(r.message, 'Something went wrong. Try again.');
   });
 });
