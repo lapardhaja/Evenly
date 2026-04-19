@@ -19,8 +19,9 @@ export default function ProfilePage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const loadProfile = useCallback(async () => {
-    setLoading(true);
+  const loadProfile = useCallback(async (opts = {}) => {
+    const silent = !!opts.silent;
+    if (!silent) setLoading(true);
     setError('');
     try {
       const p = await fetchMyProfile();
@@ -30,12 +31,18 @@ export default function ProfilePage() {
     } catch {
       setError('Couldn’t load your profile. Try again in a moment.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     loadProfile();
+  }, [loadProfile]);
+
+  useEffect(() => {
+    const onPull = () => loadProfile({ silent: true });
+    window.addEventListener('evenly-pull-to-refresh', onPull);
+    return () => window.removeEventListener('evenly-pull-to-refresh', onPull);
   }, [loadProfile]);
 
   const handleSaveProfile = async () => {

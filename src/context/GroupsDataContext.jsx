@@ -138,6 +138,25 @@ export function GroupsDataProvider({ children }) {
 
   const clearSyncError = useCallback(() => setSyncError(''), []);
 
+  const reloadFromServer = useCallback(async () => {
+    if (!useServerOnly || !user) return;
+    const client = getSupabase();
+    if (!client) return;
+    try {
+      const cloudData = await loadNormalizedData(client, user.id);
+      const merged = cloudData?.groups ? { groups: { ...cloudData.groups } } : defaultData();
+      storedValueRef.current = merged;
+      setStoredValue(merged);
+      purgeEvenlyDataFromLocalStorage();
+      setSyncError('');
+    } catch (e) {
+      console.error('Evenly pull-to-refresh reload failed:', e);
+      const msg =
+        e?.message || e?.error_description || String(e) || 'Could not refresh.';
+      setSyncError(msg);
+    }
+  }, [useServerOnly, user]);
+
   const value = useMemo(
     () => ({
       data,
@@ -146,8 +165,9 @@ export function GroupsDataProvider({ children }) {
       cloudSync: cloud && !syncError,
       syncError,
       clearSyncError,
+      reloadFromServer,
     }),
-    [data, setData, authLoading, dataReady, cloud, syncError, clearSyncError],
+    [data, setData, authLoading, dataReady, cloud, syncError, clearSyncError, reloadFromServer],
   );
 
   return (

@@ -39,8 +39,9 @@ export default function FriendsPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
+  const loadAll = useCallback(async (opts = {}) => {
+    const silent = !!opts.silent;
+    if (!silent) setLoading(true);
     setError('');
     try {
       const [inc, out, fr] = await Promise.all([
@@ -69,13 +70,19 @@ export default function FriendsPage() {
     } catch (e) {
       setError('Couldn’t load friends. Try again in a moment.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
       notifyFriendRequestsChanged();
     }
   }, []);
 
   useEffect(() => {
     loadAll();
+  }, [loadAll]);
+
+  useEffect(() => {
+    const onPull = () => loadAll({ silent: true });
+    window.addEventListener('evenly-pull-to-refresh', onPull);
+    return () => window.removeEventListener('evenly-pull-to-refresh', onPull);
   }, [loadAll]);
 
   useEffect(() => {

@@ -142,6 +142,13 @@ export function notifyFriendRequestsChanged() {
   }
 }
 
+/** Fired after pull-to-refresh reloads cloud data — Friends / Profile can refetch their own data. */
+export function notifyPullToRefresh() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('evenly-pull-to-refresh'));
+  }
+}
+
 export async function listOutgoingRequests() {
   const sb = getSupabase();
   if (!sb) return [];

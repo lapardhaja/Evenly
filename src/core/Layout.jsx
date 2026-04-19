@@ -24,7 +24,8 @@ import ThemeModeMenu from './ThemeModeMenu.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
-import { countIncomingFriendRequests } from '../lib/friendsApi.js';
+import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friendsApi.js';
+import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 
 const lightTheme = createTheme({
   palette: {
@@ -62,7 +63,8 @@ export default function Layout() {
     location.pathname === '/profile-setup' ||
     location.pathname.startsWith('/shared-settlement/');
   useProfileGate();
-  const { ready: dataReady, cloudSync, syncError, clearSyncError } = useGroupsData();
+  const { ready: dataReady, cloudSync, syncError, clearSyncError, reloadFromServer } =
+    useGroupsData();
   const [accountAnchor, setAccountAnchor] = useState(null);
   const { themeMode, setThemeMode, resolvedMode } = useThemeMode();
   const theme = useMemo(
@@ -107,13 +109,20 @@ export default function Layout() {
     const onFriendsEvt = () => refreshFriendRequestCount();
     document.addEventListener('visibilitychange', onVis);
     window.addEventListener('evenly-friend-requests-changed', onFriendsEvt);
+    window.addEventListener('evenly-pull-to-refresh', onFriendsEvt);
     const id = window.setInterval(refreshFriendRequestCount, 90_000);
     return () => {
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('evenly-friend-requests-changed', onFriendsEvt);
+      window.removeEventListener('evenly-pull-to-refresh', onFriendsEvt);
       window.clearInterval(id);
     };
   }, [refreshFriendRequestCount]);
+
+  const handlePullRefresh = useCallback(async () => {
+    await reloadFromServer();
+    notifyPullToRefresh();
+  }, [reloadFromServer]);
 
   const showBootstrap =
     supabaseConfigured &&
@@ -295,7 +304,16 @@ export default function Layout() {
               Couldn’t load your data. Tap Retry or sign out and back in.
             </Alert>
           ) : null}
-          <Outlet />
+          {user && !onLoginRoute ? (
+            <PullToRefreshLayout
+              onRefresh={handlePullRefresh}
+              disabled={!supabaseConfigured}
+            >
+              <Outlet />
+            </PullToRefreshLayout>
+          ) : (
+            <Outlet />
+          )}
         </Box>
 
         <Box
