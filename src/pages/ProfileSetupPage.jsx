@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import { useAuth } from '../context/AuthContext.jsx';
-import { upsertMyProfile, isValidUsername } from '../lib/friendsApi.js';
+import { upsertMyProfile, isValidUsername, fetchMyProfile } from '../lib/friendsApi.js';
 import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
 
 export default function ProfileSetupPage() {
@@ -16,8 +16,27 @@ export default function ProfileSetupPage() {
   const location = useLocation();
   const { user } = useAuth();
   const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const p = await fetchMyProfile();
+        if (cancelled || !p) return;
+        if (p.first_name) setFirstName(p.first_name);
+        if (p.last_name) setLastName(p.last_name);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const from = location.state?.from?.pathname || '/';
 
@@ -31,7 +50,11 @@ export default function ProfileSetupPage() {
     }
     setBusy(true);
     try {
-      await upsertMyProfile({ username: u, displayName: u });
+      await upsertMyProfile({
+        username: u,
+        firstName: firstName.trim() || undefined,
+        lastName: lastName.trim() || undefined,
+      });
       navigate(from, { replace: true });
     } catch (err) {
       const msg = err?.message || '';
@@ -49,10 +72,10 @@ export default function ProfileSetupPage() {
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Paper elevation={2} sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom fontWeight={700}>
-          Choose a username
+          Set up your profile
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Friends can find you by this name or by your email. You can change it later in Friends.
+          Choose a username and add your name. Friends can find you by username or email. You can edit this later in Friends.
         </Typography>
         {error ? (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -68,6 +91,22 @@ export default function ProfileSetupPage() {
             autoComplete="username"
             placeholder="your_name"
             helperText="Letters, numbers, underscores only"
+            fullWidth
+            sx={(theme) => muiTextFieldAutofillSx(theme)}
+          />
+          <TextField
+            label="First name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            autoComplete="given-name"
+            fullWidth
+            sx={(theme) => muiTextFieldAutofillSx(theme)}
+          />
+          <TextField
+            label="Last name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            autoComplete="family-name"
             fullWidth
             sx={(theme) => muiTextFieldAutofillSx(theme)}
           />

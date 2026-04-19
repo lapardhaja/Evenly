@@ -28,11 +28,13 @@ import {
   upsertMyProfile,
   isValidUsername,
   notifyFriendRequestsChanged,
+  formatFullName,
 } from '../lib/friendsApi.js';
 
 export default function FriendsPage() {
-  const [myProfile, setMyProfile] = useState(null);
   const [usernameEdit, setUsernameEdit] = useState('');
+  const [firstNameEdit, setFirstNameEdit] = useState('');
+  const [lastNameEdit, setLastNameEdit] = useState('');
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [incoming, setIncoming] = useState([]);
@@ -49,8 +51,9 @@ export default function FriendsPage() {
     setError('');
     try {
       const p = await fetchMyProfile();
-      setMyProfile(p);
       setUsernameEdit(p?.username || '');
+      setFirstNameEdit(p?.first_name || '');
+      setLastNameEdit(p?.last_name || '');
       const [inc, out, fr] = await Promise.all([
         listIncomingRequests(),
         listOutgoingRequests(),
@@ -68,7 +71,7 @@ export default function FriendsPage() {
         const profs = await getProfilesByIds(uniq);
         const m = {};
         profs.forEach((pr) => {
-          m[pr.user_id] = pr.username || pr.display_name || pr.user_id;
+          m[pr.user_id] = formatFullName(pr) || pr.username || pr.display_name || pr.user_id;
         });
         setNameById(m);
       } else {
@@ -108,7 +111,7 @@ export default function FriendsPage() {
 
   const displayName = (userId) => nameById[userId] || userId;
 
-  const handleSaveUsername = async () => {
+  const handleSaveProfile = async () => {
     if (!isValidUsername(usernameEdit.trim())) {
       setError('Username: 3–30 letters, numbers, or underscores.');
       return;
@@ -116,12 +119,18 @@ export default function FriendsPage() {
     setBusy(true);
     setError('');
     try {
-      await upsertMyProfile({ username: usernameEdit.trim(), displayName: usernameEdit.trim() });
-      setMessage('Username saved.');
+      await upsertMyProfile({
+        username: usernameEdit.trim(),
+        firstName: firstNameEdit.trim() || undefined,
+        lastName: lastNameEdit.trim() || undefined,
+      });
+      setMessage('Profile saved.');
       const p = await fetchMyProfile();
-      setMyProfile(p);
+      setUsernameEdit(p?.username || '');
+      setFirstNameEdit(p?.first_name || '');
+      setLastNameEdit(p?.last_name || '');
     } catch (e) {
-      setError(e?.message?.includes('duplicate') ? 'That username is taken.' : 'Couldn’t save username.');
+      setError(e?.message?.includes('duplicate') ? 'That username is taken.' : 'Couldn’t save profile.');
     } finally {
       setBusy(false);
     }
@@ -149,19 +158,41 @@ export default function FriendsPage() {
 
       <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
         <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-          Your username
+          Your profile
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <TextField
             size="small"
+            label="Username"
             value={usernameEdit}
             onChange={(e) => setUsernameEdit(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
             placeholder="username"
-            sx={{ flex: 1, minWidth: 160 }}
+            helperText="3–30 characters: letters, numbers, underscores"
+            fullWidth
           />
-          <Button variant="outlined" onClick={handleSaveUsername} disabled={busy}>
-            Save
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <TextField
+              size="small"
+              label="First name"
+              value={firstNameEdit}
+              onChange={(e) => setFirstNameEdit(e.target.value)}
+              autoComplete="given-name"
+              sx={{ flex: 1, minWidth: 140 }}
+            />
+            <TextField
+              size="small"
+              label="Last name"
+              value={lastNameEdit}
+              onChange={(e) => setLastNameEdit(e.target.value)}
+              autoComplete="family-name"
+              sx={{ flex: 1, minWidth: 140 }}
+            />
+          </Box>
+          <Box>
+            <Button variant="outlined" onClick={handleSaveProfile} disabled={busy}>
+              Save
+            </Button>
+          </Box>
         </Box>
       </Paper>
 
@@ -220,13 +251,13 @@ export default function FriendsPage() {
                       ? `@${row.username}`
                       : row.display_name || 'User'
                   }
-                  secondary={
-                    row.username &&
-                    row.display_name &&
-                    row.display_name.trim().toLowerCase() !== row.username.trim().toLowerCase()
-                      ? row.display_name
-                      : null
-                  }
+                  secondary={(() => {
+                    const full = formatFullName(row);
+                    if (!full) return null;
+                    const un = row.username?.trim().toLowerCase();
+                    if (un && full.trim().toLowerCase() === un) return null;
+                    return full;
+                  })()}
                 />
               </ListItem>
             ))}
@@ -316,31 +347,36 @@ export default function FriendsPage() {
           </Box>
         ) : (
           <List dense>
-            {friends.map((f, i) => (
-              <Box key={f.user_id}>
-                {i > 0 && <Divider />}
-                <ListItem
-                  secondaryAction={
-                    <Button
-                      size="small"
-                      color="inherit"
-                      startIcon={<PersonRemoveIcon />}
-                      onClick={async () => {
-                        await removeFriend(f.user_id);
-                        loadAll();
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  }
-                >
-                  <ListItemText
-                    primary={f.username || f.display_name || 'Friend'}
-                    secondary={f.username && f.display_name ? `@${f.username}` : null}
-                  />
-                </ListItem>
-              </Box>
-            ))}
+            {friends.map((f, i) => {
+              const full = formatFullName(f);
+              return (
+                <Box key={f.user_id}>
+                  {i > 0 && <Divider />}
+                  <ListItem
+                    secondaryAction={
+                      <Button
+                        size="small"
+                        color="inherit"
+                        startIcon={<PersonRemoveIcon />}
+                        onClick={async () => {
+                          await removeFriend(f.user_id);
+                          loadAll();
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    }
+                  >
+                    <ListItemText
+                      primary={full || f.username || f.display_name || 'Friend'}
+                      secondary={
+                        f.username && full && full !== f.username ? `@${f.username}` : null
+                      }
+                    />
+                  </ListItem>
+                </Box>
+              );
+            })}
           </List>
         )}
       </Paper>

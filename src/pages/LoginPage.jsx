@@ -27,6 +27,8 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('signin');
   const [error, setError] = useState('');
@@ -87,14 +89,22 @@ export default function LoginPage() {
           setBusy(false);
           return;
         }
+        const fn = firstName.trim();
+        const ln = lastName.trim();
         const data = await signUp(email.trim(), password, {
           username: u,
-          displayName: u,
+          displayName: [fn, ln].filter(Boolean).join(' ') || u,
+          firstName: fn || undefined,
+          lastName: ln || undefined,
         });
         const outcome = classifySignUpResponse(data);
         if (outcome === 'logged_in') {
           try {
-            await upsertMyProfile({ username: u, displayName: u });
+            await upsertMyProfile({
+              username: u,
+              firstName: fn || undefined,
+              lastName: ln || undefined,
+            });
           } catch {
             /* profile row may be created by trigger; ProfileSetup will prompt */
           }
@@ -178,16 +188,34 @@ export default function LoginPage() {
             sx={(theme) => muiTextFieldAutofillSx(theme)}
           />
           {mode === 'signup' && !forgotMode ? (
-            <TextField
-              label="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-              required
-              autoComplete="username"
-              helperText="3–30 characters: letters, numbers, or underscores"
-              fullWidth
-              sx={(theme) => muiTextFieldAutofillSx(theme)}
-            />
+            <>
+              <TextField
+                label="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                required
+                autoComplete="username"
+                helperText="3–30 characters: letters, numbers, or underscores"
+                fullWidth
+                sx={(theme) => muiTextFieldAutofillSx(theme)}
+              />
+              <TextField
+                label="First name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                autoComplete="given-name"
+                fullWidth
+                sx={(theme) => muiTextFieldAutofillSx(theme)}
+              />
+              <TextField
+                label="Last name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                autoComplete="family-name"
+                fullWidth
+                sx={(theme) => muiTextFieldAutofillSx(theme)}
+              />
+            </>
           ) : null}
           {!forgotMode ? (
             <TextField

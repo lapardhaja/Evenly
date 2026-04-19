@@ -69,7 +69,12 @@ export function AuthProvider({ children }) {
         options: {
           data: {
             username: meta.username,
-            display_name: meta.displayName || meta.username,
+            display_name:
+              meta.displayName ||
+              [meta.firstName, meta.lastName].filter(Boolean).join(' ').trim() ||
+              meta.username,
+            first_name: meta.firstName,
+            last_name: meta.lastName,
           },
         },
       });

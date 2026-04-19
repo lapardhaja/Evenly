@@ -10,6 +10,17 @@ export function isValidUsername(s) {
   return typeof s === 'string' && USERNAME_RE.test(s.trim());
 }
 
+/** "First Last" for UI when both set */
+export function formatFullName(profile) {
+  if (!profile) return '';
+  const f = profile.first_name?.trim();
+  const l = profile.last_name?.trim();
+  if (f && l) return `${f} ${l}`;
+  if (f) return f;
+  if (l) return l;
+  return profile.display_name?.trim() || '';
+}
+
 export async function fetchMyProfile() {
   const sb = getSupabase();
   if (!sb) return null;
@@ -22,7 +33,7 @@ export async function fetchMyProfile() {
   return data;
 }
 
-export async function upsertMyProfile({ username, displayName }) {
+export async function upsertMyProfile({ username, displayName, firstName, lastName }) {
   const sb = getSupabase();
   if (!sb) throw new Error('Not configured');
   const {
@@ -31,12 +42,22 @@ export async function upsertMyProfile({ username, displayName }) {
   if (!user) throw new Error('Not signed in');
   const un = typeof username === 'string' ? username.trim() : '';
   if (!isValidUsername(un)) throw new Error('Username must be 3–30 letters, numbers, or underscores.');
+  const fn = typeof firstName === 'string' ? firstName.trim() || null : null;
+  const ln = typeof lastName === 'string' ? lastName.trim() || null : null;
+  const fromParts =
+    fn && ln ? `${fn} ${ln}` : fn || ln || '';
+  const display =
+    (typeof displayName === 'string' && displayName.trim()) ||
+    fromParts ||
+    un;
   const email = user.email ? user.email.toLowerCase().trim() : null;
   const { error } = await sb.from('profiles').upsert(
     {
       user_id: user.id,
       username: un,
-      display_name: displayName?.trim() || un,
+      display_name: display,
+      first_name: fn,
+      last_name: ln,
       email_lookup: email,
       updated_at: new Date().toISOString(),
     },
@@ -175,7 +196,7 @@ export async function listFriends() {
   if (friendIds.length === 0) return [];
   const { data: profs, error: pErr } = await sb
     .from('profiles')
-    .select('user_id, username, display_name')
+    .select('user_id, username, display_name, first_name, last_name')
     .in('user_id', friendIds);
   if (pErr) throw pErr;
   return profs || [];
@@ -194,7 +215,7 @@ export async function getProfilesByIds(ids) {
   if (!sb) return [];
   const { data, error } = await sb
     .from('profiles')
-    .select('user_id, username, display_name')
+    .select('user_id, username, display_name, first_name, last_name')
     .in('user_id', ids);
   if (error) throw error;
   return data || [];
