@@ -8,6 +8,8 @@ import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
 import Link from '@mui/material/Link';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import { useAuth } from '../context/AuthContext.jsx';
 import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
 import {
@@ -23,6 +25,12 @@ import {
   isValidEmailFormat,
   resolveSignInEmail,
 } from '../lib/friendsApi.js';
+import {
+  getRememberedLoginId,
+  setRememberedLoginId,
+  canOfferDevicePasswordSave,
+  storePasswordWithBrowser,
+} from '../lib/loginDevicePrefs.js';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -32,7 +40,9 @@ export default function LoginPage() {
   const { signIn, signUp, sendPasswordResetEmail, configured, user, loading: authLoading } =
     useAuth();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() =>
+    typeof window !== 'undefined' ? getRememberedLoginId() : '',
+  );
   const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -50,6 +60,13 @@ export default function LoginPage() {
   /** @type {'idle' | 'checking' | 'available' | 'taken' | 'error' | 'unknown'} */
   const [emailStatus, setEmailStatus] = useState('idle');
   const emailDebounceRef = useRef(null);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [savePassOnDevice, setSavePassOnDevice] = useState(true);
+  const showDevicePass = canOfferDevicePasswordSave();
+
+  useEffect(() => {
+    if (!rememberMe) setSavePassOnDevice(false);
+  }, [rememberMe]);
 
   if (!configured) {
     return (
@@ -172,6 +189,14 @@ export default function LoginPage() {
       if (mode === 'signin') {
         const signInEmail = await resolveSignInEmail(email);
         await signIn(signInEmail, password);
+        if (rememberMe) {
+          setRememberedLoginId(email.trim());
+          if (showDevicePass && savePassOnDevice) {
+            void storePasswordWithBrowser({ id: email.trim(), password });
+          }
+        } else {
+          setRememberedLoginId('');
+        }
         navigate(from, { replace: true });
       } else {
         const em = email.trim().toLowerCase();
@@ -433,16 +458,46 @@ export default function LoginPage() {
             </>
           ) : null}
           {mode === 'signin' && !forgotMode ? (
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              fullWidth
-              sx={(theme) => muiTextFieldAutofillSx(theme)}
-            />
+            <>
+              <TextField
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                fullWidth
+                sx={(theme) => muiTextFieldAutofillSx(theme)}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    size="small"
+                  />
+                }
+                label="Remember me on this device"
+              />
+              {showDevicePass ? (
+                <>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={savePassOnDevice}
+                        onChange={(e) => setSavePassOnDevice(e.target.checked)}
+                        disabled={!rememberMe}
+                        size="small"
+                      />
+                    }
+                    label="Save password on this device for next time (Face ID, fingerprint, or saved password)"
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+                    Saved in your browser or phone — not on our servers.
+                  </Typography>
+                </>
+              ) : null}
+            </>
           ) : null}
           <Button
             type="submit"
@@ -494,6 +549,8 @@ export default function LoginPage() {
               onClick={() => {
                 setForgotMode(false);
                 clearMessages();
+                const r = getRememberedLoginId();
+                if (r) setEmail(r);
               }}
             >
               Back to sign in
@@ -504,8 +561,13 @@ export default function LoginPage() {
               type="button"
               variant="body2"
               onClick={() => {
-                setMode(mode === 'signin' ? 'signup' : 'signin');
+                const nextSignin = mode !== 'signin';
                 clearMessages();
+                if (nextSignin) {
+                  const r = getRememberedLoginId();
+                  if (r) setEmail(r);
+                }
+                setMode(mode === 'signin' ? 'signup' : 'signin');
               }}
             >
               {mode === 'signin' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
