@@ -14,6 +14,11 @@ import Badge from '@mui/material/Badge';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import PersonIcon from '@mui/icons-material/Person';
+import PeopleIcon from '@mui/icons-material/People';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Divider from '@mui/material/Divider';
 import useThemeMode from '../hooks/useThemeMode.js';
 import ThemeModeMenu from './ThemeModeMenu.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -166,96 +171,13 @@ export default function Layout() {
                 }}
               >
                 <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    flexWrap: 'wrap',
-                    justifyContent: 'flex-end',
-                    maxWidth: { xs: '50%', sm: 'none' },
-                  }}
-                >
-                  <Button
-                    component={Link}
-                    to="/profile"
-                    size="small"
-                    aria-current={location.pathname === '/profile' ? 'page' : undefined}
-                    variant={location.pathname === '/profile' ? 'outlined' : 'text'}
-                    color="inherit"
-                    sx={{
-                      minWidth: 'auto',
-                      px: 1,
-                      py: 0.35,
-                      textTransform: 'none',
-                      fontSize: '0.8125rem',
-                      fontWeight: location.pathname === '/profile' ? 600 : 400,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    Profile
-                  </Button>
-                  <Badge
-                    badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
-                    color="warning"
-                    max={99}
-                    invisible={pendingFriendRequests === 0}
-                    sx={{
-                      flexShrink: 0,
-                      '& .MuiBadge-badge': {
-                        fontWeight: 700,
-                        fontSize: '0.65rem',
-                        minWidth: 16,
-                        height: 16,
-                        padding: '0 4px',
-                        top: 4,
-                        right: 4,
-                      },
-                    }}
-                  >
-                    <Button
-                      component={Link}
-                      to="/friends"
-                      size="small"
-                      aria-label={
-                        pendingFriendRequests > 0
-                          ? `Friends, ${pendingFriendRequests} pending requests`
-                          : 'Friends'
-                      }
-                      aria-current={location.pathname === '/friends' ? 'page' : undefined}
-                      variant={
-                        pendingFriendRequests > 0
-                          ? 'contained'
-                          : location.pathname === '/friends'
-                            ? 'outlined'
-                            : 'text'
-                      }
-                      color={pendingFriendRequests > 0 ? 'warning' : 'inherit'}
-                      sx={{
-                        mr: 0,
-                        minWidth: 'auto',
-                        px: 1,
-                        py: 0.35,
-                        textTransform: 'none',
-                        fontSize: '0.8125rem',
-                        fontWeight:
-                          pendingFriendRequests > 0 || location.pathname === '/friends' ? 600 : 400,
-                        lineHeight: 1.2,
-                        ...(pendingFriendRequests > 0 && {
-                          boxShadow: (t) =>
-                            t.palette.mode === 'dark'
-                              ? '0 0 0 1px rgba(255,180,80,0.35)'
-                              : '0 0 0 1px rgba(200,120,0,0.25)',
-                        }),
-                      }}
-                    >
-                      Friends
-                    </Button>
-                  </Badge>
-                </Box>
                 <IconButton
+                  id="account-menu-button"
                   color="inherit"
-                  aria-label="account"
+                  aria-label="Open account menu"
+                  aria-controls={accountAnchor ? 'account-menu' : undefined}
+                  aria-haspopup="true"
+                  aria-expanded={Boolean(accountAnchor)}
                   onClick={(e) => setAccountAnchor(e.currentTarget)}
                   edge={false}
                 >
@@ -272,6 +194,9 @@ export default function Layout() {
                   open={Boolean(accountAnchor)}
                   onClose={() => setAccountAnchor(null)}
                   anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  id="account-menu"
+                  MenuListProps={{ 'aria-labelledby': 'account-menu-button', dense: true }}
+                  PaperProps={{ sx: { minWidth: 220 } }}
                 >
                   <MenuItem disabled sx={{ opacity: '1 !important', maxWidth: 280 }}>
                     <Typography variant="caption" noWrap title={user.email}>
@@ -285,6 +210,61 @@ export default function Layout() {
                       </Typography>
                     </MenuItem>
                   ) : null}
+                  <Divider />
+                  <MenuItem
+                    onClick={() => {
+                      setAccountAnchor(null);
+                      navigate('/profile');
+                    }}
+                    selected={location.pathname === '/profile'}
+                  >
+                    <ListItemIcon>
+                      <PersonIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Profile</ListItemText>
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setAccountAnchor(null);
+                      navigate('/friends');
+                    }}
+                    selected={location.pathname === '/friends'}
+                    aria-label={
+                      pendingFriendRequests > 0
+                        ? `Friends, ${pendingFriendRequests} pending requests`
+                        : 'Friends'
+                    }
+                  >
+                    <ListItemIcon>
+                      <Badge
+                        color="warning"
+                        badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
+                        max={99}
+                        invisible={pendingFriendRequests === 0}
+                        sx={{
+                          '& .MuiBadge-badge': {
+                            fontWeight: 700,
+                            fontSize: '0.6rem',
+                            minWidth: 14,
+                            height: 14,
+                          },
+                        }}
+                      >
+                        <PeopleIcon fontSize="small" />
+                      </Badge>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Friends"
+                      secondary={
+                        pendingFriendRequests > 0 ? `${pendingFriendRequests} pending` : null
+                      }
+                      secondaryTypographyProps={{
+                        variant: 'caption',
+                        color: 'warning.main',
+                      }}
+                    />
+                  </MenuItem>
+                  <Divider />
                   <MenuItem
                     onClick={() => {
                       setAccountAnchor(null);
