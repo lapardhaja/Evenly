@@ -5,6 +5,8 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import Snackbar from '@mui/material/Snackbar';
 import LinkIcon from '@mui/icons-material/Link';
 import IosShareIcon from '@mui/icons-material/IosShare';
@@ -103,11 +105,20 @@ export default function SettlementShareDialog({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" scroll="paper">
         <DialogTitle>Share Cost Evenly</DialogTitle>
-        <DialogContent>
+        <DialogContent dividers sx={{ pt: 2 }}>
+          <Typography
+            component="label"
+            variant="subtitle2"
+            htmlFor="settlement-share-note"
+            sx={{ display: 'block', mb: 1, fontWeight: 600 }}
+          >
+            Note (optional)
+          </Typography>
           <TextField
-            label="Note (optional)"
+            id="settlement-share-note"
+            hiddenLabel
             placeholder="Pay by Friday"
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -115,17 +126,32 @@ export default function SettlementShareDialog({
             multiline
             minRows={2}
             inputProps={{ maxLength: 280 }}
+            variant="outlined"
             sx={{ mb: 2 }}
           />
-          <TextField
-            value={shareUrl}
-            fullWidth
-            multiline
-            minRows={2}
-            InputProps={{ readOnly: true }}
-            size="small"
-            sx={{ '& textarea': { fontSize: '0.8rem', wordBreak: 'break-all' } }}
-          />
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+            Link
+          </Typography>
+          <Box
+            role="region"
+            aria-label="Shareable link"
+            sx={{
+              maxHeight: 100,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              p: 1.5,
+              borderRadius: 1,
+              bgcolor: 'action.hover',
+              border: '1px solid',
+              borderColor: 'divider',
+              fontSize: '0.8rem',
+              lineHeight: 1.45,
+              wordBreak: 'break-all',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            }}
+          >
+            {shareUrl || '—'}
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
           <Button onClick={onClose}>Close</Button>
