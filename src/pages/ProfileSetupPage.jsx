@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
@@ -8,7 +8,12 @@ import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import { useAuth } from '../context/AuthContext.jsx';
-import { upsertMyProfile, isValidUsername, fetchMyProfile } from '../lib/friendsApi.js';
+import {
+  upsertMyProfile,
+  isValidUsername,
+  fetchMyProfile,
+  checkUsernameAvailability,
+} from '../lib/friendsApi.js';
 import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
 
 export default function ProfileSetupPage() {
@@ -20,6 +25,9 @@ export default function ProfileSetupPage() {
   const [lastName, setLastName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /** @type {'idle' | 'checking' | 'available' | 'taken' | 'error' | 'unknown'} */
+  const [usernameStatus, setUsernameStatus] = useState('idle');
+  const usernameDebounceRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +35,7 @@ export default function ProfileSetupPage() {
       try {
         const p = await fetchMyProfile();
         if (cancelled || !p) return;
+        if (p.username) setUsername(String(p.username));
         if (p.first_name) setFirstName(p.first_name);
         if (p.last_name) setLastName(p.last_name);
       } catch {
@@ -38,6 +47,36 @@ export default function ProfileSetupPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const u = username.trim();
+    if (usernameDebounceRef.current) {
+      clearTimeout(usernameDebounceRef.current);
+      usernameDebounceRef.current = null;
+    }
+    if (!u) {
+      setUsernameStatus('idle');
+      return undefined;
+    }
+    if (!isValidUsername(u)) {
+      setUsernameStatus('idle');
+      return undefined;
+    }
+    setUsernameStatus('checking');
+    usernameDebounceRef.current = window.setTimeout(async () => {
+      usernameDebounceRef.current = null;
+      try {
+        const ok = await checkUsernameAvailability(u);
+        if (ok === null) setUsernameStatus('unknown');
+        else setUsernameStatus(ok ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus('error');
+      }
+    }, 400);
+    return () => {
+      if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
+    };
+  }, [username]);
+
   const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
@@ -48,12 +87,32 @@ export default function ProfileSetupPage() {
       setError('Username: 3–30 letters, numbers, or underscores.');
       return;
     }
+    const fn = firstName.trim();
+    const ln = lastName.trim();
+    if (!fn || !ln) {
+      setError('Enter your first and last name.');
+      return;
+    }
+    if (
+      usernameStatus === 'taken' ||
+      usernameStatus === 'checking' ||
+      usernameStatus === 'error'
+    ) {
+      setError(
+        usernameStatus === 'taken'
+          ? 'That username is taken. Try another.'
+          : usernameStatus === 'checking'
+            ? 'Wait for the username check to finish.'
+            : 'Couldn’t check username. Try again.',
+      );
+      return;
+    }
     setBusy(true);
     try {
       await upsertMyProfile({
         username: u,
-        firstName: firstName.trim() || undefined,
-        lastName: lastName.trim() || undefined,
+        firstName: fn,
+        lastName: ln,
       });
       navigate(from, { replace: true });
     } catch (err) {
@@ -90,7 +149,32 @@ export default function ProfileSetupPage() {
             required
             autoComplete="username"
             placeholder="your_name"
-            helperText="3–30 characters: letters, numbers, underscores"
+            error={usernameStatus === 'taken'}
+            helperText={
+              !username.trim()
+                ? '3–30 characters: letters, numbers, underscores'
+                : !isValidUsername(username.trim())
+                  ? 'Use 3–30 letters, numbers, or underscores.'
+                  : usernameStatus === 'checking'
+                    ? 'Checking…'
+                    : usernameStatus === 'available'
+                      ? 'Available'
+                      : usernameStatus === 'taken'
+                        ? 'Not available — try another'
+                        : usernameStatus === 'error'
+                          ? 'Couldn’t check — try again'
+                          : '3–30 characters: letters, numbers, underscores'
+            }
+            FormHelperTextProps={{
+              sx: {
+                color:
+                  usernameStatus === 'available'
+                    ? 'success.main'
+                    : usernameStatus === 'taken'
+                      ? 'error.main'
+                      : undefined,
+              },
+            }}
             fullWidth
             sx={(theme) => muiTextFieldAutofillSx(theme)}
           />
@@ -98,6 +182,7 @@ export default function ProfileSetupPage() {
             label="First name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
+            required
             autoComplete="given-name"
             fullWidth
             sx={(theme) => muiTextFieldAutofillSx(theme)}
@@ -106,6 +191,7 @@ export default function ProfileSetupPage() {
             label="Last name"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
+            required
             autoComplete="family-name"
             fullWidth
             sx={(theme) => muiTextFieldAutofillSx(theme)}
@@ -113,7 +199,18 @@ export default function ProfileSetupPage() {
           <Typography variant="caption" color="text.secondary">
             Signed in as {user?.email || '…'}
           </Typography>
-          <Button type="submit" variant="contained" size="large" disabled={busy}>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            disabled={
+              busy ||
+              (isValidUsername(username.trim()) &&
+                (usernameStatus === 'checking' ||
+                  usernameStatus === 'taken' ||
+                  usernameStatus === 'error'))
+            }
+          >
             {busy ? 'Saving…' : 'Continue'}
           </Button>
         </Box>

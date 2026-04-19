@@ -10,6 +10,17 @@ export function isValidUsername(s) {
   return typeof s === 'string' && USERNAME_RE.test(s.trim());
 }
 
+/** Requires Supabase + migration `is_username_available`. Returns null if not configured. */
+export async function checkUsernameAvailability(username) {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const u = typeof username === 'string' ? username.trim() : '';
+  if (!isValidUsername(u)) return false;
+  const { data, error } = await sb.rpc('is_username_available', { candidate: u });
+  if (error) throw error;
+  return data === true;
+}
+
 /** "First Last" for UI when both set */
 export function formatFullName(profile) {
   if (!profile) return '';

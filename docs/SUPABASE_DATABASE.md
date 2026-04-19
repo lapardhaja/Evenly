@@ -11,7 +11,8 @@ Run `supabase/migrations/20260210120000_evenly_normalized.sql` in the Supabase S
 Also run `supabase/migrations/20260215120000_currency_columns.sql` for `display_currency` on groups and `currency_code` on receipts (ISO 4217).  
 Run `supabase/migrations/20260218120000_group_settled_transfers.sql` for `settled_transfers` on **`groups`** (JSON array of settled transfer keys for the Settle tab).  
 Run `20260419120000_profiles_and_friends.sql` and `20260419120100_group_people_linked_user.sql` for **Friends** (profiles, requests, friendships) and optional `linked_user_id` on **`group_people`**.  
-Run `20260420120000_profile_first_last_name.sql` to add optional **`first_name`** / **`last_name`** on **`profiles`** and refresh search RPCs. (It drops and recreates the username/email search functions because their return shape changed — required by Postgres.)
+Run `20260420120000_profile_first_last_name.sql` to add optional **`first_name`** / **`last_name`** on **`profiles`** and refresh search RPCs. (It drops and recreates the username/email search functions because their return shape changed — required by Postgres.)  
+Run `20260421120000_username_availability_rpc.sql` for **`is_username_available(text)`** (used for live username checks at sign-up; callable by `anon`).
 
 | Table | Purpose |
 |--------|--------|

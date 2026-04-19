@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
@@ -7,7 +7,7 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import { useAuth } from '../context/AuthContext.jsx';
-import { fetchMyProfile, upsertMyProfile, isValidUsername } from '../lib/friendsApi.js';
+import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -18,6 +18,10 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  /** @type {'idle' | 'checking' | 'available' | 'taken' | 'error' | 'unknown'} */
+  const [usernameStatus, setUsernameStatus] = useState('idle');
+  const usernameDebounceRef = useRef(null);
+  const savedUsernameRef = useRef('');
 
   const loadProfile = useCallback(async (opts = {}) => {
     const silent = !!opts.silent;
@@ -25,7 +29,9 @@ export default function ProfilePage() {
     setError('');
     try {
       const p = await fetchMyProfile();
-      setUsernameEdit(p?.username || '');
+      const un = p?.username ? String(p.username) : '';
+      savedUsernameRef.current = un;
+      setUsernameEdit(un);
       setFirstNameEdit(p?.first_name || '');
       setLastNameEdit(p?.last_name || '');
     } catch {
@@ -45,9 +51,64 @@ export default function ProfilePage() {
     return () => window.removeEventListener('evenly-pull-to-refresh', onPull);
   }, [loadProfile]);
 
+  useEffect(() => {
+    const u = usernameEdit.trim();
+    const saved = savedUsernameRef.current.trim();
+    if (usernameDebounceRef.current) {
+      clearTimeout(usernameDebounceRef.current);
+      usernameDebounceRef.current = null;
+    }
+    if (!u) {
+      setUsernameStatus('idle');
+      return undefined;
+    }
+    if (!isValidUsername(u)) {
+      setUsernameStatus('idle');
+      return undefined;
+    }
+    if (saved && u.toLowerCase() === saved.toLowerCase()) {
+      setUsernameStatus('available');
+      return undefined;
+    }
+    setUsernameStatus('checking');
+    usernameDebounceRef.current = window.setTimeout(async () => {
+      usernameDebounceRef.current = null;
+      try {
+        const ok = await checkUsernameAvailability(u);
+        if (ok === null) setUsernameStatus('unknown');
+        else setUsernameStatus(ok ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus('error');
+      }
+    }, 400);
+    return () => {
+      if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
+    };
+  }, [usernameEdit]);
+
   const handleSaveProfile = async () => {
     if (!isValidUsername(usernameEdit.trim())) {
       setError('Username: 3–30 letters, numbers, or underscores.');
+      return;
+    }
+    const fn = firstNameEdit.trim();
+    const ln = lastNameEdit.trim();
+    if (!fn || !ln) {
+      setError('Enter your first and last name.');
+      return;
+    }
+    if (
+      usernameStatus === 'taken' ||
+      usernameStatus === 'checking' ||
+      usernameStatus === 'error'
+    ) {
+      setError(
+        usernameStatus === 'taken'
+          ? 'That username is taken. Try another.'
+          : usernameStatus === 'checking'
+            ? 'Wait for the username check to finish.'
+            : 'Couldn’t check username. Try again.',
+      );
       return;
     }
     setBusy(true);
@@ -56,12 +117,14 @@ export default function ProfilePage() {
     try {
       await upsertMyProfile({
         username: usernameEdit.trim(),
-        firstName: firstNameEdit.trim() || undefined,
-        lastName: lastNameEdit.trim() || undefined,
+        firstName: fn,
+        lastName: ln,
       });
       setMessage('Profile saved.');
       const p = await fetchMyProfile();
-      setUsernameEdit(p?.username || '');
+      const un = p?.username ? String(p.username) : '';
+      savedUsernameRef.current = un;
+      setUsernameEdit(un);
       setFirstNameEdit(p?.first_name || '');
       setLastNameEdit(p?.last_name || '');
     } catch (e) {
@@ -102,7 +165,32 @@ export default function ProfilePage() {
               value={usernameEdit}
               onChange={(e) => setUsernameEdit(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
               placeholder="username"
-              helperText="3–30 characters: letters, numbers, underscores"
+              error={usernameStatus === 'taken'}
+              helperText={
+                !usernameEdit.trim()
+                  ? '3–30 characters: letters, numbers, underscores'
+                  : !isValidUsername(usernameEdit.trim())
+                    ? 'Use 3–30 letters, numbers, or underscores.'
+                    : usernameStatus === 'checking'
+                      ? 'Checking…'
+                      : usernameStatus === 'available'
+                        ? 'Available'
+                        : usernameStatus === 'taken'
+                          ? 'Not available — try another'
+                          : usernameStatus === 'error'
+                            ? 'Couldn’t check — try again'
+                            : '3–30 characters: letters, numbers, underscores'
+              }
+              FormHelperTextProps={{
+                sx: {
+                  color:
+                    usernameStatus === 'available'
+                      ? 'success.main'
+                      : usernameStatus === 'taken'
+                        ? 'error.main'
+                        : undefined,
+                },
+              }}
               fullWidth
             />
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -111,6 +199,7 @@ export default function ProfilePage() {
                 label="First name"
                 value={firstNameEdit}
                 onChange={(e) => setFirstNameEdit(e.target.value)}
+                required
                 autoComplete="given-name"
                 sx={{ flex: 1, minWidth: 140 }}
               />
@@ -119,12 +208,23 @@ export default function ProfilePage() {
                 label="Last name"
                 value={lastNameEdit}
                 onChange={(e) => setLastNameEdit(e.target.value)}
+                required
                 autoComplete="family-name"
                 sx={{ flex: 1, minWidth: 140 }}
               />
             </Box>
             <Box>
-              <Button variant="outlined" onClick={handleSaveProfile} disabled={busy}>
+              <Button
+                variant="outlined"
+                onClick={handleSaveProfile}
+                disabled={
+                  busy ||
+                  (isValidUsername(usernameEdit.trim()) &&
+                    (usernameStatus === 'checking' ||
+                      usernameStatus === 'taken' ||
+                      usernameStatus === 'error'))
+                }
+              >
                 Save
               </Button>
             </Box>

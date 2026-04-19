@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
@@ -15,7 +15,7 @@ import {
   formatSignInError,
   formatSignUpError,
 } from '../lib/supabaseAuthErrors.js';
-import { isValidUsername, upsertMyProfile } from '../lib/friendsApi.js';
+import { isValidUsername, upsertMyProfile, checkUsernameAvailability } from '../lib/friendsApi.js';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -37,6 +37,9 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  /** @type {'idle' | 'checking' | 'available' | 'taken' | 'error' | 'unknown'} */
+  const [usernameStatus, setUsernameStatus] = useState('idle');
+  const usernameDebounceRef = useRef(null);
 
   if (!configured) {
     return (
@@ -67,6 +70,47 @@ export default function LoginPage() {
     setResetSent(false);
   };
 
+  useEffect(() => {
+    if (mode !== 'signup' || forgotMode) {
+      setUsernameStatus('idle');
+      return undefined;
+    }
+    const u = username.trim();
+    if (usernameDebounceRef.current) {
+      clearTimeout(usernameDebounceRef.current);
+      usernameDebounceRef.current = null;
+    }
+    if (!u) {
+      setUsernameStatus('idle');
+      return undefined;
+    }
+    if (!isValidUsername(u)) {
+      setUsernameStatus('idle');
+      return undefined;
+    }
+    setUsernameStatus('checking');
+    usernameDebounceRef.current = window.setTimeout(async () => {
+      usernameDebounceRef.current = null;
+      try {
+        const ok = await checkUsernameAvailability(u);
+        if (ok === null) {
+          setUsernameStatus('unknown');
+          return;
+        }
+        setUsernameStatus(ok ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus('error');
+      }
+    }, 400);
+    return () => {
+      if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
+    };
+  }, [username, mode, forgotMode]);
+
+  useEffect(() => {
+    if (mode !== 'signup' || forgotMode) setUsernameStatus('idle');
+  }, [mode, forgotMode]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearMessages();
@@ -87,8 +131,28 @@ export default function LoginPage() {
           setBusy(false);
           return;
         }
+        if (
+          usernameStatus === 'taken' ||
+          usernameStatus === 'checking' ||
+          usernameStatus === 'error'
+        ) {
+          setError(
+            usernameStatus === 'taken'
+              ? 'That username is taken. Try another.'
+              : usernameStatus === 'checking'
+                ? 'Wait for the username check to finish.'
+                : 'Couldn’t check username. Try again.',
+          );
+          setBusy(false);
+          return;
+        }
         const fn = firstName.trim();
         const ln = lastName.trim();
+        if (!fn || !ln) {
+          setError('Enter your first and last name.');
+          setBusy(false);
+          return;
+        }
         const data = await signUp(email.trim(), password, {
           username: u,
           displayName: [fn, ln].filter(Boolean).join(' ') || u,
@@ -191,7 +255,34 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
                 required
                 autoComplete="username"
-                helperText="3–30 characters: letters, numbers, underscores"
+                error={usernameStatus === 'taken'}
+                helperText={
+                  !username.trim()
+                    ? '3–30 characters: letters, numbers, underscores'
+                    : !isValidUsername(username.trim())
+                      ? 'Use 3–30 letters, numbers, or underscores.'
+                      : usernameStatus === 'checking'
+                        ? 'Checking…'
+                        : usernameStatus === 'available'
+                          ? 'Available'
+                          : usernameStatus === 'taken'
+                            ? 'Not available — try another'
+                            : usernameStatus === 'error'
+                              ? 'Couldn’t check — try again'
+                              : '3–30 characters: letters, numbers, underscores'
+                }
+                FormHelperTextProps={{
+                  sx: {
+                    color:
+                      usernameStatus === 'available'
+                        ? 'success.main'
+                        : usernameStatus === 'taken'
+                          ? 'error.main'
+                          : usernameStatus === 'unknown'
+                            ? 'text.secondary'
+                            : undefined,
+                  },
+                }}
                 fullWidth
                 sx={(theme) => muiTextFieldAutofillSx(theme)}
               />
@@ -199,6 +290,7 @@ export default function LoginPage() {
                 label="First name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
+                required
                 autoComplete="given-name"
                 fullWidth
                 sx={(theme) => muiTextFieldAutofillSx(theme)}
@@ -207,6 +299,7 @@ export default function LoginPage() {
                 label="Last name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                required
                 autoComplete="family-name"
                 fullWidth
                 sx={(theme) => muiTextFieldAutofillSx(theme)}
@@ -225,7 +318,20 @@ export default function LoginPage() {
               sx={(theme) => muiTextFieldAutofillSx(theme)}
             />
           ) : null}
-          <Button type="submit" variant="contained" size="large" disabled={busy}>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            disabled={
+              busy ||
+              (mode === 'signup' &&
+                !forgotMode &&
+                isValidUsername(username.trim()) &&
+                (usernameStatus === 'checking' ||
+                  usernameStatus === 'taken' ||
+                  usernameStatus === 'error'))
+            }
+          >
             {busy
               ? 'Please wait…'
               : forgotMode
