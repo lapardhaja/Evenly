@@ -70,7 +70,7 @@ export default function ProfilePage() {
         Profile
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Your username and name. Friends can find you by username or email.
+        How you show up when friends search for you.
       </Typography>
 
       {message ? (

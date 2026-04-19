@@ -45,7 +45,7 @@ export default function ProfileSetupPage() {
     setError('');
     const u = username.trim();
     if (!isValidUsername(u)) {
-      setError('Use 3–30 characters: letters, numbers, or underscores only.');
+      setError('Username: 3–30 letters, numbers, or underscores.');
       return;
     }
     setBusy(true);
@@ -75,7 +75,7 @@ export default function ProfileSetupPage() {
           Set up your profile
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Choose a username and add your name. Friends can find you by username or email. You can edit this later under Profile.
+          Pick a username and your name. You can edit these later in Profile.
         </Typography>
         {error ? (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -90,7 +90,7 @@ export default function ProfileSetupPage() {
             required
             autoComplete="username"
             placeholder="your_name"
-            helperText="Letters, numbers, underscores only"
+            helperText="3–30 characters: letters, numbers, underscores"
             fullWidth
             sx={(theme) => muiTextFieldAutofillSx(theme)}
           />

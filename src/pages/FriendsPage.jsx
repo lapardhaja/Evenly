@@ -67,7 +67,7 @@ export default function FriendsPage() {
         setNameById({});
       }
     } catch (e) {
-      setError('Couldn’t load friends. If this is new, run the database migration in Supabase.');
+      setError('Couldn’t load friends. Try again in a moment.');
     } finally {
       setLoading(false);
       notifyFriendRequestsChanged();
@@ -106,7 +106,7 @@ export default function FriendsPage() {
         Friends
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Search by username or full email. Send a request — they accept to become friends. Then add them to groups from the People tab.
+        Search by username or email. When they accept, you can add them from a group’s People tab.
       </Typography>
 
       {message ? (
@@ -123,7 +123,7 @@ export default function FriendsPage() {
       <TextField
         fullWidth
         size="small"
-        placeholder="Search username or email…"
+        placeholder="Search by name or email"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         sx={{ mb: 2 }}

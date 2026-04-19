@@ -24,11 +24,11 @@ export default function ThemeModeMenu({ themeMode, onChange, iconButtonSx = {} }
 
   return (
     <>
-      <Tooltip title="Appearance (light / dark)">
+      <Tooltip title="Light or dark">
         <IconButton
           color="inherit"
           onClick={(e) => setAnchor(e.currentTarget)}
-          aria-label="Choose light or dark mode"
+          aria-label="Light or dark mode"
           aria-haspopup="true"
           aria-expanded={open ? 'true' : undefined}
           edge={false}

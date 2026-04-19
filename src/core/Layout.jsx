@@ -292,7 +292,7 @@ export default function Layout() {
               }
               sx={{ borderRadius: 0 }}
             >
-              We couldn’t load your data. Tap Retry. If that doesn’t help, sign out and sign in again.
+              Couldn’t load your data. Tap Retry or sign out and back in.
             </Alert>
           ) : null}
           <Outlet />

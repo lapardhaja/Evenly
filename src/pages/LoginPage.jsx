@@ -41,9 +41,7 @@ export default function LoginPage() {
   if (!configured) {
     return (
       <Container maxWidth="sm" sx={{ py: 4 }}>
-        <Alert severity="info">
-          Sign-in isn’t set up for this build yet. If you’re the app owner, check the deployment configuration.
-        </Alert>
+        <Alert severity="info">Sign-in isn’t available in this version.</Alert>
         <Button sx={{ mt: 2 }} onClick={() => navigate('/')}>
           Back to groups
         </Button>
@@ -85,7 +83,7 @@ export default function LoginPage() {
       } else {
         const u = username.trim();
         if (!isValidUsername(u)) {
-          setError('Username must be 3–30 characters (letters, numbers, or underscores).');
+          setError('Username: 3–30 letters, numbers, or underscores.');
           setBusy(false);
           return;
         }
@@ -147,14 +145,12 @@ export default function LoginPage() {
           {forgotMode ? 'Reset password' : mode === 'signin' ? 'Sign in' : 'Create account'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {forgotMode
-            ? 'Enter your email and we’ll send you a link to set a new password.'
-            : 'Sign in is required to use Evenly.'}
+          {forgotMode ? 'We’ll email you a link to choose a new password.' : 'Sign in to use Evenly.'}
         </Typography>
 
         {resetSent ? (
           <Alert severity="success" variant="outlined" sx={{ mb: 2 }}>
-            If we find an account for that email, we’ll send a reset link. Check your inbox and spam folder.
+            If that email has an account, we sent a reset link. Check your inbox and spam.
           </Alert>
         ) : null}
 
@@ -195,7 +191,7 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
                 required
                 autoComplete="username"
-                helperText="3–30 characters: letters, numbers, or underscores"
+                helperText="3–30 characters: letters, numbers, underscores"
                 fullWidth
                 sx={(theme) => muiTextFieldAutofillSx(theme)}
               />

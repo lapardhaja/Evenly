@@ -84,7 +84,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
           failed.push(row.id);
         }
         setReceiptFactors(factors);
-        setFxError('Couldn’t load exchange rates. Check your connection and try again.');
+        setFxError('Couldn’t load exchange rates. Check your connection.');
         setFxLoading(false);
         return;
       }
@@ -101,9 +101,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
       if (!cancelled) {
         setReceiptFactors(factors);
         if (failed.length > 0) {
-          setFxError(
-            'Some currencies couldn’t be converted — those receipts show original amounts.',
-          );
+          setFxError('Some amounts couldn’t be converted — shown in the receipt’s currency.');
         }
         setFxLoading(false);
       }
@@ -250,7 +248,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
           {missingPayers.length === 1
             ? `"${missingPayers[0].title}" has no payer set.`
             : `${missingPayers.length} receipts have no payer set.`}{' '}
-          Set the "Paid By" on each receipt for accurate settlement.
+          Choose who paid on each receipt so totals match.
         </Alert>
       )}
 
@@ -272,7 +270,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         </Alert>
       ) : null}
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        Rates update daily and are for reference only. Edit each receipt’s currency on its detail page if a scan guessed wrong.
+        Rates update daily. Wrong currency on a receipt? Fix it on that receipt’s page.
       </Typography>
 
       {/* Net Balances */}
