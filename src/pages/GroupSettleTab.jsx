@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -29,33 +29,21 @@ import {
   normalizeCurrencyCode,
 } from '../lib/currencies.js';
 import { listReceiptsCurrencyMeta, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
-
-function transferStorageKey(t) {
-  return `${t.from}-${t.to}-${t.amount}`;
-}
+import {
+  transferStorageKey,
+  normalizeStoredSettledKeys,
+} from '../lib/settledTransfersKey.js';
 
 export default function GroupSettleTab({ groupId, groupData }) {
-  const { group, people, receipts, displayCurrency, setDisplayCurrency } = groupData;
+  const {
+    group,
+    people,
+    receipts,
+    displayCurrency,
+    setDisplayCurrency,
+    setSettledTransfers,
+  } = groupData;
   const storageKey = `evenly-settled-${groupId}`;
-  const [settledKeys, setSettledKeys] = useState(() => {
-    try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(`evenly-settled-${groupId}`) : null;
-      const arr = raw ? JSON.parse(raw) : [];
-      return new Set(Array.isArray(arr) ? arr : []);
-    } catch {
-      return new Set();
-    }
-  });
-
-  useEffect(() => {
-    try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(`evenly-settled-${groupId}`) : null;
-      const arr = raw ? JSON.parse(raw) : [];
-      setSettledKeys(new Set(Array.isArray(arr) ? arr : []));
-    } catch {
-      setSettledKeys(new Set());
-    }
-  }, [groupId]);
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
   const [fxLoading, setFxLoading] = useState(false);
   const [fxError, setFxError] = useState('');
@@ -141,35 +129,47 @@ export default function GroupSettleTab({ groupId, groupData }) {
     [netBalances],
   );
 
-  useEffect(() => {
-    const valid = new Set(transfers.map((t) => transferStorageKey(t)));
-    setSettledKeys((prev) => {
-      const next = new Set();
-      for (const k of prev) {
-        if (valid.has(k)) next.add(k);
+  /** Merge cloud + legacy localStorage; keys use tab delimiter (see settledTransfersKey.js). */
+  const mergedStoredKeys = useMemo(() => {
+    const fromGroup = Array.isArray(group?.settledTransfers)
+      ? group.settledTransfers.filter((x) => typeof x === 'string')
+      : [];
+    let fromLs = [];
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (Array.isArray(p)) fromLs = p.filter((x) => typeof x === 'string');
+        }
       }
-      if (next.size === prev.size && [...prev].every((k) => next.has(k))) {
-        return prev;
-      }
-      try {
-        localStorage.setItem(storageKey, JSON.stringify([...next]));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, [transfers, storageKey]);
+    } catch {
+      /* ignore */
+    }
+    return [...new Set([...fromGroup, ...fromLs])];
+  }, [group?.settledTransfers, storageKey]);
 
-  const persistSettledKeys = useCallback(
-    (nextSet) => {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify([...nextSet]));
-      } catch {
-        /* ignore */
-      }
-    },
-    [storageKey],
+  const settledKeysList = useMemo(
+    () => normalizeStoredSettledKeys(mergedStoredKeys, transfers),
+    [mergedStoredKeys, transfers],
   );
+
+  const settledKeys = useMemo(() => new Set(settledKeysList), [settledKeysList]);
+
+  /** Persist pruned list when transfers change or after merging legacy storage. */
+  useEffect(() => {
+    const g = Array.isArray(group?.settledTransfers)
+      ? group.settledTransfers.filter((x) => typeof x === 'string')
+      : [];
+    const sorted = (arr) => [...arr].sort().join('|');
+    if (sorted(g) === sorted(settledKeysList)) return;
+    setSettledTransfers(settledKeysList);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(settledKeysList));
+    } catch {
+      /* ignore */
+    }
+  }, [settledKeysList, group?.settledTransfers, setSettledTransfers, storageKey]);
 
   const missingPayers = useMemo(
     () => receipts.filter((r) => r.total > 0 && !r.paidById),
@@ -207,13 +207,16 @@ export default function GroupSettleTab({ groupId, groupData }) {
 
   const toggleSettled = (t) => {
     const k = transferStorageKey(t);
-    setSettledKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      persistSettledKeys(next);
-      return next;
-    });
+    const next = new Set(settledKeysList);
+    if (next.has(k)) next.delete(k);
+    else next.add(k);
+    const arr = [...next];
+    setSettledTransfers(arr);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(arr));
+    } catch {
+      /* ignore */
+    }
   };
 
   const allSettled =

@@ -48,6 +48,7 @@ export function useGroups() {
             name,
             date: Date.now(),
             displayCurrency: 'USD',
+            settledTransfers: [],
             people: {},
             receipts: {},
           },
@@ -108,6 +109,7 @@ export function useGroup(groupId) {
       ...raw,
       id: groupId,
       displayCurrency: normalizeCurrencyCode(raw.displayCurrency || 'USD'),
+      settledTransfers: Array.isArray(raw.settledTransfers) ? raw.settledTransfers : [],
     };
   }, [data.groups, groupId]);
 
@@ -148,6 +150,14 @@ export function useGroup(groupId) {
 
   const setDisplayCurrency = useCallback(
     (code) => updateGroup('displayCurrency', normalizeCurrencyCode(code)),
+    [updateGroup],
+  );
+
+  const setSettledTransfers = useCallback(
+    (keys) => {
+      const arr = Array.isArray(keys) ? keys.filter((x) => typeof x === 'string') : [];
+      updateGroup('settledTransfers', arr);
+    },
     [updateGroup],
   );
 
@@ -348,6 +358,7 @@ export function useGroup(groupId) {
     receipts,
     displayCurrency,
     setDisplayCurrency,
+    setSettledTransfers,
     renameGroup,
     addPerson,
     updatePerson,

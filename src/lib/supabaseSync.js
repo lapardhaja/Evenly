@@ -140,10 +140,15 @@ export async function loadNormalizedData(supabase, userId) {
       };
     }
 
+    let settledTransfers = [];
+    const st = g.settled_transfers;
+    if (Array.isArray(st)) settledTransfers = st.filter((x) => typeof x === 'string');
+
     out.groups[gid] = {
       name: g.name,
       date: Number(g.date_ms),
       displayCurrency: normalizeCurrencyCode(g.display_currency || 'USD'),
+      settledTransfers,
       people: peopleMap,
       receipts: receiptsMap,
     };
@@ -178,6 +183,10 @@ export async function persistNormalizedData(supabase, userId, data) {
 
   for (const gid of localGroupIds) {
     const g = data.groups[gid];
+    const stArr = Array.isArray(g.settledTransfers)
+      ? g.settledTransfers.filter((x) => typeof x === 'string')
+      : [];
+
     const { error: ugErr } = await supabase.from('groups').upsert(
       {
         id: gid,
@@ -185,6 +194,7 @@ export async function persistNormalizedData(supabase, userId, data) {
         name: g.name,
         date_ms: g.date,
         display_currency: normalizeCurrencyCode(g.displayCurrency || 'USD'),
+        settled_transfers: stArr,
         updated_at: nowIso,
       },
       { onConflict: 'id' },
