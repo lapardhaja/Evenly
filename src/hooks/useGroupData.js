@@ -559,10 +559,18 @@ export function useGroupReceipt(groupId, receiptId) {
     (chargeKey, personId) => {
       if (subTotal <= 0) return 0;
       const personSub = personSubTotalMap[personId]?.subTotal || 0;
+      if (chargeKey === 'taxCost' || chargeKey === 'tipCost') {
+        if (taxableBaseAfterDiscount <= 0) return 0;
+        const personAfterDiscount = currency(personSub)
+          .multiply(taxableBaseAfterDiscount)
+          .divide(subTotal).value;
+        const ratio = personAfterDiscount / taxableBaseAfterDiscount;
+        return currency(receipt?.[chargeKey] || 0).multiply(ratio).value;
+      }
       const ratio = personSub / subTotal;
       return currency(receipt?.[chargeKey] || 0).multiply(ratio).value;
     },
-    [subTotal, personSubTotalMap, receipt],
+    [subTotal, personSubTotalMap, receipt, taxableBaseAfterDiscount],
   );
 
   const getTotalForPerson = useCallback(
@@ -602,7 +610,27 @@ export function useGroupReceipt(groupId, receiptId) {
     (itemId, key, value) => {
       mutateReceipt((r) => {
         const items = { ...r.items };
-        items[itemId] = { ...items[itemId], [key]: key === 'name' ? value : Number(value) };
+        const prev = items[itemId];
+        if (!prev) return r;
+        if (key === 'name') {
+          items[itemId] = { ...prev, name: value };
+          return { ...r, items };
+        }
+        if (key === 'cost') {
+          const n = Number(value);
+          if (!Number.isFinite(n) || n < 0) return r;
+          items[itemId] = { ...prev, cost: n };
+          return { ...r, items };
+        }
+        if (key === 'quantity') {
+          const n = Number(value);
+          if (!Number.isFinite(n)) return r;
+          const q = Math.floor(n);
+          if (q < 1 || q > 999) return r;
+          items[itemId] = { ...prev, quantity: q };
+          return { ...r, items };
+        }
+        items[itemId] = { ...prev, [key]: Number(value) };
         return { ...r, items };
       });
     },
@@ -611,10 +639,22 @@ export function useGroupReceipt(groupId, receiptId) {
 
   const addItem = useCallback(
     ({ name, cost, quantity }) => {
+      const n = Number(cost);
+      if (!Number.isFinite(n) || n < 0) {
+        throw new Error('Invalid item cost');
+      }
+      const qRaw = Number(quantity);
+      if (!Number.isFinite(qRaw)) {
+        throw new Error('Invalid item quantity');
+      }
+      const q = Math.floor(qRaw);
+      if (q < 1 || q > 999) {
+        throw new Error('Invalid item quantity');
+      }
       const id = uuidv4();
       mutateReceipt((r) => {
         const items = { ...r.items };
-        items[id] = { name, cost: Number(cost), quantity: Number(quantity) || 1 };
+        items[id] = { name, cost: n, quantity: q };
         return { ...r, items };
       });
       return id;

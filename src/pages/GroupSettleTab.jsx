@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -30,9 +30,32 @@ import {
 } from '../lib/currencies.js';
 import { listReceiptsCurrencyMeta, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
 
+function transferStorageKey(t) {
+  return `${t.from}-${t.to}-${t.amount}`;
+}
+
 export default function GroupSettleTab({ groupId, groupData }) {
   const { group, people, receipts, displayCurrency, setDisplayCurrency } = groupData;
-  const [settledSet, setSettledSet] = useState(new Set());
+  const storageKey = `evenly-settled-${groupId}`;
+  const [settledKeys, setSettledKeys] = useState(() => {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(`evenly-settled-${groupId}`) : null;
+      const arr = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Set();
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(`evenly-settled-${groupId}`) : null;
+      const arr = raw ? JSON.parse(raw) : [];
+      setSettledKeys(new Set(Array.isArray(arr) ? arr : []));
+    } catch {
+      setSettledKeys(new Set());
+    }
+  }, [groupId]);
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
   const [fxLoading, setFxLoading] = useState(false);
   const [fxError, setFxError] = useState('');
@@ -118,6 +141,36 @@ export default function GroupSettleTab({ groupId, groupData }) {
     [netBalances],
   );
 
+  useEffect(() => {
+    const valid = new Set(transfers.map((t) => transferStorageKey(t)));
+    setSettledKeys((prev) => {
+      const next = new Set();
+      for (const k of prev) {
+        if (valid.has(k)) next.add(k);
+      }
+      if (next.size === prev.size && [...prev].every((k) => next.has(k))) {
+        return prev;
+      }
+      try {
+        localStorage.setItem(storageKey, JSON.stringify([...next]));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, [transfers, storageKey]);
+
+  const persistSettledKeys = useCallback(
+    (nextSet) => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify([...nextSet]));
+      } catch {
+        /* ignore */
+      }
+    },
+    [storageKey],
+  );
+
   const missingPayers = useMemo(
     () => receipts.filter((r) => r.total > 0 && !r.paidById),
     [receipts],
@@ -152,16 +205,20 @@ export default function GroupSettleTab({ groupId, groupData }) {
 
   const fmt = (amount) => formatMoneyWithCode(amount, settleCode);
 
-  const toggleSettled = (idx) => {
-    setSettledSet((prev) => {
+  const toggleSettled = (t) => {
+    const k = transferStorageKey(t);
+    setSettledKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      persistSettledKeys(next);
       return next;
     });
   };
 
-  const allSettled = transfers.length > 0 && settledSet.size === transfers.length;
+  const allSettled =
+    transfers.length > 0 &&
+    transfers.every((t) => settledKeys.has(transferStorageKey(t)));
 
   if (people.length === 0) {
     return (
@@ -314,7 +371,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
             {transfers.map((t, idx) => {
               const fromPerson = peopleMap[t.from];
               const toPerson = peopleMap[t.to];
-              const isSettled = settledSet.has(idx);
+              const isSettled = settledKeys.has(transferStorageKey(t));
               if (!fromPerson || !toPerson) return null;
               return (
                 <Box key={idx}>
@@ -328,7 +385,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
                     secondaryAction={
                       <Checkbox
                         checked={isSettled}
-                        onChange={() => toggleSettled(idx)}
+                        onChange={() => toggleSettled(t)}
                         icon={<AccountBalanceWalletIcon />}
                         checkedIcon={<CheckCircleIcon color="success" />}
                       />

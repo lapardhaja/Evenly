@@ -16,45 +16,94 @@ export async function loadNormalizedData(supabase, userId) {
     .eq('user_id', userId);
   if (gErr) throw gErr;
 
+  const groupRows = groups || [];
+  const groupIds = groupRows.map((g) => g.id);
   const out = { groups: {} };
 
-  for (const g of groups || []) {
+  if (groupIds.length === 0) {
+    return out;
+  }
+
+  const { data: allPeople, error: pErr } = await supabase
+    .from('group_people')
+    .select('*')
+    .in('group_id', groupIds);
+  if (pErr) throw pErr;
+
+  const { data: allReceipts, error: rErr } = await supabase
+    .from('receipts')
+    .select('*')
+    .in('group_id', groupIds);
+  if (rErr) throw rErr;
+
+  const peopleByGroup = new Map();
+  for (const p of allPeople || []) {
+    const gid = p.group_id;
+    if (!peopleByGroup.has(gid)) peopleByGroup.set(gid, []);
+    peopleByGroup.get(gid).push(p);
+  }
+
+  const receiptsByGroup = new Map();
+  const receiptIds = [];
+  for (const rec of allReceipts || []) {
+    const gid = rec.group_id;
+    if (!receiptsByGroup.has(gid)) receiptsByGroup.set(gid, []);
+    receiptsByGroup.get(gid).push(rec);
+    receiptIds.push(rec.id);
+  }
+
+  /** @type {Map<string, Array<Record<string, unknown>>>} */
+  const itemsByReceipt = new Map();
+  /** @type {Map<string, Array<Record<string, unknown>>>} */
+  const allocsByReceipt = new Map();
+
+  if (receiptIds.length > 0) {
+    const { data: allItems, error: iErr } = await supabase
+      .from('receipt_items')
+      .select('*')
+      .in('receipt_id', receiptIds);
+    if (iErr) throw iErr;
+
+    for (const it of allItems || []) {
+      const rid = it.receipt_id;
+      if (!itemsByReceipt.has(rid)) itemsByReceipt.set(rid, []);
+      itemsByReceipt.get(rid).push(it);
+    }
+    for (const rid of itemsByReceipt.keys()) {
+      itemsByReceipt.get(rid).sort((a, b) => {
+        const pa = a.position ?? 0;
+        const pb = b.position ?? 0;
+        return pa - pb;
+      });
+    }
+
+    const { data: allAllocs, error: aErr } = await supabase
+      .from('receipt_allocations')
+      .select('*')
+      .in('receipt_id', receiptIds);
+    if (aErr) throw aErr;
+
+    for (const a of allAllocs || []) {
+      const rid = a.receipt_id;
+      if (!allocsByReceipt.has(rid)) allocsByReceipt.set(rid, []);
+      allocsByReceipt.get(rid).push(a);
+    }
+  }
+
+  for (const g of groupRows) {
     const gid = g.id;
-    const { data: people, error: pErr } = await supabase
-      .from('group_people')
-      .select('*')
-      .eq('group_id', gid);
-    if (pErr) throw pErr;
-
-    const { data: receipts, error: rErr } = await supabase
-      .from('receipts')
-      .select('*')
-      .eq('group_id', gid);
-    if (rErr) throw rErr;
-
     const peopleMap = {};
-    for (const p of people || []) {
+    for (const p of peopleByGroup.get(gid) || []) {
       peopleMap[p.id] = { name: p.name };
     }
 
     const receiptsMap = {};
-    for (const rec of receipts || []) {
+    for (const rec of receiptsByGroup.get(gid) || []) {
       const rid = rec.id;
-      const { data: items, error: iErr } = await supabase
-        .from('receipt_items')
-        .select('*')
-        .eq('receipt_id', rid)
-        .order('position', { ascending: true });
-      if (iErr) throw iErr;
-
-      const { data: allocs, error: aErr } = await supabase
-        .from('receipt_allocations')
-        .select('*')
-        .eq('receipt_id', rid);
-      if (aErr) throw aErr;
+      const items = itemsByReceipt.get(rid) || [];
 
       const itemsMap = {};
-      for (const it of items || []) {
+      for (const it of items) {
         itemsMap[it.id] = {
           name: it.name,
           cost: Number(it.cost),
@@ -64,7 +113,7 @@ export async function loadNormalizedData(supabase, userId) {
 
       const p2i = {};
       const i2p = {};
-      for (const a of allocs || []) {
+      for (const a of allocsByReceipt.get(rid) || []) {
         const q = Number(a.quantity);
         if (!Number.isFinite(q) || q <= 0) continue;
         if (!p2i[a.person_id]) p2i[a.person_id] = {};

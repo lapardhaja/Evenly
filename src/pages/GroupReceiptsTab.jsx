@@ -20,6 +20,8 @@ import AddIcon from '@mui/icons-material/Add';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import IconButton from '@mui/material/IconButton';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
@@ -155,7 +157,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       day: 'numeric',
     });
 
-  const handleSwipeDeleteReceipt = useCallback(
+  const handleDeleteReceipt = useCallback(
     (r) => {
       const snapshot = getReceiptSnapshot(r.id);
       deleteReceipt(r.id);
@@ -265,7 +267,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
             <SwipeableDeleteList
               items={sorted}
               getKey={(r) => r.id}
-              onDelete={handleSwipeDeleteReceipt}
+              onDelete={handleDeleteReceipt}
             >
               {(r) => (
                 <ListItem disablePadding sx={{ display: 'block' }}>
@@ -278,7 +280,25 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
               {sorted.map((r, idx) => (
                 <Box key={r.id}>
                   {idx > 0 && <Divider />}
-                  <ListItem disablePadding>{receiptRow(r)}</ListItem>
+                  <ListItem
+                    disablePadding
+                    secondaryAction={
+                      <IconButton
+                        edge="end"
+                        aria-label={`Delete ${r.title}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteReceipt(r);
+                        }}
+                        size="small"
+                        color="error"
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    }
+                  >
+                    {receiptRow(r)}
+                  </ListItem>
                 </Box>
               ))}
             </List>
