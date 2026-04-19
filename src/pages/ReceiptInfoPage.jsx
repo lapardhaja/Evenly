@@ -200,7 +200,9 @@ export default function ReceiptInfoPage() {
           </TextField>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Button onClick={handleStayOnReceipt}>Stay</Button>
+          <Button variant="outlined" color="primary" onClick={handleStayOnReceipt}>
+            Stay
+          </Button>
           <Button
             onClick={handleLeaveWithoutPayer}
             color="warning"
