@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -10,6 +10,7 @@ import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Badge from '@mui/material/Badge';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -18,6 +19,7 @@ import ThemeModeMenu from './ThemeModeMenu.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
+import { countIncomingFriendRequests } from '../lib/friendsApi.js';
 
 const lightTheme = createTheme({
   palette: {
@@ -75,6 +77,37 @@ export default function Layout() {
 
   const skipDataWait =
     location.pathname === '/friends' || location.pathname === '/profile-setup';
+  const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
+
+  const refreshFriendRequestCount = useCallback(async () => {
+    if (!supabaseConfigured || !user || onLoginRoute || syncError || !dataReady) return;
+    try {
+      const n = await countIncomingFriendRequests();
+      setPendingFriendRequests(n);
+    } catch {
+      setPendingFriendRequests(0);
+    }
+  }, [supabaseConfigured, user, onLoginRoute, syncError, dataReady]);
+
+  useEffect(() => {
+    refreshFriendRequestCount();
+  }, [refreshFriendRequestCount, user?.id]);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') refreshFriendRequestCount();
+    };
+    const onFriendsEvt = () => refreshFriendRequestCount();
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('evenly-friend-requests-changed', onFriendsEvt);
+    const id = window.setInterval(refreshFriendRequestCount, 90_000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('evenly-friend-requests-changed', onFriendsEvt);
+      window.clearInterval(id);
+    };
+  }, [refreshFriendRequestCount]);
+
   const showBootstrap =
     supabaseConfigured &&
     !onLoginRoute &&
@@ -121,14 +154,44 @@ export default function Layout() {
             </Box>
             <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} />
             {supabaseConfigured && user && !onLoginRoute ? (
-              <Button
-                color="inherit"
-                component={Link}
-                to="/friends"
-                sx={{ mr: 1, textTransform: 'none' }}
+              <Badge
+                badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
+                color="warning"
+                max={99}
+                invisible={pendingFriendRequests === 0}
+                sx={{
+                  mr: 1,
+                  '& .MuiBadge-badge': {
+                    fontWeight: 700,
+                    fontSize: '0.7rem',
+                  },
+                }}
               >
-                Friends
-              </Button>
+                <Button
+                  component={Link}
+                  to="/friends"
+                  aria-label={
+                    pendingFriendRequests > 0
+                      ? `Friends, ${pendingFriendRequests} pending requests`
+                      : 'Friends'
+                  }
+                  variant={pendingFriendRequests > 0 ? 'contained' : 'text'}
+                  color={pendingFriendRequests > 0 ? 'warning' : 'inherit'}
+                  sx={{
+                    mr: 0,
+                    textTransform: 'none',
+                    fontWeight: pendingFriendRequests > 0 ? 700 : 400,
+                    ...(pendingFriendRequests > 0 && {
+                      boxShadow: (t) =>
+                        t.palette.mode === 'dark'
+                          ? '0 0 0 1px rgba(255,180,80,0.35)'
+                          : '0 0 0 1px rgba(200,120,0,0.25)',
+                    }),
+                  }}
+                >
+                  Friends
+                </Button>
+              </Badge>
             ) : null}
             {supabaseConfigured && user && !onLoginRoute ? (
               <>

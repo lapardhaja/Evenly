@@ -97,6 +97,30 @@ export async function listIncomingRequests() {
   return data || [];
 }
 
+/** Head-only count for nav badge (pending incoming). */
+export async function countIncomingFriendRequests() {
+  const sb = getSupabase();
+  if (!sb) return 0;
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) return 0;
+  const { count, error } = await sb
+    .from('friend_requests')
+    .select('*', { count: 'exact', head: true })
+    .eq('to_user_id', user.id)
+    .eq('status', 'pending');
+  if (error) return 0;
+  return typeof count === 'number' ? count : 0;
+}
+
+/** Call after friend request state changes so the app bar can refresh the badge. */
+export function notifyFriendRequestsChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('evenly-friend-requests-changed'));
+  }
+}
+
 export async function listOutgoingRequests() {
   const sb = getSupabase();
   if (!sb) return [];

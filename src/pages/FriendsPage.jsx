@@ -27,6 +27,7 @@ import {
   fetchMyProfile,
   upsertMyProfile,
   isValidUsername,
+  notifyFriendRequestsChanged,
 } from '../lib/friendsApi.js';
 
 export default function FriendsPage() {
@@ -77,6 +78,7 @@ export default function FriendsPage() {
       setError('Couldn’t load friends. If this is new, run the database migration in Supabase.');
     } finally {
       setLoading(false);
+      notifyFriendRequestsChanged();
     }
   }, []);
 
