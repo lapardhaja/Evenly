@@ -24,17 +24,11 @@ import {
   cancelFriendRequest,
   removeFriend,
   getProfilesByIds,
-  fetchMyProfile,
-  upsertMyProfile,
-  isValidUsername,
   notifyFriendRequestsChanged,
   formatFullName,
 } from '../lib/friendsApi.js';
 
 export default function FriendsPage() {
-  const [usernameEdit, setUsernameEdit] = useState('');
-  const [firstNameEdit, setFirstNameEdit] = useState('');
-  const [lastNameEdit, setLastNameEdit] = useState('');
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [incoming, setIncoming] = useState([]);
@@ -42,7 +36,6 @@ export default function FriendsPage() {
   const [friends, setFriends] = useState([]);
   const [nameById, setNameById] = useState({});
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -50,10 +43,6 @@ export default function FriendsPage() {
     setLoading(true);
     setError('');
     try {
-      const p = await fetchMyProfile();
-      setUsernameEdit(p?.username || '');
-      setFirstNameEdit(p?.first_name || '');
-      setLastNameEdit(p?.last_name || '');
       const [inc, out, fr] = await Promise.all([
         listIncomingRequests(),
         listOutgoingRequests(),
@@ -111,31 +100,6 @@ export default function FriendsPage() {
 
   const displayName = (userId) => nameById[userId] || userId;
 
-  const handleSaveProfile = async () => {
-    if (!isValidUsername(usernameEdit.trim())) {
-      setError('Username: 3–30 letters, numbers, or underscores.');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    try {
-      await upsertMyProfile({
-        username: usernameEdit.trim(),
-        firstName: firstNameEdit.trim() || undefined,
-        lastName: lastNameEdit.trim() || undefined,
-      });
-      setMessage('Profile saved.');
-      const p = await fetchMyProfile();
-      setUsernameEdit(p?.username || '');
-      setFirstNameEdit(p?.first_name || '');
-      setLastNameEdit(p?.last_name || '');
-    } catch (e) {
-      setError(e?.message?.includes('duplicate') ? 'That username is taken.' : 'Couldn’t save profile.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
       <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
@@ -155,46 +119,6 @@ export default function FriendsPage() {
           {error}
         </Alert>
       ) : null}
-
-      <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-          Your profile
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <TextField
-            size="small"
-            label="Username"
-            value={usernameEdit}
-            onChange={(e) => setUsernameEdit(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-            placeholder="username"
-            helperText="3–30 characters: letters, numbers, underscores"
-            fullWidth
-          />
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <TextField
-              size="small"
-              label="First name"
-              value={firstNameEdit}
-              onChange={(e) => setFirstNameEdit(e.target.value)}
-              autoComplete="given-name"
-              sx={{ flex: 1, minWidth: 140 }}
-            />
-            <TextField
-              size="small"
-              label="Last name"
-              value={lastNameEdit}
-              onChange={(e) => setLastNameEdit(e.target.value)}
-              autoComplete="family-name"
-              sx={{ flex: 1, minWidth: 140 }}
-            />
-          </Box>
-          <Box>
-            <Button variant="outlined" onClick={handleSaveProfile} disabled={busy}>
-              Save
-            </Button>
-          </Box>
-        </Box>
-      </Paper>
 
       <TextField
         fullWidth

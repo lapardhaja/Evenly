@@ -75,7 +75,7 @@ export default function ProfileSetupPage() {
           Set up your profile
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Choose a username and add your name. Friends can find you by username or email. You can edit this later in Friends.
+          Choose a username and add your name. Friends can find you by username or email. You can edit this later under Profile.
         </Typography>
         {error ? (
           <Alert severity="error" sx={{ mb: 2 }}>

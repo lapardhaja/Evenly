@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import UpdatePasswordPage from './pages/UpdatePasswordPage.jsx';
 import SharedSettlementPage from './pages/SharedSettlementPage.jsx';
 import FriendsPage from './pages/FriendsPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import ProfileSetupPage from './pages/ProfileSetupPage.jsx';
 
 export const router = createHashRouter([
@@ -22,6 +23,14 @@ export const router = createHashRouter([
         element: (
           <RequireAuth>
             <ProfileSetupPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'profile',
+        element: (
+          <RequireAuth>
+            <ProfilePage />
           </RequireAuth>
         ),
       },

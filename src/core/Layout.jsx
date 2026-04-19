@@ -76,7 +76,9 @@ export default function Layout() {
   }, [resolvedMode]);
 
   const skipDataWait =
-    location.pathname === '/friends' || location.pathname === '/profile-setup';
+    location.pathname === '/friends' ||
+    location.pathname === '/profile' ||
+    location.pathname === '/profile-setup';
   const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
 
   const refreshFriendRequestCount = useCallback(async () => {
@@ -164,55 +166,93 @@ export default function Layout() {
                 }}
               >
                 <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
-                <Badge
-                  badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
-                  color="warning"
-                  max={99}
-                  invisible={pendingFriendRequests === 0}
+                <Box
                   sx={{
-                    flexShrink: 0,
-                    '& .MuiBadge-badge': {
-                      fontWeight: 700,
-                      fontSize: '0.65rem',
-                      minWidth: 16,
-                      height: 16,
-                      padding: '0 4px',
-                      top: 4,
-                      right: 4,
-                    },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    flexWrap: 'wrap',
+                    justifyContent: 'flex-end',
+                    maxWidth: { xs: '50%', sm: 'none' },
                   }}
                 >
                   <Button
                     component={Link}
-                    to="/friends"
+                    to="/profile"
                     size="small"
-                    aria-label={
-                      pendingFriendRequests > 0
-                        ? `Friends, ${pendingFriendRequests} pending requests`
-                        : 'Friends'
-                    }
-                    variant={pendingFriendRequests > 0 ? 'contained' : 'text'}
-                    color={pendingFriendRequests > 0 ? 'warning' : 'inherit'}
+                    aria-current={location.pathname === '/profile' ? 'page' : undefined}
+                    variant={location.pathname === '/profile' ? 'outlined' : 'text'}
+                    color="inherit"
                     sx={{
-                      mr: 0,
                       minWidth: 'auto',
                       px: 1,
                       py: 0.35,
                       textTransform: 'none',
                       fontSize: '0.8125rem',
-                      fontWeight: pendingFriendRequests > 0 ? 700 : 400,
+                      fontWeight: location.pathname === '/profile' ? 600 : 400,
                       lineHeight: 1.2,
-                      ...(pendingFriendRequests > 0 && {
-                        boxShadow: (t) =>
-                          t.palette.mode === 'dark'
-                            ? '0 0 0 1px rgba(255,180,80,0.35)'
-                            : '0 0 0 1px rgba(200,120,0,0.25)',
-                      }),
                     }}
                   >
-                    Friends
+                    Profile
                   </Button>
-                </Badge>
+                  <Badge
+                    badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
+                    color="warning"
+                    max={99}
+                    invisible={pendingFriendRequests === 0}
+                    sx={{
+                      flexShrink: 0,
+                      '& .MuiBadge-badge': {
+                        fontWeight: 700,
+                        fontSize: '0.65rem',
+                        minWidth: 16,
+                        height: 16,
+                        padding: '0 4px',
+                        top: 4,
+                        right: 4,
+                      },
+                    }}
+                  >
+                    <Button
+                      component={Link}
+                      to="/friends"
+                      size="small"
+                      aria-label={
+                        pendingFriendRequests > 0
+                          ? `Friends, ${pendingFriendRequests} pending requests`
+                          : 'Friends'
+                      }
+                      aria-current={location.pathname === '/friends' ? 'page' : undefined}
+                      variant={
+                        pendingFriendRequests > 0
+                          ? 'contained'
+                          : location.pathname === '/friends'
+                            ? 'outlined'
+                            : 'text'
+                      }
+                      color={pendingFriendRequests > 0 ? 'warning' : 'inherit'}
+                      sx={{
+                        mr: 0,
+                        minWidth: 'auto',
+                        px: 1,
+                        py: 0.35,
+                        textTransform: 'none',
+                        fontSize: '0.8125rem',
+                        fontWeight:
+                          pendingFriendRequests > 0 || location.pathname === '/friends' ? 600 : 400,
+                        lineHeight: 1.2,
+                        ...(pendingFriendRequests > 0 && {
+                          boxShadow: (t) =>
+                            t.palette.mode === 'dark'
+                              ? '0 0 0 1px rgba(255,180,80,0.35)'
+                              : '0 0 0 1px rgba(200,120,0,0.25)',
+                        }),
+                      }}
+                    >
+                      Friends
+                    </Button>
+                  </Badge>
+                </Box>
                 <IconButton
                   color="inherit"
                   aria-label="account"
