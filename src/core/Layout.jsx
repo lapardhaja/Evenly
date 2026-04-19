@@ -160,16 +160,22 @@ export default function Layout() {
                 max={99}
                 invisible={pendingFriendRequests === 0}
                 sx={{
-                  mr: 1,
+                  mr: 0.5,
                   '& .MuiBadge-badge': {
                     fontWeight: 700,
-                    fontSize: '0.7rem',
+                    fontSize: '0.65rem',
+                    minWidth: 16,
+                    height: 16,
+                    padding: '0 4px',
+                    top: 4,
+                    right: 4,
                   },
                 }}
               >
                 <Button
                   component={Link}
                   to="/friends"
+                  size="small"
                   aria-label={
                     pendingFriendRequests > 0
                       ? `Friends, ${pendingFriendRequests} pending requests`
@@ -179,8 +185,13 @@ export default function Layout() {
                   color={pendingFriendRequests > 0 ? 'warning' : 'inherit'}
                   sx={{
                     mr: 0,
+                    minWidth: 'auto',
+                    px: 1,
+                    py: 0.35,
                     textTransform: 'none',
+                    fontSize: '0.8125rem',
                     fontWeight: pendingFriendRequests > 0 ? 700 : 400,
+                    lineHeight: 1.2,
                     ...(pendingFriendRequests > 0 && {
                       boxShadow: (t) =>
                         t.palette.mode === 'dark'
