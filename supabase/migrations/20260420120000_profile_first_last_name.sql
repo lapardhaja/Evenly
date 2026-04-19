@@ -3,6 +3,10 @@ alter table public.profiles
   add column if not exists first_name text,
   add column if not exists last_name text;
 
+-- Return type of these RPCs changed (extra columns). Postgres requires DROP before CREATE.
+drop function if exists public.search_profiles_by_username(text, int);
+drop function if exists public.find_profile_by_email_exact(text);
+
 -- Refresh RPCs to expose names for search UI
 create or replace function public.search_profiles_by_username(prefix text, lim int default 20)
 returns table (
@@ -46,6 +50,9 @@ as $$
     and p.user_id <> auth.uid()
   limit 1;
 $$;
+
+grant execute on function public.search_profiles_by_username(text, int) to authenticated;
+grant execute on function public.find_profile_by_email_exact(text) to authenticated;
 
 -- New users: copy first/last from auth metadata into profiles
 create or replace function public.handle_new_user_profile()
