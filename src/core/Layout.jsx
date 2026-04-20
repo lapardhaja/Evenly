@@ -141,7 +141,16 @@ export default function Layout() {
         <Typography variant="body2">Loading…</Typography>
       </Backdrop>
       <Box sx={{ flexGrow: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-        <AppBar position="sticky" elevation={2}>
+        <AppBar
+          position="sticky"
+          elevation={0}
+          sx={{
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           <Toolbar sx={{ minHeight: { xs: 64, sm: 68 } }}>
             <Box
               component={Link}
@@ -155,28 +164,16 @@ export default function Layout() {
               }}
             >
               <Box
+                component="img"
+                src={new URL('../evenly-header-lockup.svg', import.meta.url).href}
+                alt="Evenly"
                 sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  px: 1.25,
-                  py: 0.625,
-                  borderRadius: 2,
-                  bgcolor: 'rgba(255, 255, 255, 0.96)',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.14)',
+                  display: 'block',
+                  height: { xs: 28, sm: 32 },
+                  width: 'auto',
+                  maxWidth: { xs: 170, sm: 205 },
                 }}
-              >
-                <Box
-                  component="img"
-                  src={new URL('../evenly-header-lockup.svg', import.meta.url).href}
-                  alt="Evenly"
-                  sx={{
-                    display: 'block',
-                    height: { xs: 26, sm: 30 },
-                    width: 'auto',
-                    maxWidth: { xs: 158, sm: 190 },
-                  }}
-                />
-              </Box>
+              />
             </Box>
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
