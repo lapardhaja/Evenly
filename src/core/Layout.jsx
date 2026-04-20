@@ -21,6 +21,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
 import useThemeMode from '../hooks/useThemeMode.js';
 import ThemeModeMenu from './ThemeModeMenu.jsx';
+import BrandLogo from '../components/BrandLogo.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
@@ -149,24 +150,16 @@ export default function Layout() {
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1.5,
                 textDecoration: 'none',
                 color: 'inherit',
               }}
             >
-              <Box
-                component="img"
-                src={new URL('../evenly-logo-icon.svg', import.meta.url).href}
-                alt="Evenly"
-                sx={{ height: 32, width: 32 }}
+              <BrandLogo
+                iconSize={34}
+                gap={1}
+                sx={{ color: 'common.white' }}
+                textSx={{ fontWeight: 700, letterSpacing: '0.01em' }}
               />
-              <Typography
-                variant="h6"
-                component="div"
-                sx={{ fontWeight: 700, letterSpacing: '0.02em' }}
-              >
-                Evenly
-              </Typography>
             </Box>
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
