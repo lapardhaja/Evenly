@@ -155,16 +155,28 @@ export default function Layout() {
               }}
             >
               <Box
-                component="img"
-                src={new URL('../evenly-header-lockup.svg', import.meta.url).href}
-                alt="Evenly"
                 sx={{
-                  display: 'block',
-                  height: { xs: 24, sm: 28 },
-                  width: 'auto',
-                  maxWidth: { xs: 150, sm: 180 },
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  px: 1.25,
+                  py: 0.625,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(255, 255, 255, 0.96)',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.14)',
                 }}
-              />
+              >
+                <Box
+                  component="img"
+                  src={new URL('../evenly-header-lockup.svg', import.meta.url).href}
+                  alt="Evenly"
+                  sx={{
+                    display: 'block',
+                    height: { xs: 26, sm: 30 },
+                    width: 'auto',
+                    maxWidth: { xs: 158, sm: 190 },
+                  }}
+                />
+              </Box>
             </Box>
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
