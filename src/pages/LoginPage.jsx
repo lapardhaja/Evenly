@@ -11,6 +11,7 @@ import Link from '@mui/material/Link';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { useAuth } from '../context/AuthContext.jsx';
+import BrandLogo from '../components/BrandLogo.jsx';
 import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
 import {
   classifySignUpResponse,
@@ -292,6 +293,19 @@ export default function LoginPage() {
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Paper elevation={2} sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <BrandLogo
+            stacked
+            iconSize={72}
+            gap={1.5}
+            sx={{ color: 'primary.main' }}
+            textSx={{
+              fontSize: { xs: '2.75rem', sm: '3.25rem' },
+              fontWeight: 700,
+              letterSpacing: '-0.04em',
+            }}
+          />
+        </Box>
         <Typography variant="h5" gutterBottom fontWeight={700}>
           {forgotMode ? 'Reset password' : mode === 'signin' ? 'Sign in' : 'Create account'}
         </Typography>

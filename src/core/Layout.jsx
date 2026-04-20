@@ -142,31 +142,29 @@ export default function Layout() {
       </Backdrop>
       <Box sx={{ flexGrow: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <AppBar position="sticky" elevation={2}>
-          <Toolbar>
+          <Toolbar sx={{ minHeight: { xs: 64, sm: 68 } }}>
             <Box
               component={Link}
               to={supabaseConfigured && !user ? '/login' : '/'}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1.5,
                 textDecoration: 'none',
                 color: 'inherit',
+                minWidth: 0,
               }}
             >
               <Box
                 component="img"
-                src={new URL('../evenly-logo-icon.svg', import.meta.url).href}
+                src={new URL('../evenly-header-lockup.svg', import.meta.url).href}
                 alt="Evenly"
-                sx={{ height: 32, width: 32 }}
+                sx={{
+                  display: 'block',
+                  height: { xs: 24, sm: 28 },
+                  width: 'auto',
+                  maxWidth: { xs: 150, sm: 180 },
+                }}
               />
-              <Typography
-                variant="h6"
-                component="div"
-                sx={{ fontWeight: 700, letterSpacing: '0.02em' }}
-              >
-                Evenly
-              </Typography>
             </Box>
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
