@@ -21,7 +21,6 @@ import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
 import useThemeMode from '../hooks/useThemeMode.js';
 import ThemeModeMenu from './ThemeModeMenu.jsx';
-import BrandLogo from '../components/BrandLogo.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
@@ -143,7 +142,7 @@ export default function Layout() {
       </Backdrop>
       <Box sx={{ flexGrow: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
         <AppBar position="sticky" elevation={2}>
-          <Toolbar>
+          <Toolbar sx={{ minHeight: { xs: 64, sm: 68 } }}>
             <Box
               component={Link}
               to={supabaseConfigured && !user ? '/login' : '/'}
@@ -152,13 +151,19 @@ export default function Layout() {
                 alignItems: 'center',
                 textDecoration: 'none',
                 color: 'inherit',
+                minWidth: 0,
               }}
             >
-              <BrandLogo
-                iconSize={34}
-                gap={1}
-                sx={{ color: 'common.white' }}
-                textSx={{ fontWeight: 700, letterSpacing: '0.01em' }}
+              <Box
+                component="img"
+                src={new URL('../evenly-header-lockup.svg', import.meta.url).href}
+                alt="Evenly"
+                sx={{
+                  display: 'block',
+                  height: { xs: 24, sm: 28 },
+                  width: 'auto',
+                  maxWidth: { xs: 150, sm: 180 },
+                }}
               />
             </Box>
             {supabaseConfigured && user && !onLoginRoute ? (
