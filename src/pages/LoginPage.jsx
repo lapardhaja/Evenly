@@ -25,12 +25,7 @@ import {
   isValidEmailFormat,
   resolveSignInEmail,
 } from '../lib/friendsApi.js';
-import {
-  getRememberedLoginId,
-  setRememberedLoginId,
-  canOfferDevicePasswordSave,
-  storePasswordWithBrowser,
-} from '../lib/loginDevicePrefs.js';
+import { getRememberedLoginId, setRememberedLoginId } from '../lib/loginDevicePrefs.js';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -61,12 +56,6 @@ export default function LoginPage() {
   const [emailStatus, setEmailStatus] = useState('idle');
   const emailDebounceRef = useRef(null);
   const [rememberMe, setRememberMe] = useState(true);
-  const [savePassOnDevice, setSavePassOnDevice] = useState(true);
-  const showDevicePass = canOfferDevicePasswordSave();
-
-  useEffect(() => {
-    if (!rememberMe) setSavePassOnDevice(false);
-  }, [rememberMe]);
 
   if (!configured) {
     return (
@@ -191,9 +180,6 @@ export default function LoginPage() {
         await signIn(signInEmail, password);
         if (rememberMe) {
           setRememberedLoginId(email.trim());
-          if (showDevicePass && savePassOnDevice) {
-            void storePasswordWithBrowser({ id: email.trim(), password });
-          }
         } else {
           setRememberedLoginId('');
         }
@@ -477,26 +463,8 @@ export default function LoginPage() {
                     size="small"
                   />
                 }
-                label="Remember me on this device"
+                label="Remember me"
               />
-              {showDevicePass ? (
-                <>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={savePassOnDevice}
-                        onChange={(e) => setSavePassOnDevice(e.target.checked)}
-                        disabled={!rememberMe}
-                        size="small"
-                      />
-                    }
-                    label="Save password on this device for next time (Face ID, fingerprint, or saved password)"
-                  />
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
-                    Saved in your browser or phone — not on our servers.
-                  </Typography>
-                </>
-              ) : null}
             </>
           ) : null}
           <Button
