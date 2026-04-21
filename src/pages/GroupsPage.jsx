@@ -24,6 +24,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useGroups } from '../hooks/useGroupData.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { getDefaultPeopleMapForNewGroup } from '../lib/defaultGroupPeople.js';
 import { getUsdRatesTable, formatMoneyWithCode } from '../lib/currencies.js';
 import { sumGroupReceiptsInDisplayCurrency } from '../lib/groupSpendConvert.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
@@ -35,6 +37,7 @@ export default function GroupsPage() {
   const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
   const { groups, addGroup, deleteGroup, getGroupSnapshot, restoreGroup } = useGroups();
   const { data } = useGroupsData();
+  const { user } = useAuth();
   const [convertedTotals, setConvertedTotals] = useState({});
   const [totalsLoading, setTotalsLoading] = useState(true);
 
@@ -82,7 +85,9 @@ export default function GroupsPage() {
 
   const handleCreate = (name) => {
     if (!name.trim()) return;
-    const id = addGroup(name.trim());
+    const id = addGroup(name.trim(), {
+      initialPeople: getDefaultPeopleMapForNewGroup(user),
+    });
     if (id) navigate(`/groups/${id}/people`);
   };
 

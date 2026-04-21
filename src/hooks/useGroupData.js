@@ -38,8 +38,12 @@ export function useGroups() {
   );
 
   const addGroup = useCallback(
-    (name) => {
+    (name, options = {}) => {
       const id = uuidv4();
+      const people =
+        options.initialPeople && typeof options.initialPeople === 'object'
+          ? options.initialPeople
+          : {};
       setData((prev) => ({
         ...prev,
         groups: {
@@ -49,7 +53,7 @@ export function useGroups() {
             date: Date.now(),
             displayCurrency: 'USD',
             settledTransfers: [],
-            people: {},
+            people,
             receipts: {},
           },
         },
