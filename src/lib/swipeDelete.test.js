@@ -38,6 +38,17 @@ test('allows a later intentional tap on the open row to close it', () => {
   );
 });
 
+test('null lastSwipeEndAtMs (no swipe recorded) allows close', () => {
+  assert.equal(
+    shouldCloseSwipeOnContentClick({
+      translateXPx: -72,
+      lastSwipeEndAtMs: null,
+      nowMs: 2000,
+    }),
+    true,
+  );
+});
+
 test('a 25% max swipe is too small to hold delete open on common mobile row widths', () => {
   assert.equal(
     canSwipeDeleteStayOpen({
