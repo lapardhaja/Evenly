@@ -26,6 +26,7 @@ import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
 import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friendsApi.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
+import BrandLogo from '../components/BrandLogo.jsx';
 
 const lightTheme = createTheme({
   palette: {
@@ -154,24 +155,30 @@ export default function Layout() {
           <Toolbar sx={{ minHeight: { xs: 64, sm: 68 } }}>
             <Box
               component={Link}
-              to={supabaseConfigured && !user ? '/login' : '/'}
+              to="/"
+              aria-label="Evenly home"
               sx={{
                 display: 'flex',
                 alignItems: 'center',
                 textDecoration: 'none',
-                color: 'inherit',
+                color: 'primary.main',
                 minWidth: 0,
+                maxWidth: { xs: 200, sm: 240 },
+                '&:hover': { opacity: 0.92 },
               }}
             >
-              <Box
-                component="img"
-                src={new URL('../evenly-header-lockup.svg', import.meta.url).href}
-                alt="Evenly"
-                sx={{
-                  display: 'block',
-                  height: { xs: 28, sm: 32 },
-                  width: 'auto',
-                  maxWidth: { xs: 170, sm: 205 },
+              <BrandLogo
+                iconSize={30}
+                gap={1}
+                sx={{ color: 'inherit', minWidth: 0 }}
+                textSx={{
+                  fontSize: { xs: '1.15rem', sm: '1.25rem' },
+                  fontWeight: 700,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               />
             </Box>
