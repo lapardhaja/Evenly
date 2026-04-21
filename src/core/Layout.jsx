@@ -27,6 +27,11 @@ import { useProfileGate } from '../hooks/useProfileGate.js';
 import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friendsApi.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
+import {
+  APP_SHELL_HEIGHT,
+  isPullToRefreshDisabledForRoute,
+  shouldUsePullToRefreshLayout,
+} from '../lib/appShell.js';
 
 const lightTheme = createTheme({
   palette: {
@@ -125,9 +130,8 @@ export default function Layout() {
     notifyPullToRefresh();
   }, [reloadFromServer]);
 
-  /** Nested group pages (receipts, etc.) scroll inside #evenly-main-scroll; pull-to-refresh fights list scroll. */
-  const pullToRefreshDisabledForRoute =
-    location.pathname.startsWith('/groups/') || location.pathname.startsWith('/shared-settlement/');
+  const pullToRefreshDisabledForRoute = isPullToRefreshDisabledForRoute(location.pathname);
+  const usesPullToRefreshLayout = shouldUsePullToRefreshLayout(onLoginRoute);
 
   const showBootstrap =
     supabaseConfigured &&
@@ -148,7 +152,7 @@ export default function Layout() {
       <Box
         sx={{
           flexGrow: 1,
-          minHeight: '100dvh',
+          height: APP_SHELL_HEIGHT,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -316,10 +320,10 @@ export default function Layout() {
               Couldn’t load your data. Tap Retry, or sign out and sign in again.
             </Alert>
           ) : null}
-          {user && !onLoginRoute ? (
+          {usesPullToRefreshLayout ? (
             <PullToRefreshLayout
               onRefresh={handlePullRefresh}
-              disabled={!supabaseConfigured || pullToRefreshDisabledForRoute}
+              disabled={pullToRefreshDisabledForRoute}
             >
               <Outlet />
             </PullToRefreshLayout>
