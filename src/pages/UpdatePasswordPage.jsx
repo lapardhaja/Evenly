@@ -96,11 +96,11 @@ export default function UpdatePasswordPage() {
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <BrandLogo
             stacked
-            iconSize={88}
+            iconSize={73}
             gap={1}
             sx={{ color: 'primary.main' }}
             textSx={{
-              fontSize: { xs: '3rem', sm: '3.5rem' },
+              fontSize: { xs: '2.5rem', sm: '2.9rem' },
               fontWeight: 700,
               letterSpacing: '-0.04em',
             }}

@@ -11,9 +11,9 @@ export default function EvenlyHeaderLockup() {
       aria-hidden
       sx={{
         display: 'block',
-        height: { xs: 28, sm: 32 },
+        height: { xs: 34, sm: 40 },
         width: 'auto',
-        maxWidth: { xs: 170, sm: 205 },
+        maxWidth: { xs: 200, sm: 245 },
         flexShrink: 0,
         color: 'inherit',
       }}

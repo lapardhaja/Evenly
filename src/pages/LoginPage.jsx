@@ -296,11 +296,11 @@ export default function LoginPage() {
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <BrandLogo
             stacked
-            iconSize={72}
-            gap={1.5}
+            iconSize={60}
+            gap={1.35}
             sx={{ color: 'primary.main' }}
             textSx={{
-              fontSize: { xs: '2.75rem', sm: '3.25rem' },
+              fontSize: { xs: '2.35rem', sm: '2.85rem' },
               fontWeight: 700,
               letterSpacing: '-0.04em',
             }}
