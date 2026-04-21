@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback } from 'react';
+import { useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
@@ -22,13 +22,19 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import IconButton from '@mui/material/IconButton';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
-import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
+import { SwipeableList, Type } from 'react-swipeable-list';
+import 'react-swipeable-list/dist/styles.css';
+import '../components/swipeable-list-overrides.css';
+import { SwipeableDeleteRow } from '../components/SwipeableDeleteList.jsx';
 import ReceiptScanLoadingOverlay from '../components/ReceiptScanLoadingOverlay.jsx';
+
+const MAIN_SCROLL_ID = 'evenly-main-scroll';
 
 export default function GroupReceiptsTab({ groupId, groupData }) {
   const theme = useTheme();
@@ -62,6 +68,9 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   const [wrongFileHint, setWrongFileHint] = useState('');
   const [undoReceiptDelete, setUndoReceiptDelete] = useState(null);
 
+  const listBlockRef = useRef(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+
   const sorted = useMemo(
     () => [...receipts].sort((a, b) => b.date - a.date),
     [receipts],
@@ -69,9 +78,43 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
 
   const peopleMap = useMemo(() => {
     const map = {};
-    people.forEach((p) => { map[p.id] = p; });
+    people.forEach((p) => {
+      map[p.id] = p;
+    });
     return map;
   }, [people]);
+
+  const virtualizer = useWindowVirtualizer({
+    count: sorted.length,
+    estimateSize: () => 88,
+    overscan: 8,
+    scrollMargin,
+    getScrollElement: () => document.getElementById(MAIN_SCROLL_ID),
+    enabled: sorted.length > 0,
+  });
+
+  useLayoutEffect(() => {
+    const scrollEl = document.getElementById(MAIN_SCROLL_ID);
+    const block = listBlockRef.current;
+    if (!scrollEl || !block || sorted.length === 0) return undefined;
+
+    const measure = () => {
+      const s = scrollEl.getBoundingClientRect();
+      const b = block.getBoundingClientRect();
+      setScrollMargin(b.top - s.top + scrollEl.scrollTop);
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(scrollEl);
+    window.addEventListener('resize', measure);
+    scrollEl.addEventListener('scroll', measure, { passive: true });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+      scrollEl.removeEventListener('scroll', measure);
+    };
+  }, [sorted.length, isMobileSwipe]);
 
   const handleCreate = (title) => {
     if (!title.trim()) return;
@@ -101,8 +144,17 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     setScanFlowError('');
     try {
       const dataUrl = await readFileAsDataUrl(file);
-      const { items, storeName, tax, tip, discount, receiptDate, grandTotal, currencyCode, taxBehavior } =
-        await scanReceiptImage(dataUrl);
+      const {
+        items,
+        storeName,
+        tax,
+        tip,
+        discount,
+        receiptDate,
+        grandTotal,
+        currencyCode,
+        taxBehavior,
+      } = await scanReceiptImage(dataUrl);
       setScannedItems(Array.isArray(items) ? items : []);
       setScannedStoreName(storeName || '');
       setScannedTax(typeof tax === 'number' ? tax : 0);
@@ -233,6 +285,8 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     );
   };
 
+  const virtualItems = virtualizer.getVirtualItems();
+
   return (
     <Box>
       <input
@@ -257,52 +311,96 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           variant="outlined"
         >
           <ReceiptLongIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-          <Typography color="text.secondary">
-            No receipts yet. Tap + to add one.
-          </Typography>
+          <Typography color="text.secondary">No receipts yet. Tap + to add one.</Typography>
         </Paper>
       ) : (
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
-          {isMobileSwipe ? (
-            <SwipeableDeleteList
-              items={sorted}
-              getKey={(r) => r.id}
-              onDelete={handleDeleteReceipt}
-            >
-              {(r) => (
-                <ListItem disablePadding sx={{ display: 'block' }}>
-                  {receiptRow(r)}
-                </ListItem>
-              )}
-            </SwipeableDeleteList>
-          ) : (
-            <List disablePadding>
-              {sorted.map((r, idx) => (
-                <Box key={r.id}>
-                  {idx > 0 && <Divider />}
-                  <ListItem
-                    disablePadding
-                    secondaryAction={
-                      <IconButton
-                        edge="end"
-                        aria-label={`Delete ${r.title}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteReceipt(r);
+          <Box ref={listBlockRef}>
+            {isMobileSwipe ? (
+              <SwipeableList type={Type.IOS} threshold={0.2} style={{ width: '100%' }}>
+                <Box
+                  sx={{
+                    height: virtualizer.getTotalSize(),
+                    width: '100%',
+                    position: 'relative',
+                  }}
+                >
+                  {virtualItems.map((vi) => {
+                    const r = sorted[vi.index];
+                    return (
+                      <Box
+                        key={r.id}
+                        data-index={vi.index}
+                        ref={virtualizer.measureElement}
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          transform: `translateY(${vi.start}px)`,
                         }}
-                        size="small"
-                        color="error"
                       >
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    }
-                  >
-                    {receiptRow(r)}
-                  </ListItem>
+                        <SwipeableDeleteRow onDelete={() => handleDeleteReceipt(r)}>
+                          <ListItem disablePadding sx={{ display: 'block' }}>
+                            {receiptRow(r)}
+                          </ListItem>
+                        </SwipeableDeleteRow>
+                      </Box>
+                    );
+                  })}
                 </Box>
-              ))}
-            </List>
-          )}
+              </SwipeableList>
+            ) : (
+              <List disablePadding>
+                <Box
+                  sx={{
+                    height: virtualizer.getTotalSize(),
+                    width: '100%',
+                    position: 'relative',
+                  }}
+                >
+                  {virtualItems.map((vi) => {
+                    const r = sorted[vi.index];
+                    return (
+                      <Box
+                        key={r.id}
+                        data-index={vi.index}
+                        ref={virtualizer.measureElement}
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          transform: `translateY(${vi.start}px)`,
+                        }}
+                      >
+                        {vi.index > 0 && <Divider />}
+                        <ListItem
+                          disablePadding
+                          secondaryAction={
+                            <IconButton
+                              edge="end"
+                              aria-label={`Delete ${r.title}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteReceipt(r);
+                              }}
+                              size="small"
+                              color="error"
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          }
+                        >
+                          {receiptRow(r)}
+                        </ListItem>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </List>
+            )}
+          </Box>
         </Paper>
       )}
 
@@ -390,11 +488,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           if (reason === 'clickaway') return;
           setUndoReceiptDelete(null);
         }}
-        message={
-          undoReceiptDelete
-            ? `Removed "${undoReceiptDelete.label}"`
-            : ''
-        }
+        message={undoReceiptDelete ? `Removed "${undoReceiptDelete.label}"` : ''}
         action={
           <Button color="secondary" size="small" onClick={handleUndoReceiptDelete}>
             Undo

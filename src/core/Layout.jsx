@@ -312,7 +312,12 @@ export default function Layout() {
               <Outlet />
             </PullToRefreshLayout>
           ) : (
-            <Outlet />
+            <Box
+              id="evenly-main-scroll"
+              sx={{ flex: 1, minHeight: 0, overflow: 'auto', WebkitOverflowScrolling: 'touch' }}
+            >
+              <Outlet />
+            </Box>
           )}
         </Box>
 
