@@ -9,10 +9,10 @@ export default defineConfig(({ command }) => ({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
-        'evenly-icon.svg',
-        'apple-touch-icon.png',
-        'pwa-192.png',
-        'pwa-512.png',
+        'brand/evenly-icon.svg',
+        'brand/apple-touch-icon.png',
+        'brand/pwa-192.png',
+        'brand/pwa-512.png',
       ],
       manifest: {
         name: 'Evenly',
@@ -27,19 +27,19 @@ export default defineConfig(({ command }) => ({
         scope: '.',
         icons: [
           {
-            src: 'pwa-192.png',
+            src: 'brand/pwa-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: 'pwa-512.png',
+            src: 'brand/pwa-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: 'pwa-512.png',
+            src: 'brand/pwa-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

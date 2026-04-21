@@ -31,6 +31,11 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 - Each receipt has a `paidById` field (who paid the bill).
 - Settlement computed across all receipts in a group using greedy creditor/debtor pairing.
 
+### Brand assets
+- **`public/brand/`** — favicon (`evenly-icon.svg`), PWA icons (`pwa-192.png`, `pwa-512.png`), `apple-touch-icon.png` (referenced from `index.html` and `vite.config.js` PWA manifest).
+- **`src/assets/brand/`** — optional standalone SVG sources (e.g. E mark only).
+- **In-app logos** — `src/components/BrandLogo.jsx` (stacked hero), `src/components/EvenlyHeaderLockup.jsx` (app bar wordmark).
+
 ### Files
 - `src/main.jsx` — Entry point, `RouterProvider` + `router.jsx`
 - `src/router.jsx` — `createHashRouter` route tree (nested under `Layout` via `<Outlet />`)
