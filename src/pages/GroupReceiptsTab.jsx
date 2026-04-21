@@ -22,7 +22,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import IconButton from '@mui/material/IconButton';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
@@ -70,6 +70,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
 
   const listBlockRef = useRef(null);
   const [scrollMargin, setScrollMargin] = useState(0);
+  const [scrollParent, setScrollParent] = useState(null);
 
   const sorted = useMemo(
     () => [...receipts].sort((a, b) => b.date - a.date),
@@ -84,17 +85,22 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     return map;
   }, [people]);
 
-  const virtualizer = useWindowVirtualizer({
+  /** #evenly-main-scroll — must use useVirtualizer (not useWindowVirtualizer) when scroll is this element. */
+  useLayoutEffect(() => {
+    setScrollParent(document.getElementById(MAIN_SCROLL_ID));
+  }, []);
+
+  const virtualizer = useVirtualizer({
     count: sorted.length,
+    getScrollElement: () => scrollParent,
     estimateSize: () => 88,
     overscan: 8,
     scrollMargin,
-    getScrollElement: () => document.getElementById(MAIN_SCROLL_ID),
-    enabled: sorted.length > 0,
+    enabled: sorted.length > 0 && !!scrollParent,
   });
 
   useLayoutEffect(() => {
-    const scrollEl = document.getElementById(MAIN_SCROLL_ID);
+    const scrollEl = scrollParent;
     const block = listBlockRef.current;
     if (!scrollEl || !block || sorted.length === 0) return undefined;
 
@@ -107,6 +113,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(scrollEl);
+    ro.observe(block);
     window.addEventListener('resize', measure);
     scrollEl.addEventListener('scroll', measure, { passive: true });
     return () => {
@@ -114,7 +121,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       window.removeEventListener('resize', measure);
       scrollEl.removeEventListener('scroll', measure);
     };
-  }, [sorted.length, isMobileSwipe]);
+  }, [scrollParent, sorted.length, isMobileSwipe]);
 
   const handleCreate = (title) => {
     if (!title.trim()) return;
