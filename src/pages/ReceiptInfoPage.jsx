@@ -247,6 +247,7 @@ export default function ReceiptInfoPage() {
         }}
       >
         <TextField
+          label="Date"
           type="date"
           value={dateStr}
           onChange={(e) => {
@@ -256,6 +257,7 @@ export default function ReceiptInfoPage() {
           variant="standard"
           size="small"
           disabled={receipt.locked}
+          InputLabelProps={{ shrink: true }}
           sx={{ maxWidth: 160 }}
         />
         <TextField
@@ -266,6 +268,7 @@ export default function ReceiptInfoPage() {
           variant="standard"
           size="small"
           disabled={receipt.locked}
+          InputLabelProps={{ shrink: true }}
           sx={{ minWidth: 140 }}
         >
           <MenuItem value="">
