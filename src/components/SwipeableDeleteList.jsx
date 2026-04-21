@@ -26,7 +26,7 @@ export function SwipeableDeleteRow({ onDelete, children }) {
       ref={(inst) => {
         itemInstRef.current = inst;
       }}
-      maxSwipe={0.25}
+      maxSwipe={0.4}
       onSwipeStart={() => {
         openedAtRef.current = 0;
       }}
@@ -53,9 +53,9 @@ export function SwipeableDeleteRow({ onDelete, children }) {
           const x = getSwipeDeleteTranslateX(inst?.listElement);
           if (
             shouldCloseSwipeOnContentClick({
-              translateXPx: x,
-              lastSwipeEndAtMs: openedAtRef.current,
-              nowMs: Date.now(),
+            translateXPx: x,
+            lastSwipeEndAtMs: openedAtRef.current,
+            nowMs: Date.now(),
             }) &&
             typeof inst?.playReturnAnimation === 'function'
           ) {
