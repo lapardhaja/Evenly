@@ -34,3 +34,14 @@ test('allows a later intentional tap on the open row to close it', () => {
     true,
   );
 });
+
+test('null lastSwipeEndAtMs (no swipe recorded) allows close', () => {
+  assert.equal(
+    shouldCloseSwipeOnContentClick({
+      translateXPx: -72,
+      lastSwipeEndAtMs: null,
+      nowMs: 2000,
+    }),
+    true,
+  );
+});

@@ -13,6 +13,10 @@ export function shouldCloseSwipeOnContentClick({
   nowMs = Date.now(),
 }) {
   if (!(translateXPx < -8)) return false;
-  if (!Number.isFinite(lastSwipeEndAtMs)) return true;
+  // null means the row was opened programmatically or we have no swipe record —
+  // allow close immediately.
+  if (lastSwipeEndAtMs == null || !Number.isFinite(lastSwipeEndAtMs)) return true;
+  // Suppress the close during the guard window right after a swipe ends so the
+  // library's synthetic touchend→click does not immediately snap the row shut.
   return nowMs - lastSwipeEndAtMs > AUTO_CLOSE_GUARD_MS;
 }

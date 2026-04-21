@@ -28,12 +28,16 @@ export function SwipeableDeleteRow({ onDelete, children }) {
       }}
       maxSwipe={0.25}
       onSwipeStart={() => {
-        openedAtRef.current = 0;
+        openedAtRef.current = null;
       }}
       onSwipeEnd={() => {
-        const inst = itemInstRef.current;
-        const x = getSwipeDeleteTranslateX(inst?.listElement);
-        openedAtRef.current = x < -8 ? Date.now() : 0;
+        // Always record the swipe-end time. The snap animation runs
+        // asynchronously AFTER onSwipeEnd, so we cannot read translateX
+        // here to determine whether the action opened — it will still be 0.
+        // Recording Date.now() unconditionally lets the AUTO_CLOSE_GUARD in
+        // shouldCloseSwipeOnContentClick suppress the library's synthetic
+        // touchend→click that would otherwise immediately close the row.
+        openedAtRef.current = Date.now();
       }}
       trailingActions={
         <TrailingActions>
