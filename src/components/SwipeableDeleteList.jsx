@@ -9,19 +9,17 @@ import {
 } from 'react-swipeable-list';
 import 'react-swipeable-list/dist/styles.css';
 import './swipeable-list-overrides.css';
-
-function getTranslateXPx(listElement) {
-  if (!listElement) return 0;
-  const t = listElement.style?.transform || '';
-  const m = t.match(/translateX\((-?\d+(?:\.\d+)?)px\)/);
-  return m ? parseFloat(m[1], 10) : 0;
-}
+import {
+  getSwipeDeleteTranslateX,
+  shouldCloseSwipeOnContentClick,
+} from '../lib/swipeDelete.js';
 
 /**
  * One swipe row — must be a direct child of {@link SwipeableList}.
  */
 export function SwipeableDeleteRow({ onDelete, children }) {
   const itemInstRef = useRef(null);
+  const openedAtRef = useRef(0);
 
   return (
     <SwipeableListItem
@@ -29,6 +27,14 @@ export function SwipeableDeleteRow({ onDelete, children }) {
         itemInstRef.current = inst;
       }}
       maxSwipe={0.25}
+      onSwipeStart={() => {
+        openedAtRef.current = 0;
+      }}
+      onSwipeEnd={() => {
+        const inst = itemInstRef.current;
+        const x = getSwipeDeleteTranslateX(inst?.listElement);
+        openedAtRef.current = x < -8 ? Date.now() : 0;
+      }}
       trailingActions={
         <TrailingActions>
           <SwipeAction
@@ -44,9 +50,15 @@ export function SwipeableDeleteRow({ onDelete, children }) {
       <Box
         onClickCapture={(e) => {
           const inst = itemInstRef.current;
-          const el = inst?.listElement;
-          const x = getTranslateXPx(el);
-          if (x < -8 && typeof inst?.playReturnAnimation === 'function') {
+          const x = getSwipeDeleteTranslateX(inst?.listElement);
+          if (
+            shouldCloseSwipeOnContentClick({
+              translateXPx: x,
+              lastSwipeEndAtMs: openedAtRef.current,
+              nowMs: Date.now(),
+            }) &&
+            typeof inst?.playReturnAnimation === 'function'
+          ) {
             e.preventDefault();
             e.stopPropagation();
             inst.playReturnAnimation();
