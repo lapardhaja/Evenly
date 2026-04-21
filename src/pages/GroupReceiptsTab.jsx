@@ -24,6 +24,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import IconButton from '@mui/material/IconButton';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
+import { getVirtualRowTranslateY } from '../lib/virtualizedList.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
@@ -344,7 +345,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
                           top: 0,
                           left: 0,
                           width: '100%',
-                          transform: `translateY(${vi.start}px)`,
+                          transform: `translateY(${getVirtualRowTranslateY(vi.start, scrollMargin)}px)`,
                         }}
                       >
                         <SwipeableDeleteRow onDelete={() => handleDeleteReceipt(r)}>
@@ -378,7 +379,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
                           top: 0,
                           left: 0,
                           width: '100%',
-                          transform: `translateY(${vi.start}px)`,
+                          transform: `translateY(${getVirtualRowTranslateY(vi.start, scrollMargin)}px)`,
                         }}
                       >
                         {vi.index > 0 && <Divider />}

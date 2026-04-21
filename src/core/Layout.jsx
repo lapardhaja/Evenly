@@ -145,7 +145,15 @@ export default function Layout() {
         <CircularProgress color="inherit" />
         <Typography variant="body2">Loading…</Typography>
       </Backdrop>
-      <Box sx={{ flexGrow: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          minHeight: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
         <AppBar
           position="sticky"
           elevation={0}
@@ -293,7 +301,7 @@ export default function Layout() {
           </Toolbar>
         </AppBar>
 
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {supabaseConfigured && user && syncError && !onLoginRoute ? (
             <Alert
               severity="error"
