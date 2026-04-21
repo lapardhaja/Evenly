@@ -125,6 +125,10 @@ export default function Layout() {
     notifyPullToRefresh();
   }, [reloadFromServer]);
 
+  /** Nested group pages (receipts, etc.) scroll inside #evenly-main-scroll; pull-to-refresh fights list scroll. */
+  const pullToRefreshDisabledForRoute =
+    location.pathname.startsWith('/groups/') || location.pathname.startsWith('/shared-settlement/');
+
   const showBootstrap =
     supabaseConfigured &&
     !onLoginRoute &&
@@ -307,7 +311,7 @@ export default function Layout() {
           {user && !onLoginRoute ? (
             <PullToRefreshLayout
               onRefresh={handlePullRefresh}
-              disabled={!supabaseConfigured}
+              disabled={!supabaseConfigured || pullToRefreshDisabledForRoute}
             >
               <Outlet />
             </PullToRefreshLayout>

@@ -3,6 +3,10 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 const THRESHOLD = 56;
 const MAX_PULL = 96;
 const RESIST = 0.42;
+/** Ignore pull until finger moved down this far (avoids fighting scroll / bounce). */
+const PULL_ARM_PX = 18;
+/** Cancel pull if horizontal movement dominates (lists, swipe rows). */
+const HORIZONTAL_CANCEL_PX = 14;
 
 /**
  * Pull down on the scroll container to refresh (mobile / touch).
@@ -13,7 +17,9 @@ export function usePullToRefresh({ onRefresh, disabled = false, threshold = THRE
   const [pullPx, setPullPx] = useState(0);
   const pullPxRef = useRef(0);
   const startYRef = useRef(0);
+  const startXRef = useRef(0);
   const trackingRef = useRef(false);
+  const pullIntentRef = useRef(false);
   const refreshingRef = useRef(false);
   const containerRef = useRef(null);
 
@@ -43,21 +49,45 @@ export function usePullToRefresh({ onRefresh, disabled = false, threshold = THRE
     if (!el || disabled) return undefined;
 
     const onTouchStart = (e) => {
-      if (el.scrollTop > 2) return;
+      if (el.scrollTop > 2) {
+        trackingRef.current = false;
+        pullIntentRef.current = false;
+        return;
+      }
       trackingRef.current = true;
+      pullIntentRef.current = false;
       startYRef.current = e.touches[0].clientY;
+      startXRef.current = e.touches[0].clientX;
     };
 
     const onTouchMove = (e) => {
       if (!trackingRef.current || refreshingRef.current) return;
       if (el.scrollTop > 2) {
         trackingRef.current = false;
+        pullIntentRef.current = false;
         setPullPx(0);
         pullPxRef.current = 0;
         return;
       }
-      const dy = e.touches[0].clientY - startYRef.current;
-      if (dy > 6) {
+      const touch = e.touches[0];
+      const dy = touch.clientY - startYRef.current;
+      const dx = touch.clientX - startXRef.current;
+
+      if (!pullIntentRef.current) {
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > HORIZONTAL_CANCEL_PX) {
+          trackingRef.current = false;
+          return;
+        }
+        if (dy < 4) {
+          return;
+        }
+        if (dy < PULL_ARM_PX) {
+          return;
+        }
+        pullIntentRef.current = true;
+      }
+
+      if (dy > 4) {
         e.preventDefault();
         const p = Math.min(dy * RESIST, MAX_PULL);
         pullPxRef.current = p;
@@ -68,6 +98,7 @@ export function usePullToRefresh({ onRefresh, disabled = false, threshold = THRE
     const onTouchEnd = () => {
       if (!trackingRef.current) return;
       trackingRef.current = false;
+      pullIntentRef.current = false;
       const p = pullPxRef.current;
       pullPxRef.current = 0;
       setPullPx(0);
@@ -78,6 +109,7 @@ export function usePullToRefresh({ onRefresh, disabled = false, threshold = THRE
 
     const onTouchCancel = () => {
       trackingRef.current = false;
+      pullIntentRef.current = false;
       pullPxRef.current = 0;
       setPullPx(0);
     };
