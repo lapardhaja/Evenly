@@ -235,51 +235,74 @@ export default function ReceiptInfoPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Date + Paid By row */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 2,
-          px: 1,
-          mb: 2,
-          flexWrap: 'wrap',
-          alignItems: 'center',
-        }}
-      >
-        <TextField
-          label="Date"
-          type="date"
-          value={dateStr}
-          onChange={(e) => {
-            const newDate = new Date(e.target.value + 'T12:00:00').getTime();
-            if (!isNaN(newDate)) updateReceiptProperty('date', newDate);
+      {/* Date + Paid By row — flex-end aligns underlines; native date needs padding reset */}
+      <Box sx={{ px: 1, mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            alignItems: 'flex-end',
+            mb: 2,
           }}
-          variant="standard"
-          size="small"
-          disabled={receipt.locked}
-          InputLabelProps={{ shrink: true }}
-          sx={{ maxWidth: 160 }}
-        />
-        <TextField
-          select
-          label="Paid by"
-          value={receipt.paidById || ''}
-          onChange={(e) => updateReceiptProperty('paidById', e.target.value)}
-          variant="standard"
-          size="small"
-          disabled={receipt.locked}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 140 }}
         >
-          <MenuItem value="">
-            <em>Not set</em>
-          </MenuItem>
-          {people.map((p) => (
-            <MenuItem key={p.id} value={p.id}>
-              {p.name}
+          <TextField
+            label="Date"
+            type="date"
+            value={dateStr}
+            onChange={(e) => {
+              const newDate = new Date(e.target.value + 'T12:00:00').getTime();
+              if (!isNaN(newDate)) updateReceiptProperty('date', newDate);
+            }}
+            variant="standard"
+            size="small"
+            disabled={receipt.locked}
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              sx: {
+                '& input[type="date"]': {
+                  py: '4px',
+                  lineHeight: 1.4375,
+                },
+                '& input[type="date"]::-webkit-datetime-edit-fields-wrapper': {
+                  py: 0,
+                },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  py: 0,
+                },
+              },
+            }}
+            sx={{ maxWidth: 160 }}
+          />
+          <TextField
+            select
+            label="Paid by"
+            value={receipt.paidById || ''}
+            onChange={(e) => updateReceiptProperty('paidById', e.target.value)}
+            variant="standard"
+            size="small"
+            disabled={receipt.locked}
+            InputLabelProps={{ shrink: true }}
+            SelectProps={{ displayEmpty: true }}
+            sx={{
+              minWidth: 140,
+              '& .MuiSelect-select': {
+                py: '4px',
+                lineHeight: 1.4375,
+                minHeight: 'unset',
+              },
+            }}
+          >
+            <MenuItem value="">
+              <em>Not set</em>
             </MenuItem>
-          ))}
-        </TextField>
+            {people.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Box>
         <CurrencyAutocomplete
           id="receipt-currency"
           label="Receipt currency"
