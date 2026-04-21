@@ -26,7 +26,7 @@ import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
 import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friendsApi.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
-import BrandLogo from '../components/BrandLogo.jsx';
+import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 
 const lightTheme = createTheme({
   palette: {
@@ -163,24 +163,10 @@ export default function Layout() {
                 textDecoration: 'none',
                 color: 'primary.main',
                 minWidth: 0,
-                maxWidth: { xs: 200, sm: 240 },
                 '&:hover': { opacity: 0.92 },
               }}
             >
-              <BrandLogo
-                iconSize={30}
-                gap={1}
-                sx={{ color: 'inherit', minWidth: 0 }}
-                textSx={{
-                  fontSize: { xs: '1.15rem', sm: '1.25rem' },
-                  fontWeight: 700,
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.1,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              />
+              <EvenlyHeaderLockup />
             </Box>
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
