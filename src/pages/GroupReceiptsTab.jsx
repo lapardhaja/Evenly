@@ -29,7 +29,6 @@ import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
-import { SwipeableList, Type } from 'react-swipeable-list';
 import 'react-swipeable-list/dist/styles.css';
 import '../components/swipeable-list-overrides.css';
 import { SwipeableDeleteRow } from '../components/SwipeableDeleteList.jsx';
@@ -325,39 +324,37 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
           <Box ref={listBlockRef}>
             {isMobileSwipe ? (
-              <SwipeableList type={Type.IOS} threshold={0.2} style={{ width: '100%' }}>
-                <Box
-                  sx={{
-                    height: virtualizer.getTotalSize(),
-                    width: '100%',
-                    position: 'relative',
-                  }}
-                >
-                  {virtualItems.map((vi) => {
-                    const r = sorted[vi.index];
-                    return (
-                      <Box
-                        key={r.id}
-                        data-index={vi.index}
-                        ref={virtualizer.measureElement}
-                        sx={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          transform: `translateY(${getVirtualRowTranslateY(vi.start, scrollMargin)}px)`,
-                        }}
-                      >
-                        <SwipeableDeleteRow onDelete={() => handleDeleteReceipt(r)}>
-                          <ListItem disablePadding sx={{ display: 'block' }}>
-                            {receiptRow(r)}
-                          </ListItem>
-                        </SwipeableDeleteRow>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </SwipeableList>
+              <Box
+                sx={{
+                  height: virtualizer.getTotalSize(),
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualItems.map((vi) => {
+                  const r = sorted[vi.index];
+                  return (
+                    <Box
+                      key={r.id}
+                      data-index={vi.index}
+                      ref={virtualizer.measureElement}
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${getVirtualRowTranslateY(vi.start, scrollMargin)}px)`,
+                      }}
+                    >
+                      <SwipeableDeleteRow onDelete={() => handleDeleteReceipt(r)}>
+                        <ListItem disablePadding sx={{ display: 'block' }}>
+                          {receiptRow(r)}
+                        </ListItem>
+                      </SwipeableDeleteRow>
+                    </Box>
+                  );
+                })}
+              </Box>
             ) : (
               <List disablePadding>
                 <Box
