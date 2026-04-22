@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import Box from '@mui/material/Box';
 import {
-  SwipeableList,
   SwipeableListItem,
   SwipeAction,
   TrailingActions,
@@ -15,7 +14,14 @@ import {
 } from '../lib/swipeDelete.js';
 
 /**
- * One swipe row — must be a direct child of {@link SwipeableList}.
+ * Self-contained swipe row. Does NOT need to be wrapped in <SwipeableList> —
+ * we set listType directly so the library's handleDragEnd correctly latches
+ * the row open at -trailingActionsWidth instead of snapping back to 0.
+ *
+ * (Wrapping in <SwipeableList> only worked when SwipeableDeleteRow was a
+ * direct child, because the wrapper uses React.cloneElement on its children
+ * to inject listType. Virtualization or any intermediate component breaks
+ * that prop flow, so we bake the prop in here.)
  */
 export function SwipeableDeleteRow({ onDelete, children }) {
   const itemInstRef = useRef(null);
@@ -23,6 +29,7 @@ export function SwipeableDeleteRow({ onDelete, children }) {
 
   return (
     <SwipeableListItem
+      listType={Type.IOS}
       ref={(inst) => {
         itemInstRef.current = inst;
       }}
@@ -57,9 +64,9 @@ export function SwipeableDeleteRow({ onDelete, children }) {
           const x = getSwipeDeleteTranslateX(inst?.listElement);
           if (
             shouldCloseSwipeOnContentClick({
-            translateXPx: x,
-            lastSwipeEndAtMs: openedAtRef.current,
-            nowMs: Date.now(),
+              translateXPx: x,
+              lastSwipeEndAtMs: openedAtRef.current,
+              nowMs: Date.now(),
             }) &&
             typeof inst?.playReturnAnimation === 'function'
           ) {
@@ -88,7 +95,7 @@ export function SwipeableDeleteRow({ onDelete, children }) {
  */
 export default function SwipeableDeleteList({ items, getKey, onDelete, children }) {
   return (
-    <SwipeableList type={Type.IOS} threshold={0.2} style={{ width: '100%' }}>
+    <Box sx={{ width: '100%' }}>
       {items.map((item, idx) => {
         const rowKey = getKey(item, idx);
         return (
@@ -97,6 +104,6 @@ export default function SwipeableDeleteList({ items, getKey, onDelete, children 
           </SwipeableDeleteRow>
         );
       })}
-    </SwipeableList>
+    </Box>
   );
 }
