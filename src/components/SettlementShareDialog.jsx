@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -51,12 +51,14 @@ export default function SettlementShareDialog({
 }) {
   const [note, setNote] = useState('');
   const [snack, setSnack] = useState({ open: false, message: '' });
+  const [shareUrl, setShareUrl] = useState('');
 
   useEffect(() => {
     if (open) setNote('');
   }, [open]);
 
-  const shareUrl = useMemo(() => {
+  useEffect(() => {
+    let cancelled = false;
     const payload = buildSettlementSharePayload({
       groupName,
       note: note.trim(),
@@ -64,12 +66,17 @@ export default function SettlementShareDialog({
       warnings,
       settleCurrencyCode,
     });
-    try {
-      const token = encodeSettlementShareToken(payload);
-      return settlementShareAbsoluteUrl(token);
-    } catch {
-      return '';
-    }
+    (async () => {
+      try {
+        const token = await encodeSettlementShareToken(payload);
+        if (!cancelled) setShareUrl(settlementShareAbsoluteUrl(token));
+      } catch {
+        if (!cancelled) setShareUrl('');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [groupName, note, transfers, warnings, settleCurrencyCode]);
 
   const title = `${(groupName && String(groupName).trim()) || 'Group'} — Settle up`;
