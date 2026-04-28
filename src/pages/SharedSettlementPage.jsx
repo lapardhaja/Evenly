@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -14,13 +14,48 @@ import Button from '@mui/material/Button';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { nameToInitials } from '../functions/utils.js';
-import { parseSettlementShareToken } from '../lib/settlementShareLink.js';
+import {
+  parseSettlementShareToken,
+  parseSettlementShareTokenAsync,
+} from '../lib/settlementShareLink.js';
 import { formatMoneyWithCode } from '../lib/currencies.js';
 
 export default function SharedSettlementPage() {
   const { token } = useParams();
 
-  const parsed = useMemo(() => parseSettlementShareToken(token), [token]);
+  const syncParsed = useMemo(() => parseSettlementShareToken(token), [token]);
+  const [asyncParsed, setAsyncParsed] = useState(null);
+
+  useEffect(() => {
+    if (syncParsed.ok || syncParsed.error !== 'async') {
+      setAsyncParsed(null);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      const r = await parseSettlementShareTokenAsync(token);
+      if (!cancelled) setAsyncParsed(r);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, syncParsed.ok, syncParsed.error]);
+
+  const parsed = syncParsed.ok
+    ? syncParsed
+    : syncParsed.error === 'async' && asyncParsed
+      ? asyncParsed
+      : syncParsed;
+
+  if (!parsed.ok && syncParsed.error === 'async' && asyncParsed === null) {
+    return (
+      <Container maxWidth="sm" sx={{ py: 6, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">
+          Loading…
+        </Typography>
+      </Container>
+    );
+  }
 
   if (!parsed.ok) {
     return (
