@@ -1,6 +1,23 @@
 import { compressImageDataUrl } from './compressImageForScan.js';
 import { classifyTaxBehaviorFromTotals } from './receiptTaxBehavior.js';
 
+export function userMessageForScanFailure(status, data) {
+  if (status === 413) {
+    return 'That photo is too large. Try a smaller image.';
+  }
+  const apiMsg = typeof data?.error === 'string' ? data.error : '';
+  if (status >= 500) {
+    if (/no longer available|GEMINI_API_KEY is not set|Server misconfiguration/i.test(apiMsg)) {
+      return 'Receipt scan is unavailable. Please try again later.';
+    }
+    return 'Something went wrong. Please try again in a moment.';
+  }
+  if (apiMsg && !/supabase|gemini|vercel|api key|unauthorized/i.test(apiMsg)) {
+    return apiMsg;
+  }
+  return 'We couldn’t read this receipt. Try another photo.';
+}
+
 /**
  * Image data URL → compress → /api/scan (Vercel) → Gemini (images only).
  */
@@ -22,17 +39,7 @@ export async function scanReceiptImage(dataUrl) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 413) {
-      throw new Error('That photo is too large. Try a smaller image.');
-    }
-    if (res.status >= 500) {
-      throw new Error('Something went wrong. Please try again in a moment.');
-    }
-    const apiMsg = typeof data.error === 'string' ? data.error : '';
-    if (apiMsg && !/supabase|gemini|vercel|api key|unauthorized/i.test(apiMsg)) {
-      throw new Error(apiMsg);
-    }
-    throw new Error('We couldn’t read this receipt. Try another photo.');
+    throw new Error(userMessageForScanFailure(res.status, data));
   }
 
   const items = Array.isArray(data.items) ? data.items : [];

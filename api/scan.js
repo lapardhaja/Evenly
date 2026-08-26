@@ -1,15 +1,14 @@
 /**
  * POST /api/scan
  * Body: { base64Image: string (raw base64), mimeType: string e.g. "image/jpeg" }
- * Env: GEMINI_API_KEY (optional GEMINI_MODEL, default gemini-3.1-flash-lite-preview)
+ * Env: GEMINI_API_KEY (optional GEMINI_MODEL; default gemini-3.5-flash-lite, then gemini-3.1-flash-lite)
  */
 
-const DEFAULT_MODEL = 'gemini-3.1-flash-lite-preview';
-
-function geminiUrl(model, apiKey) {
-  const m = encodeURIComponent(model);
-  return `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(apiKey)}`;
-}
+import { classifyTaxBehaviorFromTotals } from '../src/lib/receiptTaxBehavior.js';
+import {
+  geminiModelQueue,
+  generateContentWithFallback,
+} from '../src/lib/geminiScanModels.js';
 
 function parseGeminiJson(text) {
   if (!text || typeof text !== 'string') return null;
@@ -61,8 +60,6 @@ function normalizeReceiptDateISO(str) {
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
   return s;
 }
-
-import { classifyTaxBehaviorFromTotals } from '../src/lib/receiptTaxBehavior.js';
 
 function normalizeItems(raw) {
   if (!Array.isArray(raw)) return [];
@@ -140,7 +137,7 @@ export default async function handler(req, res) {
     return res.status(413).json({ error: 'Image too large' });
   }
 
-  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const models = geminiModelQueue(process.env.GEMINI_MODEL);
 
   const prompt = `Look at this receipt image and extract data for a bill-splitting app.
 Return ONLY a valid JSON object (no markdown, no code fences):
@@ -200,10 +197,10 @@ If nothing is readable, return {"storeName":"","currencyCode":"USD","items":[],"
 Always return valid JSON with keys storeName, currencyCode, items, tax, tip, discount, receiptDate, grandTotal, taxInclusive.`;
 
   try {
-    const response = await fetch(geminiUrl(model, apiKey), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const gemini = await generateContentWithFallback({
+      apiKey,
+      models,
+      requestBody: {
         contents: [
           {
             parts: [
@@ -219,16 +216,17 @@ Always return valid JSON with keys storeName, currencyCode, items, tax, tip, dis
         ],
         generationConfig: {
           temperature: 0.1,
+          responseMimeType: 'application/json',
         },
-      }),
+      },
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      const msg = data?.error?.message || 'Gemini request failed';
+    if (!gemini.ok) {
+      const msg = gemini.errorMessage || 'Gemini request failed';
       return res.status(502).json({ error: msg });
     }
+
+    const data = gemini.data;
 
     const blockReason = data?.candidates?.[0]?.finishReason;
     if (blockReason && blockReason !== 'STOP') {
