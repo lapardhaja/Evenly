@@ -90,7 +90,9 @@ export default function Layout() {
   const skipDataWait =
     location.pathname === '/friends' ||
     location.pathname === '/profile' ||
-    location.pathname === '/profile-setup';
+    location.pathname === '/profile-setup' ||
+    location.pathname === '/share' ||
+    location.pathname.startsWith('/share/');
   const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
 
   const refreshFriendRequestCount = useCallback(async () => {

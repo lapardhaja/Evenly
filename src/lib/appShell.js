@@ -24,6 +24,7 @@ export const PUBLIC_EXEMPT_ROUTES = [
   '/terms',
   '/cookies',
   '/copyright',
+  '/share',
 ];
 
 /** Routes that skip profile gate, data bootstrap, and pull-to-refresh layout. */
