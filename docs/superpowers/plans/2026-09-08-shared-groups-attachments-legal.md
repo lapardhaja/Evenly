@@ -839,7 +839,7 @@ Dialog/fullscreen: if mime starts with `image/` and not heic/heif → `<Box comp
 - Hidden file input `accept="image/*,application/pdf,image/heic,image/heif"`
 - Buttons: Add, thumbnail grid, delete IconButton
 - Toasts/Snackbar for errors
-- If `!enabled`, render nothing (or caption “Sign in with cloud to attach files”)
+- If `!enabled`, render `null` (attachments are cloud-only per spec).
 
 - [ ] **Step 3: Mount in `ReceiptInfoPage`** after currency/tax block, before Tabs
 
