@@ -13,11 +13,13 @@ Run `supabase/migrations/20260218120000_group_settled_transfers.sql` for `settle
 Run `20260419120000_profiles_and_friends.sql` and `20260419120100_group_people_linked_user.sql` for **Friends** (profiles, requests, friendships) and optional `linked_user_id` on **`group_people`**.  
 Run `20260420120000_profile_first_last_name.sql` to add optional **`first_name`** / **`last_name`** on **`profiles`** and refresh search RPCs. (It drops and recreates the username/email search functions because their return shape changed — required by Postgres.)  
 Run `20260421120000_username_availability_rpc.sql` for **`is_username_available(text)`** (used for live username checks at sign-up; callable by `anon`).  
-Run `20260422120000_email_availability_and_sign_in_resolve.sql` for **`is_email_available(text)`** (sign-up email check vs `auth.users`) and **`resolve_sign_in_email(text)`** (username → profile email for sign-in / reset).
+Run `20260422120000_email_availability_and_sign_in_resolve.sql` for **`is_email_available(text)`** (sign-up email check vs `auth.users`) and **`resolve_sign_in_email(text)`** (username → profile email for sign-in / reset).  
+Run `20260423120000_group_members.sql` for **`group_members`**, membership-based RLS on group data, and **`add_friend_to_group(uuid, uuid)`** (invite a friend into a shared group).
 
 | Table | Purpose |
 |--------|--------|
-| **`groups`** | One row per split group; `user_id` = owner (`auth.users.id`). Optional `display_currency` (default USD) for Settle tab display. Optional `settled_transfers` (JSON array of strings) for which “Settle up” rows are marked done. |
+| **`groups`** | One row per split group; `user_id` = creator/owner (`auth.users.id`). Optional `display_currency` (default USD) for Settle tab display. Optional `settled_transfers` (JSON array of strings) for which “Settle up” rows are marked done. |
+| **`group_members`** | Membership for shared groups: `(group_id, user_id, role)` where `role` is `owner` or `member`. One owner per group (partial unique index). Backfilled from `groups.user_id`; new groups get an owner row via trigger. |
 | **`profiles`** | One row per `auth.users` row: `username`, `display_name`, optional `first_name` / `last_name`, `email_lookup` (for friend search). |
 | **`friend_requests`** | Pending/accepted/declined friend requests between users. |
 | **`friendships`** | Accepted friendships (`user_a` &lt; `user_b`). |
@@ -26,7 +28,9 @@ Run `20260422120000_email_availability_and_sign_in_resolve.sql` for **`is_email_
 | **`receipt_items`** | Line items on a receipt. |
 | **`receipt_allocations`** | Who claimed how much of each line item. |
 
-All `public` tables use **RLS** so each user only sees their own `groups` (and related rows).
+Group data access is **membership-based** via **`group_members`**, not `groups.user_id` alone. **`is_group_member(uuid)`** and **`is_group_owner(uuid)`** (security definer) power RLS on `groups`, `group_people`, `receipts`, `receipt_items`, and `receipt_allocations`. Clients cannot insert/update `group_members` directly; owners are created on group insert, and friends are added via **`add_friend_to_group(p_group_id, p_friend_user_id)`** (caller must be a member; friend must be in `friendships`; creates a `member` row and a linked `group_people` row if missing).
+
+All `public` tables use **RLS**.
 
 ## Optional: inspect in dashboard
 
