@@ -30,7 +30,7 @@ Run `20260424120000_group_public_shares.sql` for **`group_public_shares`** and n
 | **`receipt_items`** | Line items on a receipt. |
 | **`receipt_allocations`** | Who claimed how much of each line item. |
 | **`receipt_attachments`** | File metadata for receipt attachments (images/PDF). `group_id` is denormalized for RLS; `storage_path` is bucket-relative. Max 10 MB per row (`byte_size` check). |
-| **`group_public_shares`** | No-login share links for a group. `id` is the URL token. `revoked_at` null = active. `include_attachments` (default true) gates attachment metadata and signed URLs. |
+| **`group_public_shares`** | No-login share links for a group. `id` is the URL token. `revoked_at` null = active. `include_attachments` (default true) gates attachment metadata and Storage access. |
 
 Group data access is **membership-based** via **`group_members`**, not `groups.user_id` alone. **`is_group_member(uuid)`** and **`is_group_owner(uuid)`** (security definer) power RLS on `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations`, `receipt_attachments`, and **`group_public_shares`**. Clients cannot insert/update `group_members` directly; owners are created on group insert, and friends are added via **`add_friend_to_group(p_group_id, p_friend_user_id)`** (caller must be a member; friend must be in `friendships`; creates a `member` row and a linked `group_people` row if missing).
 
@@ -38,7 +38,7 @@ Group data access is **membership-based** via **`group_members`**, not `groups.u
 
 `get_public_group_share` JSON: `id`, `group_id`, `name`, `display_currency`, `include_attachments`, `people[]` (`id`, `name`), `receipts[]` (`id`, `title`, `date_ms`, `paid_by_id`, `currency_code`, `tax_behavior`, `tax_cost`, `tip_cost`, `discount_cost`, `items[]`, `allocations[]`, `attachments[]`). Attachment objects are **`id`, `mime_type`, `file_name` only** (no `storage_path`, no signed URLs). When `include_attachments` is false, each receipt’s `attachments` is `[]`. **Transfers are not computed in SQL** — the public page should map this payload into the existing client `settlement.js` (`computeNetBalances` / `minimizeTransfers`).
 
-`get_public_share_attachment_url` returns a **120s** Storage signed URL only if the share is active, `include_attachments` is true, and the attachment’s `group_id` matches the share. It mints an HS256 token with claims `url` = `receipt-attachments/{storage_path}` and `scope` = `download`, using `app.settings.jwt_secret` or `pgrst.jwt_secret`. If those GUCs are unset, set `app.settings.jwt_secret` to the project JWT secret (legacy Storage verification still accepts it). The API host is taken from the RPC request `Host` / `X-Forwarded-*` headers.
+`get_public_share_attachment_url` returns the bucket-relative **`storage_path`** (e.g. `{group_id}/{receipt_id}/{attachment_id}.jpg`) only if the share is active, `include_attachments` is true, and the attachment’s `group_id` matches the share. It does **not** mint signed URLs in SQL. **Task 15 client flow:** call this RPC, then `supabase.storage.from('receipt-attachments').createSignedUrl(path, 120)` (or `download`) using the anon key. Storage RLS (`has_active_attachment_share`) allows SELECT on objects in groups with an active attachment share; the RPC still gates which paths callers learn. Paths remain unguessable UUIDs.
 
 All `public` tables use **RLS**.
 
@@ -46,7 +46,7 @@ All `public` tables use **RLS**.
 
 Private bucket (not public). Object path: `{group_id}/{receipt_id}/{attachment_id}.{ext}`.  
 Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif`, `application/pdf`. Max file size: 10 MB (bucket + table check).  
-Storage RLS on `storage.objects`: select/insert/delete for authenticated users who are members of the group in the first path segment (`split_part(name, '/', 1)`). Clients should use signed URLs for viewing. Public-share viewers use **`get_public_share_attachment_url`** (anon cannot SELECT private objects or `receipt_attachments` rows).
+Storage RLS on `storage.objects`: select/insert/delete for authenticated members of the group in the first path segment (`split_part(name, '/', 1)`); additional **select** for `anon` and `authenticated` when **`has_active_attachment_share(group_id)`** is true (active public share with `include_attachments`). No LIST policy. Members and public-share viewers use client **`createSignedUrl`** / **`download`**; public viewers first call **`get_public_share_attachment_url`** for the path (anon cannot SELECT `receipt_attachments` rows).
 
 ## Optional: inspect in dashboard
 

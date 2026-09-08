@@ -240,30 +240,24 @@ begin
 end;
 $$;
 
--- Signed Storage URL (120s). Uses Auth JWT secret GUCs (Storage still accepts
--- legacy HS256 tokens). Task 15 maps people/receipts into settlement.js.
+-- Returns bucket-relative storage_path only (e.g. groupId/receiptId/id.jpg).
+-- Task 15 client calls this RPC, then supabase.storage.from('receipt-attachments')
+-- .createSignedUrl(path, 120) (or download) with the anon key. Storage RLS below
+-- allows SELECT when the group has an active attachment share.
 create or replace function public.get_public_share_attachment_url(
   p_share_id uuid,
   p_attachment_id uuid
 )
 returns text
 language plpgsql
+stable
 security definer
-set search_path = public, extensions
+set search_path = public
 as $$
 declare
   v_group_id uuid;
   v_include boolean;
   v_path text;
-  v_secret text;
-  v_host text;
-  v_scheme text;
-  v_headers jsonb;
-  v_header text;
-  v_payload text;
-  v_sig text;
-  v_token text;
-  v_now int;
 begin
   if p_share_id is null or p_attachment_id is null then
     raise exception 'share not found';
@@ -291,53 +285,35 @@ begin
     raise exception 'share not found';
   end if;
 
-  v_secret := nullif(current_setting('app.settings.jwt_secret', true), '');
-  if v_secret is null then
-    v_secret := nullif(current_setting('pgrst.jwt_secret', true), '');
-  end if;
-  if v_secret is null then
-    raise exception 'jwt secret not configured for signed urls';
-  end if;
-
-  begin
-    v_headers := current_setting('request.headers', true)::jsonb;
-  exception when others then
-    v_headers := '{}'::jsonb;
-  end;
-
-  v_host := coalesce(
-    nullif(v_headers->>'x-forwarded-host', ''),
-    nullif(v_headers->>'host', '')
-  );
-  v_scheme := coalesce(nullif(v_headers->>'x-forwarded-proto', ''), 'https');
-  if v_host is null then
-    raise exception 'request host not available for signed urls';
-  end if;
-
-  v_now := floor(extract(epoch from now()))::int;
-  v_header := rtrim(replace(replace(encode(convert_to('{"alg":"HS256","typ":"JWT"}', 'UTF8'), 'base64'), '+', '-'), '/', '_'), '=');
-  v_payload := rtrim(replace(replace(encode(
-    convert_to(
-      jsonb_build_object(
-        'url', 'receipt-attachments/' || v_path,
-        'scope', 'download',
-        'iat', v_now,
-        'exp', v_now + 120
-      )::text,
-      'UTF8'
-    ),
-    'base64'
-  ), '+', '-'), '/', '_'), '=');
-  v_sig := rtrim(replace(replace(encode(
-    hmac(v_header || '.' || v_payload, v_secret, 'sha256'),
-    'base64'
-  ), '+', '-'), '/', '_'), '=');
-  v_token := v_header || '.' || v_payload || '.' || v_sig;
-
-  return v_scheme || '://' || v_host || '/storage/v1/object/sign/receipt-attachments/'
-    || v_path || '?token=' || v_token;
+  return v_path;
 end;
 $$;
+
+create or replace function public.has_active_attachment_share(p_group_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.group_public_shares s
+    where s.group_id = p_group_id
+      and s.revoked_at is null
+      and s.include_attachments = true
+  );
+$$;
+
+revoke all on function public.has_active_attachment_share(uuid) from public;
+grant execute on function public.has_active_attachment_share(uuid) to anon, authenticated;
+
+drop policy if exists "receipt_attachments_storage_select_public_share" on storage.objects;
+create policy "receipt_attachments_storage_select_public_share" on storage.objects
+  for select to anon, authenticated
+  using (
+    bucket_id = 'receipt-attachments'
+    and public.has_active_attachment_share((split_part(name, '/', 1))::uuid)
+  );
 
 revoke all on function public.get_public_group_share(uuid) from public;
 grant execute on function public.get_public_group_share(uuid) to anon;
