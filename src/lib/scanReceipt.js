@@ -31,9 +31,15 @@ export async function scanReceiptImage(dataUrl) {
   const origin = (import.meta.env.VITE_SCAN_RECEIPT_URL || '').replace(/\/$/, '');
   const url = `${origin}/api/scan`;
 
+  const headers = { 'Content-Type': 'application/json' };
+  const scanSecret = import.meta.env.VITE_SCAN_API_SECRET;
+  if (scanSecret) {
+    headers['x-evenly-scan-secret'] = scanSecret;
+  }
+
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ base64Image, mimeType }),
   });
 
