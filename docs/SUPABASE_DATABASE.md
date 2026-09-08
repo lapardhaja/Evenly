@@ -15,7 +15,8 @@ Run `20260420120000_profile_first_last_name.sql` to add optional **`first_name`*
 Run `20260421120000_username_availability_rpc.sql` for **`is_username_available(text)`** (used for live username checks at sign-up; callable by `anon`).  
 Run `20260422120000_email_availability_and_sign_in_resolve.sql` for **`is_email_available(text)`** (sign-up email check vs `auth.users`) and **`resolve_sign_in_email(text)`** (username → profile email for sign-in / reset).  
 Run `20260423120000_group_members.sql` for **`group_members`**, membership-based RLS on group data, and **`add_friend_to_group(uuid, uuid)`** (invite a friend into a shared group).  
-Run `20260423130000_receipt_attachments.sql` for **`receipt_attachments`** (receipt file metadata) and the private **`receipt-attachments`** Storage bucket.
+Run `20260423130000_receipt_attachments.sql` for **`receipt_attachments`** (receipt file metadata) and the private **`receipt-attachments`** Storage bucket.  
+Run `20260424120000_group_public_shares.sql` for **`group_public_shares`** and no-login share RPCs (`create_public_group_share`, `revoke_public_group_share`, `get_public_group_share`, `get_public_share_attachment_url`).
 
 | Table | Purpose |
 |--------|--------|
@@ -29,8 +30,15 @@ Run `20260423130000_receipt_attachments.sql` for **`receipt_attachments`** (rece
 | **`receipt_items`** | Line items on a receipt. |
 | **`receipt_allocations`** | Who claimed how much of each line item. |
 | **`receipt_attachments`** | File metadata for receipt attachments (images/PDF). `group_id` is denormalized for RLS; `storage_path` is bucket-relative. Max 10 MB per row (`byte_size` check). |
+| **`group_public_shares`** | No-login share links for a group. `id` is the URL token. `revoked_at` null = active. `include_attachments` (default true) gates attachment metadata and signed URLs. |
 
-Group data access is **membership-based** via **`group_members`**, not `groups.user_id` alone. **`is_group_member(uuid)`** and **`is_group_owner(uuid)`** (security definer) power RLS on `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations`, and `receipt_attachments`. Clients cannot insert/update `group_members` directly; owners are created on group insert, and friends are added via **`add_friend_to_group(p_group_id, p_friend_user_id)`** (caller must be a member; friend must be in `friendships`; creates a `member` row and a linked `group_people` row if missing).
+Group data access is **membership-based** via **`group_members`**, not `groups.user_id` alone. **`is_group_member(uuid)`** and **`is_group_owner(uuid)`** (security definer) power RLS on `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations`, `receipt_attachments`, and **`group_public_shares`**. Clients cannot insert/update `group_members` directly; owners are created on group insert, and friends are added via **`add_friend_to_group(p_group_id, p_friend_user_id)`** (caller must be a member; friend must be in `friendships`; creates a `member` row and a linked `group_people` row if missing).
+
+**Public group shares (Approach C):** Members call **`create_public_group_share(p_group_id, p_include_attachments default true)`** (returns share uuid) and **`revoke_public_group_share(p_share_id)`** (sets `revoked_at`). Those RPCs are granted to **`authenticated` only**. Anon **cannot SELECT** `group_public_shares` (or group/receipt tables). **`get_public_group_share(p_share_id)`** and **`get_public_share_attachment_url(p_share_id, p_attachment_id)`** are security definer and granted to **`anon` and `authenticated`**. They succeed only for **active** shares (`revoked_at` is null); missing and revoked both raise `share not found`.
+
+`get_public_group_share` JSON: `id`, `group_id`, `name`, `display_currency`, `include_attachments`, `people[]` (`id`, `name`), `receipts[]` (`id`, `title`, `date_ms`, `paid_by_id`, `currency_code`, `tax_behavior`, `tax_cost`, `tip_cost`, `discount_cost`, `items[]`, `allocations[]`, `attachments[]`). Attachment objects are **`id`, `mime_type`, `file_name` only** (no `storage_path`, no signed URLs). When `include_attachments` is false, each receipt’s `attachments` is `[]`. **Transfers are not computed in SQL** — the public page should map this payload into the existing client `settlement.js` (`computeNetBalances` / `minimizeTransfers`).
+
+`get_public_share_attachment_url` returns a **120s** Storage signed URL only if the share is active, `include_attachments` is true, and the attachment’s `group_id` matches the share. It mints an HS256 token with claims `url` = `receipt-attachments/{storage_path}` and `scope` = `download`, using `app.settings.jwt_secret` or `pgrst.jwt_secret`. If those GUCs are unset, set `app.settings.jwt_secret` to the project JWT secret (legacy Storage verification still accepts it). The API host is taken from the RPC request `Host` / `X-Forwarded-*` headers.
 
 All `public` tables use **RLS**.
 
@@ -38,7 +46,7 @@ All `public` tables use **RLS**.
 
 Private bucket (not public). Object path: `{group_id}/{receipt_id}/{attachment_id}.{ext}`.  
 Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif`, `application/pdf`. Max file size: 10 MB (bucket + table check).  
-Storage RLS on `storage.objects`: select/insert/delete for authenticated users who are members of the group in the first path segment (`split_part(name, '/', 1)`). Clients should use signed URLs for viewing.
+Storage RLS on `storage.objects`: select/insert/delete for authenticated users who are members of the group in the first path segment (`split_part(name, '/', 1)`). Clients should use signed URLs for viewing. Public-share viewers use **`get_public_share_attachment_url`** (anon cannot SELECT private objects or `receipt_attachments` rows).
 
 ## Optional: inspect in dashboard
 
