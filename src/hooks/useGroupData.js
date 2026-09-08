@@ -9,6 +9,8 @@ import {
   isTaxInclusive,
 } from '../functions/receiptTotals.js';
 import { normalizeCurrencyCode } from '../lib/currencies.js';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { removeMember } from '../lib/groupMembersApi.js';
 
 // ─── Groups list ────────────────────────────────────────────────────────
 
@@ -201,6 +203,7 @@ export function useGroup(groupId) {
 
   const removePerson = useCallback(
     (personId) => {
+      const linkedUserId = group?.people?.[personId]?.linkedUserId;
       setData((prev) => {
         const g = { ...prev.groups[groupId] };
         const people = { ...g.people };
@@ -227,8 +230,14 @@ export function useGroup(groupId) {
         g.receipts = receipts;
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };
       });
+
+      if (isSupabaseConfigured() && linkedUserId) {
+        removeMember(groupId, linkedUserId).catch((error) => {
+          console.error('Could not remove group membership:', error);
+        });
+      }
     },
-    [groupId, setData],
+    [group?.people, groupId, setData],
   );
 
   // ── Receipts CRUD ─────────────────────────────────────────────────

@@ -12,23 +12,28 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Snackbar from '@mui/material/Snackbar';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import { nameToInitials } from '../functions/utils.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
+import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { listFriends } from '../lib/friendsApi.js';
+import { addFriendToGroup } from '../lib/groupMembersApi.js';
 
 export default function GroupPeopleTab({ groupData }) {
-  const { people, addPerson, updatePerson, removePerson } = groupData;
+  const { group, people, addPerson, updatePerson, removePerson } = groupData;
+  const { reloadFromServer } = useGroupsData();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const { ask, confirmDialog } = useConfirmDialog();
   const newPersonRef = useRef(null);
   const [friendsMenuAnchor, setFriendsMenuAnchor] = useState(null);
   const [friendsList, setFriendsList] = useState([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
+  const [inviteError, setInviteError] = useState('');
 
   const loadFriends = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
@@ -168,9 +173,18 @@ export default function GroupPeopleTab({ groupData }) {
                   <MenuItem
                     key={f.user_id}
                     disabled={linkedIds.has(f.user_id)}
-                    onClick={() => {
+                    onClick={async () => {
                       const label = f.display_name || f.username || 'Friend';
-                      addPerson(label, { linkedUserId: f.user_id });
+                      if (isSupabaseConfigured()) {
+                        try {
+                          await addFriendToGroup(group.id, f.user_id);
+                          await reloadFromServer();
+                        } catch (e) {
+                          setInviteError(e?.message || 'Could not add friend to group');
+                        }
+                      } else {
+                        addPerson(label, { linkedUserId: f.user_id });
+                      }
                       setFriendsMenuAnchor(null);
                     }}
                   >
@@ -186,6 +200,13 @@ export default function GroupPeopleTab({ groupData }) {
 
       {EditTextModal}
       {confirmDialog}
+      <Snackbar
+        open={!!inviteError}
+        autoHideDuration={4000}
+        onClose={() => setInviteError('')}
+        message={inviteError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }
