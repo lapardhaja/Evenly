@@ -133,11 +133,16 @@ export default function Layout() {
   const pullToRefreshDisabledForRoute = isPullToRefreshDisabledForRoute(location.pathname);
   const usesPullToRefreshLayout = shouldUsePullToRefreshLayout(onLoginRoute);
 
+  const handleRetrySync = useCallback(() => {
+    reloadFromServer();
+  }, [reloadFromServer]);
+
   const showBootstrap =
     supabaseConfigured &&
     !onLoginRoute &&
     !skipDataWait &&
-    (authLoading || (!!user && !dataReady));
+    !dataReady &&
+    (authLoading || !!user);
 
   return (
     <ThemeProvider theme={theme}>
@@ -311,13 +316,14 @@ export default function Layout() {
               severity="error"
               onClose={clearSyncError}
               action={
-                <Button color="inherit" size="small" onClick={() => window.location.reload()}>
+                <Button color="inherit" size="small" onClick={handleRetrySync}>
                   Retry
                 </Button>
               }
               sx={{ borderRadius: 0 }}
             >
-              Couldn’t load your data. Tap Retry, or sign out and sign in again.
+              Couldn’t refresh from the cloud. Your latest edits are still on this device. Tap Retry
+              to sync.
             </Alert>
           ) : null}
           {usesPullToRefreshLayout ? (
