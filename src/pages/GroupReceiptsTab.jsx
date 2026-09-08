@@ -28,7 +28,7 @@ import { getVirtualRowTranslateY } from '../lib/virtualizedList.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
-import { fabFixedPlacementSx } from '../core/fabPlacement.js';
+import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 import 'react-swipeable-list/dist/styles.css';
 import '../components/swipeable-list-overrides.css';
 import { SwipeableDeleteRow } from '../components/SwipeableDeleteList.jsx';
@@ -408,6 +408,8 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           </Box>
         </Paper>
       )}
+
+      <Box aria-hidden sx={fabScrollClearanceSx} />
 
       <ReceiptScanLoadingOverlay open={scanLoading} />
 

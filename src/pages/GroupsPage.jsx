@@ -28,7 +28,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { getDefaultPeopleMapForNewGroup } from '../lib/defaultGroupPeople.js';
 import { getUsdRatesTable, formatMoneyWithCode } from '../lib/currencies.js';
 import { sumGroupReceiptsInDisplayCurrency } from '../lib/groupSpendConvert.js';
-import { fabFixedPlacementSx } from '../core/fabPlacement.js';
+import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
 
 export default function GroupsPage() {
@@ -243,6 +243,8 @@ export default function GroupsPage() {
           )}
         </>
       )}
+
+      <Box aria-hidden sx={fabScrollClearanceSx} />
 
       <Fab
         color="primary"
