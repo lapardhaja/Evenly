@@ -38,7 +38,7 @@ Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **
 **Supabase setup (normalized sync)**  
 1. Create a project at [supabase.com](https://supabase.com).  
 2. **Authentication → Providers → Email** — enable email/password.  
-3. In **SQL Editor**, run the migration in `supabase/migrations/20260210120000_evenly_normalized.sql` (tables + RLS). The file is **idempotent** (safe to run again). If you still get errors, your project may already have a different `public.groups` table from another tutorial — use a fresh Supabase project or rename/drop the conflicting table first.  
+3. Apply SQL in `supabase/migrations/` (timestamp order), **or** after linking the project let GitHub Action `.github/workflows/supabase-migrate.yml` run `supabase db push` on `main` (secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_DB_PASSWORD`). Do not run migrations from the Vercel build. If you previously ran files in the SQL editor, baseline first — see **`docs/SUPABASE_DATABASE.md`**. If you still get errors, your project may already have a different `public.groups` table from another tutorial — use a fresh Supabase project or rename/drop the conflicting table first.  
 4. Copy **Project URL** and **anon public** key into `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.  
 5. Rebuild/redeploy. Use the profile icon → **Sign in**. App data is read from and written to Supabase only (no `localStorage` mirror for groups/receipts). Any old `evenly:data:v2` keys are removed from the browser after a successful load.
 

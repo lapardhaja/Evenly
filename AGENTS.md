@@ -56,7 +56,8 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 
 ## Cursor Cloud specific instructions
 
-- **Optional Supabase** — set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; run SQL migration. When set, **sign-in is required** (`RequireAuth`). **Forgot password** → `#/update-password` (`UpdatePasswordPage.jsx`, `supabaseAuthCallback.js`, `index.html` inline script for PWA).
+- **Optional Supabase** — set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`. When set, **sign-in is required** (`RequireAuth`). **Forgot password** → `#/update-password` (`UpdatePasswordPage.jsx`, `supabaseAuthCallback.js`, `index.html` inline script for PWA).
+- **Migrations** — not applied by Vercel. GitHub Action `.github/workflows/supabase-migrate.yml` (`supabase db push` on `main`). Secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_DB_PASSWORD`. See `docs/SUPABASE_DATABASE.md` for baselining a project that was migrated by hand.
 - Dev server: `npm run dev -- --host 0.0.0.0 --port 5173`
 - Build check: `npm run build`
 - No test framework configured yet

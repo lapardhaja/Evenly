@@ -7,6 +7,27 @@
 
 ## Application data (`public` schema)
 
+**Automatic (production):** GitHub Action `.github/workflows/supabase-migrate.yml` runs `supabase db push` on push to `main` (and `workflow_dispatch`). Add repo secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_DB_PASSWORD`. Do **not** run migrations from the Vercel build — Vercel is the SPA + `POST /api/scan` only.
+
+**Manual (SQL editor):** run files in `supabase/migrations/` in timestamp order (idempotent).
+
+### Baselining (first CLI push)
+
+If this project was migrated only via the SQL editor, `supabase_migrations.schema_migrations` is empty and `db push` will try to re-apply every file. Files are mostly idempotent, but you should mark already-applied versions so history matches:
+
+```bash
+npx supabase login
+npx supabase link --project-ref <project-ref>
+# For each filename prefix already applied in prod, e.g.:
+npx supabase migration repair --status applied 20260210120000
+# …repeat for 20260215120000 … through the latest you’ve run by hand…
+npx supabase db push
+```
+
+Then let CI own new files (including `20260423120000_group_members`, `20260423130000_receipt_attachments`, `20260424120000_group_public_shares`).
+
+**Dashboard alternative:** Supabase → Project → Integrations → GitHub → deploy migrations on push to `main` (same `supabase/migrations` folder; skip the Action if you use this).
+
 Run `supabase/migrations/20260210120000_evenly_normalized.sql` in the Supabase SQL editor (idempotent).  
 Also run `supabase/migrations/20260215120000_currency_columns.sql` for `display_currency` on groups and `currency_code` on receipts (ISO 4217).  
 Run `supabase/migrations/20260218120000_group_settled_transfers.sql` for `settled_transfers` on **`groups`** (JSON array of settled transfer keys for the Settle tab).  
