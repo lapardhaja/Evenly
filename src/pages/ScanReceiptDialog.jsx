@@ -15,6 +15,8 @@ import Collapse from '@mui/material/Collapse';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import currency from 'currency.js';
 import { receiptGrandTotal, isTaxInclusive } from '../functions/receiptTotals.js';
 import CurrencyAutocomplete from '../components/CurrencyAutocomplete.jsx';
@@ -40,6 +42,7 @@ export default function ScanReceiptDialog({
   const [currencyCode, setCurrencyCode] = useState('USD');
   const [taxBehavior, setTaxBehavior] = useState('exclusive');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [keepAttachment, setKeepAttachment] = useState(true);
 
   const itemsSubtotal = useMemo(
     () => items.reduce((s, row) => s + (Number(row.cost) || 0), 0),
@@ -63,6 +66,7 @@ export default function ScanReceiptDialog({
       setCurrencyCode(normalizeCurrencyCode(defaultCurrencyCode));
       setTaxBehavior(defaultTaxBehavior === 'inclusive' ? 'inclusive' : 'exclusive');
       setPreviewOpen(false);
+      setKeepAttachment(true);
     }
   }, [open, defaultTitle, defaultReceiptDateISO, defaultCurrencyCode, defaultTaxBehavior]);
 
@@ -75,6 +79,7 @@ export default function ScanReceiptDialog({
       receiptDate: receiptDateISO.trim() || undefined,
       currencyCode,
       taxBehavior,
+      keepAttachment,
     });
     onClose();
   };
@@ -219,6 +224,15 @@ export default function ScanReceiptDialog({
             Found <strong>{items.length}</strong> line item{items.length === 1 ? '' : 's'}.
           </Typography>
         )}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={keepAttachment}
+              onChange={(e) => setKeepAttachment(e.target.checked)}
+            />
+          }
+          label="Keep photo as attachment"
+        />
         {items.length > 0 && (
           <>
             <Link
