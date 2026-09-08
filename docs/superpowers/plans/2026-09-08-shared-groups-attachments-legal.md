@@ -1082,6 +1082,55 @@ git commit -m "docs: security/UI audit notes and follow-up fixes"
 | Scan keep photo | ✓ | ✓ |
 | Legal links + cookie dismiss | ✓ | ✓ |
 | Scan API without secret header when secret set → 401 | n/a | curl |
+| Public `#/share/:id` shows receipts + settle without login | ✓ | ✓ |
+| Public attachment open when include_attachments; revoke hides | ✓ | ✓ |
+
+---
+
+## Phase E — Public group share (Approach C)
+
+Added after user decision: no-login link must show receipts/charges and attachments, not settlement-only. Depends on Phase A membership + Phase B attachments. Ship after legal pages (or parallel after B); security audit covers it.
+
+### Task 14: `group_public_shares` + RPCs
+
+**Files:**
+- Create: `supabase/migrations/20260424120000_group_public_shares.sql`
+- Modify: `docs/SUPABASE_DATABASE.md`
+
+**Interfaces:**
+- Table `group_public_shares(id, group_id, created_by, created_at, revoked_at, include_attachments)`
+- RPC `create_public_group_share(p_group_id uuid, p_include_attachments boolean default true) returns uuid` (member-only, security definer)
+- RPC `revoke_public_group_share(p_share_id uuid) returns void` (member-only)
+- RPC `get_public_group_share(p_share_id uuid) returns jsonb` — granted to `anon` + `authenticated`; active shares only; payload: group name, display_currency, people[], receipts[] (items, costs, paid_by, allocations), transfers[] (server-computed or raw balances for client)
+- RPC `get_public_share_attachment_url(p_share_id uuid, p_attachment_id uuid) returns text` — signed URL; requires active share + include_attachments + attachment in group
+
+- [ ] **Step 1: Write migration** with RLS (members manage shares; no anon SELECT on table) + RPCs above.
+- [ ] **Step 2: Docs + commit** `feat(db): public group shares and anon read RPCs`
+
+### Task 15: Public share client API + page
+
+**Files:**
+- Create: `src/lib/publicGroupShare.js` (+ `.test.js` for URL builders / payload guards if pure helpers)
+- Create: `src/pages/PublicGroupSharePage.jsx`
+- Modify: `src/router.jsx` — public route `share/:shareId` (no RequireAuth)
+- Modify: `src/core/Layout.jsx` / `appShell.js` / `useProfileGate.js` — treat like shared-settlement (no PTR noise / no profile gate)
+
+- [ ] **Step 1: Client helpers** `createPublicGroupShare`, `revokePublicGroupShare`, `fetchPublicGroupShare`, `fetchPublicAttachmentUrl`, `publicShareAbsoluteUrl(id)`
+- [ ] **Step 2: Page** — load by param; show receipts (expandable), settlement, attachments via existing lightbox patterns; error for revoked/missing
+- [ ] **Step 3: Build + commit** `feat: public no-login group share page`
+
+### Task 16: Create/revoke share UX + Privacy copy
+
+**Files:**
+- Modify: `src/components/SettlementShareDialog.jsx` and/or new `GroupShareDialog.jsx` from Settle tab
+- Modify: `src/pages/GroupSettleTab.jsx` — primary CTA creates server share when cloud; keep legacy token as secondary “Settlement-only link (offline)”
+- Modify: legal Privacy page (Task 10) — if already shipped, patch copy for public shares + attachments
+
+- [ ] **Step 1: Dialog** — create link, copy, include-attachments toggle, revoke, warning copy
+- [ ] **Step 2: Wire Settle tab**
+- [ ] **Step 3: Privacy wording + commit** `feat: share dialog for public group links with attachments`
+
+Update Task 13 audit checklist to include public share RPCs and anon attachment URL abuse.
 
 ---
 
@@ -1101,6 +1150,7 @@ git commit -m "docs: security/UI audit notes and follow-up fixes"
 | Keep scan photo | Task 9 |
 | Paperclip badge | Task 9 |
 | Legal routes + footer + login + cookie banner | Task 10–11 |
+| Public share receipts + settlement + attachments | Task 14–16 |
 | Scan harden + audit doc + UI sweep | Task 12–13 |
 | Local-only skips share/attach | Tasks 4–8 (`isSupabaseConfigured` gates) |
 
