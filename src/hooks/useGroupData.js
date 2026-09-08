@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import currency from 'currency.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { v4 as uuidv4 } from 'uuid';
 import { idMapToList } from '../functions/utils.js';
 import {
@@ -16,6 +17,7 @@ import { removeMember } from '../lib/groupMembersApi.js';
 
 export function useGroups() {
   const { data, setData } = useGroupsData();
+  const { user } = useAuth();
 
   const groups = useMemo(
     () =>
@@ -27,9 +29,13 @@ export function useGroups() {
           const sub = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
           return currency(sum).add(sub).add(r.taxCost || 0).add(r.tipCost || 0).value;
         }, 0);
+        const membershipRole = g.membershipRole ?? g._membershipRole ?? null;
+        const ownerUserId = g.ownerUserId ?? g._ownerUserId ?? g.user_id ?? null;
         return {
           ...g,
           id,
+          membershipRole,
+          ownerUserId,
           receiptCount: receipts.length,
           peopleCount: people.length,
           totalSpent,
@@ -54,6 +60,8 @@ export function useGroups() {
             name,
             date: Date.now(),
             displayCurrency: 'USD',
+            membershipRole: 'owner',
+            ...(user?.id ? { ownerUserId: user.id } : {}),
             settledTransfers: [],
             people,
             receipts: {},
@@ -62,7 +70,7 @@ export function useGroups() {
       }));
       return id;
     },
-    [setData],
+    [setData, user?.id],
   );
 
   const deleteGroup = useCallback(

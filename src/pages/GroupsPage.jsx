@@ -135,7 +135,11 @@ export default function GroupsPage() {
     setUndoDelete(null);
   }, [undoDelete, restoreGroup]);
 
-  const groupRow = (g) => (
+  const groupRow = (g) => {
+    const listBadge = groupListBadge(g.membershipRole, g.ownerUserId, user?.id);
+    const isSharedBadge = listBadge === 'shared';
+
+    return (
     <ListItemButton
       onClick={() => navigate(`/groups/${g.id}/receipts`)}
       sx={{ py: 1.5, px: 2 }}
@@ -157,17 +161,9 @@ export default function GroupsPage() {
             }}
           >
             <Chip
-              label={
-                groupListBadge(g.membershipRole, g.ownerUserId, user?.id) === 'shared'
-                  ? 'Shared'
-                  : 'Owned'
-              }
+              label={isSharedBadge ? 'Shared' : 'Owned'}
               size="small"
-              color={
-                groupListBadge(g.membershipRole, g.ownerUserId, user?.id) === 'shared'
-                  ? 'secondary'
-                  : 'primary'
-              }
+              color={isSharedBadge ? 'secondary' : 'primary'}
               sx={{ height: 22, fontSize: '0.72rem' }}
             />
             <Chip
@@ -203,7 +199,8 @@ export default function GroupsPage() {
             : `${formatMoneyWithCode(g.totalSpent, g.displayCurrency || 'USD')} *`}
       </Typography>
     </ListItemButton>
-  );
+    );
+  };
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
