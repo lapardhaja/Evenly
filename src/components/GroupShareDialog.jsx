@@ -154,7 +154,9 @@ export default function GroupShareDialog({
         <DialogTitle>Share group</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
           <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
-            Anyone with this link can view receipts and attachments.
+            {includeAttachments
+              ? 'Anyone with this link can view receipts and attachments.'
+              : 'Anyone with this link can view receipts and settlement. Attachments stay private.'}
           </Alert>
           <FormControlLabel
             sx={{ mb: 2, ml: 0 }}

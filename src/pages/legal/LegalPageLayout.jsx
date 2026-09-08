@@ -25,7 +25,22 @@ export default function LegalPageLayout({ title, children }) {
         Last updated: 8 September 2026. This is a product description, not legal advice.
         Replace [OPERATOR_EMAIL] and [JURISDICTION] before relying on this text in production.
       </Typography>
-      <Box component="article">{children}</Box>
+      <Box
+        component="article"
+        sx={{
+          '& code': {
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            fontSize: '0.875em',
+            px: 0.5,
+            py: 0.125,
+            borderRadius: 0.5,
+            bgcolor: 'action.hover',
+            color: 'text.primary',
+          },
+        }}
+      >
+        {children}
+      </Box>
       <Stack
         direction="row"
         spacing={1.5}

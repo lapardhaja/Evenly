@@ -567,6 +567,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         defaultCurrencyCode={scannedCurrencyCode}
         defaultTaxBehavior={scannedTaxBehavior}
         error={scanFlowError}
+        keepPhotoAvailable={isSupabaseConfigured()}
         onConfirm={handleScanConfirm}
       />
 

@@ -36,6 +36,7 @@ export default function ScanReceiptDialog({
   scannedGrandTotal = 0,
   onConfirm,
   error: externalError,
+  keepPhotoAvailable = true,
 }) {
   const [title, setTitle] = useState('Scanned receipt');
   const [receiptDateISO, setReceiptDateISO] = useState('');
@@ -66,9 +67,9 @@ export default function ScanReceiptDialog({
       setCurrencyCode(normalizeCurrencyCode(defaultCurrencyCode));
       setTaxBehavior(defaultTaxBehavior === 'inclusive' ? 'inclusive' : 'exclusive');
       setPreviewOpen(false);
-      setKeepAttachment(true);
+      setKeepAttachment(keepPhotoAvailable);
     }
-  }, [open, defaultTitle, defaultReceiptDateISO, defaultCurrencyCode, defaultTaxBehavior]);
+  }, [open, defaultTitle, defaultReceiptDateISO, defaultCurrencyCode, defaultTaxBehavior, keepPhotoAvailable]);
 
   const handleConfirm = () => {
     const t = title.trim() || 'Scanned receipt';
@@ -79,7 +80,7 @@ export default function ScanReceiptDialog({
       receiptDate: receiptDateISO.trim() || undefined,
       currencyCode,
       taxBehavior,
-      keepAttachment,
+      keepAttachment: keepPhotoAvailable && keepAttachment,
     });
     onClose();
   };
@@ -224,15 +225,17 @@ export default function ScanReceiptDialog({
             Found <strong>{items.length}</strong> line item{items.length === 1 ? '' : 's'}.
           </Typography>
         )}
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={keepAttachment}
-              onChange={(e) => setKeepAttachment(e.target.checked)}
-            />
-          }
-          label="Keep photo as attachment"
-        />
+        {keepPhotoAvailable ? (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={keepAttachment}
+                onChange={(e) => setKeepAttachment(e.target.checked)}
+              />
+            }
+            label="Keep photo as attachment"
+          />
+        ) : null}
         {items.length > 0 && (
           <>
             <Link

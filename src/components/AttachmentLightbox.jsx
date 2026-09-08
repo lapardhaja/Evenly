@@ -1,9 +1,10 @@
+import { useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import CloseIcon from '@mui/icons-material/Close';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 export function canPreviewAttachmentInline(mimeType) {
   const mime = String(mimeType || '').toLowerCase();
@@ -39,6 +40,36 @@ async function downloadFromUrl(url, fileName) {
 export default function AttachmentLightbox({ open, onClose, url, mimeType, fileName }) {
   const displayName = sanitizeFileName(fileName);
   const inline = Boolean(url) && canPreviewAttachmentInline(mimeType);
+  const pushedRef = useRef(false);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onPopState = () => {
+      pushedRef.current = false;
+      onClose();
+    };
+
+    window.history.pushState({ evenlyAttachmentLightbox: true }, '');
+    pushedRef.current = true;
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      if (pushedRef.current) {
+        pushedRef.current = false;
+        window.history.back();
+      }
+    };
+  }, [open, onClose]);
+
+  const handleClose = () => {
+    if (pushedRef.current) {
+      pushedRef.current = false;
+      window.history.back();
+      return;
+    }
+    onClose();
+  };
 
   const handleOpen = () => {
     if (!url) return;
@@ -53,7 +84,7 @@ export default function AttachmentLightbox({ open, onClose, url, mimeType, fileN
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       fullScreen
       PaperProps={{
         sx: {
@@ -76,8 +107,8 @@ export default function AttachmentLightbox({ open, onClose, url, mimeType, fileN
           borderColor: 'divider',
         }}
       >
-        <IconButton onClick={onClose} aria-label="Close attachment" size="small">
-          <CloseIcon />
+        <IconButton onClick={handleClose} aria-label="Back" size="small">
+          <ArrowBackIcon />
         </IconButton>
         <Typography variant="subtitle1" noWrap sx={{ flex: 1, minWidth: 0 }}>
           {displayName}
