@@ -10,13 +10,23 @@ import { normalizeCurrencyCode } from './currencies.js';
  * @returns {Promise<{ groups: Record<string, unknown> }>}
  */
 export async function loadNormalizedData(supabase, userId) {
-  const { data: groups, error: gErr } = await supabase
-    .from('groups')
-    .select('*')
+  const { data: memberRows, error: mErr } = await supabase
+    .from('group_members')
+    .select('group_id, role, groups(*)')
     .eq('user_id', userId);
-  if (gErr) throw gErr;
+  if (mErr) throw mErr;
 
-  const groupRows = groups || [];
+  const groupRows = (memberRows || [])
+    .map((row) => {
+      const group = row.groups;
+      if (!group) return null;
+      return {
+        ...group,
+        _membershipRole: row.role,
+        _ownerUserId: group.user_id,
+      };
+    })
+    .filter(Boolean);
   const groupIds = groupRows.map((g) => g.id);
   const out = { groups: {} };
 
@@ -151,6 +161,8 @@ export async function loadNormalizedData(supabase, userId) {
       name: g.name,
       date: Number(g.date_ms),
       displayCurrency: normalizeCurrencyCode(g.display_currency || 'USD'),
+      membershipRole: g._membershipRole,
+      ownerUserId: g._ownerUserId || g.user_id,
       settledTransfers,
       people: peopleMap,
       receipts: receiptsMap,
@@ -168,16 +180,28 @@ export async function loadNormalizedData(supabase, userId) {
 export async function persistNormalizedData(supabase, userId, data) {
   const localGroupIds = Object.keys(data.groups || {});
 
-  const { data: dbGroups, error: listErr } = await supabase
-    .from('groups')
-    .select('id')
+  const { data: myMemberships, error: listErr } = await supabase
+    .from('group_members')
+    .select('group_id, role')
     .eq('user_id', userId);
   if (listErr) throw listErr;
 
-  const dbIds = new Set((dbGroups || []).map((row) => row.id));
-  for (const id of dbIds) {
-    if (!localGroupIds.includes(id)) {
-      const { error } = await supabase.from('groups').delete().eq('id', id).eq('user_id', userId);
+  const remoteMemberships = myMemberships || [];
+  const membershipsByGroup = new Map(
+    remoteMemberships.map((row) => [row.group_id, row.role]),
+  );
+  for (const row of remoteMemberships) {
+    if (localGroupIds.includes(row.group_id)) continue;
+
+    if (row.role === 'owner') {
+      const { error } = await supabase.from('groups').delete().eq('id', row.group_id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', row.group_id)
+        .eq('user_id', userId);
       if (error) throw error;
     }
   }
@@ -190,18 +214,20 @@ export async function persistNormalizedData(supabase, userId, data) {
       ? g.settledTransfers.filter((x) => typeof x === 'string')
       : [];
 
-    const { error: ugErr } = await supabase.from('groups').upsert(
-      {
-        id: gid,
-        user_id: userId,
-        name: g.name,
-        date_ms: g.date,
-        display_currency: normalizeCurrencyCode(g.displayCurrency || 'USD'),
-        settled_transfers: stArr,
-        updated_at: nowIso,
-      },
-      { onConflict: 'id' },
-    );
+    const groupPayload = {
+      id: gid,
+      name: g.name,
+      date_ms: g.date,
+      display_currency: normalizeCurrencyCode(g.displayCurrency || 'USD'),
+      settled_transfers: stArr,
+      updated_at: nowIso,
+    };
+    const { error: ugErr } = membershipsByGroup.has(gid)
+      ? await supabase.from('groups').update(groupPayload).eq('id', gid)
+      : await supabase.from('groups').insert({
+          ...groupPayload,
+          user_id: userId,
+        });
     if (ugErr) throw ugErr;
 
     const localPeopleIds = Object.keys(g.people || {});
