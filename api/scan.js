@@ -9,6 +9,30 @@ import {
   geminiModelQueue,
   generateContentWithFallback,
 } from '../src/lib/geminiScanModels.js';
+import {
+  assertScanRequestAllowed,
+  getRequestOrigin,
+  resolveCorsAllowOrigin,
+} from './scanGuard.js';
+
+function scanEnv() {
+  return {
+    SCAN_API_SECRET: process.env.SCAN_API_SECRET,
+    CORS_ALLOW_ORIGIN: process.env.CORS_ALLOW_ORIGIN,
+  };
+}
+
+function applyScanCors(req, res) {
+  const allowOrigin = resolveCorsAllowOrigin(req, scanEnv());
+  if (allowOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, x-evenly-scan-secret',
+    );
+  }
+}
 
 function parseGeminiJson(text) {
   if (!text || typeof text !== 'string') return null;
@@ -78,14 +102,23 @@ function normalizeItems(raw) {
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    const env = scanEnv();
+    const allowOrigin = resolveCorsAllowOrigin(req, env);
+    if (getRequestOrigin(req) && !allowOrigin) {
+      return res.status(403).end();
+    }
+    applyScanCors(req, res);
     return res.status(204).end();
   }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const guard = assertScanRequestAllowed(req, scanEnv());
+  if (!guard.ok) {
+    applyScanCors(req, res);
+    return res.status(guard.status).json({ error: guard.error });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -275,7 +308,7 @@ Always return valid JSON with keys storeName, currencyCode, items, tax, tip, dis
       tax = classified.taxCost;
     }
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    applyScanCors(req, res);
     return res.status(200).json({
       storeName,
       currencyCode,

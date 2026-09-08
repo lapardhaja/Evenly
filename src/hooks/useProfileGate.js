@@ -3,8 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchMyProfile } from '../lib/friendsApi.js';
-
-const SKIP = ['/login', '/profile-setup', '/update-password'];
+import { isPublicExemptRoute } from '../lib/appShell.js';
 
 export function useProfileGate() {
   const { user, loading: authLoading, configured } = useAuth();
@@ -17,12 +16,7 @@ export function useProfileGate() {
       setChecking(false);
       return undefined;
     }
-    const path = location.pathname;
-    if (path.startsWith('/shared-settlement')) {
-      setChecking(false);
-      return undefined;
-    }
-    if (SKIP.some((p) => path === p || path.startsWith(`${p}/`))) {
+    if (isPublicExemptRoute(location.pathname)) {
       setChecking(false);
       return undefined;
     }

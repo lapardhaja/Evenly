@@ -23,7 +23,7 @@ import {
  * to inject listType. Virtualization or any intermediate component breaks
  * that prop flow, so we bake the prop in here.)
  */
-export function SwipeableDeleteRow({ onDelete, children }) {
+export function SwipeableDeleteRow({ onDelete, actionLabel = 'Delete', children }) {
   const itemInstRef = useRef(null);
   const openedAtRef = useRef(0);
 
@@ -53,7 +53,7 @@ export function SwipeableDeleteRow({ onDelete, children }) {
             Tag="button"
             onClick={onDelete}
           >
-            Delete
+            {actionLabel}
           </SwipeAction>
         </TrailingActions>
       }
@@ -93,13 +93,23 @@ export function SwipeableDeleteRow({ onDelete, children }) {
  * Tap the row (outside red) closes the delete strip (like swipe back).
  * Parent should show Snackbar + Undo after onDelete(item).
  */
-export default function SwipeableDeleteList({ items, getKey, onDelete, children }) {
+export default function SwipeableDeleteList({
+  items,
+  getKey,
+  onDelete,
+  getActionLabel,
+  children,
+}) {
   return (
     <Box sx={{ width: '100%' }}>
       {items.map((item, idx) => {
         const rowKey = getKey(item, idx);
         return (
-          <SwipeableDeleteRow key={rowKey} onDelete={() => onDelete(item)}>
+          <SwipeableDeleteRow
+            key={rowKey}
+            onDelete={() => onDelete(item)}
+            actionLabel={getActionLabel?.(item) || 'Delete'}
+          >
             {children(item, idx)}
           </SwipeableDeleteRow>
         );

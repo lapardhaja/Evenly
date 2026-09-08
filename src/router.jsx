@@ -6,7 +6,12 @@ import GroupDetailPage from './pages/GroupDetailPage.jsx';
 import ReceiptInfoPage from './pages/ReceiptInfoPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import UpdatePasswordPage from './pages/UpdatePasswordPage.jsx';
+import PrivacyPolicyPage from './pages/legal/PrivacyPolicyPage.jsx';
+import TermsOfServicePage from './pages/legal/TermsOfServicePage.jsx';
+import CookiePolicyPage from './pages/legal/CookiePolicyPage.jsx';
+import CopyrightPage from './pages/legal/CopyrightPage.jsx';
 import SharedSettlementPage from './pages/SharedSettlementPage.jsx';
+import PublicGroupSharePage from './pages/PublicGroupSharePage.jsx';
 import FriendsPage from './pages/FriendsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import ProfileSetupPage from './pages/ProfileSetupPage.jsx';
@@ -17,6 +22,10 @@ export const router = createHashRouter([
     element: <Layout />,
     children: [
       { path: 'login', element: <LoginPage /> },
+      { path: 'privacy', element: <PrivacyPolicyPage /> },
+      { path: 'terms', element: <TermsOfServicePage /> },
+      { path: 'cookies', element: <CookiePolicyPage /> },
+      { path: 'copyright', element: <CopyrightPage /> },
       { path: 'update-password', element: <UpdatePasswordPage /> },
       {
         path: 'profile-setup',
@@ -43,6 +52,7 @@ export const router = createHashRouter([
         ),
       },
       { path: 'shared-settlement/:token', element: <SharedSettlementPage /> },
+      { path: 'share/:shareId', element: <PublicGroupSharePage /> },
       {
         index: true,
         element: (

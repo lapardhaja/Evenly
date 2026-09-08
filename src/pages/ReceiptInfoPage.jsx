@@ -22,6 +22,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useGroupReceipt } from '../hooks/useGroupData.js';
+import ReceiptAttachments from '../components/ReceiptAttachments.jsx';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import ReceiptInfoItemsTab from './ReceiptInfoItemsTab.jsx';
 import ReceiptInfoPeopleTab from './ReceiptInfoPeopleTab.jsx';
 
@@ -337,6 +339,12 @@ export default function ReceiptInfoPage() {
           </TextField>
         )}
       </Box>
+
+      <ReceiptAttachments
+        groupId={groupId}
+        receiptId={receiptId}
+        enabled={isSupabaseConfigured()}
+      />
 
       <Tabs
         value={currentTab}

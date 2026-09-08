@@ -1,6 +1,7 @@
 import { useMemo, useCallback, useEffect } from 'react';
 import currency from 'currency.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { v4 as uuidv4 } from 'uuid';
 import { idMapToList } from '../functions/utils.js';
 import {
@@ -9,7 +10,8 @@ import {
   isTaxInclusive,
 } from '../functions/receiptTotals.js';
 import { normalizeCurrencyCode } from '../lib/currencies.js';
-import { useAuth } from '../context/AuthContext.jsx';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { removeMember } from '../lib/groupMembersApi.js';
 import { relabelPeopleForDisplay, relabelSelfPeopleMap } from '../lib/defaultGroupPeople.js';
 
 function useHealSelfPersonNames(groupId, peopleMap, user, profile, setData) {
@@ -35,6 +37,7 @@ function useHealSelfPersonNames(groupId, peopleMap, user, profile, setData) {
 
 export function useGroups() {
   const { data, setData } = useGroupsData();
+  const { user } = useAuth();
 
   const groups = useMemo(
     () =>
@@ -46,9 +49,13 @@ export function useGroups() {
           const sub = items.reduce((s, i) => currency(s).add(i.cost).value, 0);
           return currency(sum).add(sub).add(r.taxCost || 0).add(r.tipCost || 0).value;
         }, 0);
+        const membershipRole = g.membershipRole ?? g._membershipRole ?? null;
+        const ownerUserId = g.ownerUserId ?? g._ownerUserId ?? g.user_id ?? null;
         return {
           ...g,
           id,
+          membershipRole,
+          ownerUserId,
           receiptCount: receipts.length,
           peopleCount: people.length,
           totalSpent,
@@ -73,6 +80,8 @@ export function useGroups() {
             name,
             date: Date.now(),
             displayCurrency: 'USD',
+            membershipRole: 'owner',
+            ...(user?.id ? { ownerUserId: user.id } : {}),
             settledTransfers: [],
             people,
             receipts: {},
@@ -81,7 +90,7 @@ export function useGroups() {
       }));
       return id;
     },
-    [setData],
+    [setData, user?.id],
   );
 
   const deleteGroup = useCallback(
@@ -227,6 +236,7 @@ export function useGroup(groupId) {
 
   const removePerson = useCallback(
     (personId) => {
+      const linkedUserId = group?.people?.[personId]?.linkedUserId;
       setData((prev) => {
         const g = { ...prev.groups[groupId] };
         const people = { ...g.people };
@@ -253,8 +263,14 @@ export function useGroup(groupId) {
         g.receipts = receipts;
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };
       });
+
+      if (isSupabaseConfigured() && linkedUserId) {
+        removeMember(groupId, linkedUserId).catch((error) => {
+          console.error('Could not remove group membership:', error);
+        });
+      }
     },
-    [groupId, setData],
+    [group?.people, groupId, setData],
   );
 
   // ── Receipts CRUD ─────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
+import { useMemo, useRef, useState, useCallback, useLayoutEffect, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
@@ -21,6 +21,7 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import IconButton from '@mui/material/IconButton';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
@@ -28,6 +29,9 @@ import { getVirtualRowTranslateY } from '../lib/virtualizedList.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
+import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { useGroupsData } from '../context/GroupsDataContext.jsx';
+import { uploadAttachment } from '../lib/receiptAttachments.js';
 import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 import 'react-swipeable-list/dist/styles.css';
 import '../components/swipeable-list-overrides.css';
@@ -35,6 +39,24 @@ import { SwipeableDeleteRow } from '../components/SwipeableDeleteList.jsx';
 import ReceiptScanLoadingOverlay from '../components/ReceiptScanLoadingOverlay.jsx';
 
 const MAIN_SCROLL_ID = 'evenly-main-scroll';
+
+function fileFromScanSource(file, dataUrl) {
+  if (file && typeof file.size === 'number' && file.size > 0) {
+    return file;
+  }
+  const match = String(dataUrl || '').match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error('Could not keep this photo as an attachment.');
+  }
+  const mime = match[1];
+  const binary = atob(match[2]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const name = file?.name || 'receipt.jpg';
+  return new File([bytes], name, { type: mime });
+}
 
 export default function GroupReceiptsTab({ groupId, groupData }) {
   const theme = useTheme();
@@ -48,6 +70,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     getReceiptSnapshot,
     restoreReceipt,
   } = groupData;
+  const { persistNow } = useGroupsData();
   const navigate = useNavigate();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const cameraInputRef = useRef(null);
@@ -64,8 +87,12 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
   const [scannedGrandTotal, setScannedGrandTotal] = useState(0);
   const [scannedCurrencyCode, setScannedCurrencyCode] = useState('USD');
   const [scannedTaxBehavior, setScannedTaxBehavior] = useState('exclusive');
+  const [scanFile, setScanFile] = useState(null);
+  const [scanDataUrl, setScanDataUrl] = useState('');
   const [scanFlowError, setScanFlowError] = useState('');
   const [wrongFileHint, setWrongFileHint] = useState('');
+  const [attachmentToast, setAttachmentToast] = useState('');
+  const [receiptsWithAttachments, setReceiptsWithAttachments] = useState(() => new Set());
   const [undoReceiptDelete, setUndoReceiptDelete] = useState(null);
 
   const listBlockRef = useRef(null);
@@ -84,6 +111,38 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     });
     return map;
   }, [people]);
+
+  const receiptIdsKey = useMemo(() => receipts.map((r) => r.id).join(','), [receipts]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setReceiptsWithAttachments(new Set());
+      return undefined;
+    }
+    const receiptIds = receiptIdsKey ? receiptIdsKey.split(',') : [];
+    if (receiptIds.length === 0) {
+      setReceiptsWithAttachments(new Set());
+      return undefined;
+    }
+    const client = getSupabase();
+    if (!client) return undefined;
+    let cancelled = false;
+    client
+      .from('receipt_attachments')
+      .select('receipt_id')
+      .in('receipt_id', receiptIds)
+      .then(({ data, error }) => {
+        if (cancelled || error) return;
+        const next = new Set();
+        (data || []).forEach((row) => {
+          if (row?.receipt_id) next.add(row.receipt_id);
+        });
+        setReceiptsWithAttachments(next);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [receiptIdsKey]);
 
   /** #evenly-main-scroll — must use useVirtualizer (not useWindowVirtualizer) when scroll is this element. */
   useLayoutEffect(() => {
@@ -147,10 +206,12 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       setWrongFileHint('Use a photo, not a PDF.');
       return;
     }
+    setScanFile(file);
     setScanLoading(true);
     setScanFlowError('');
     try {
       const dataUrl = await readFileAsDataUrl(file);
+      setScanDataUrl(dataUrl);
       const {
         items,
         storeName,
@@ -193,11 +254,14 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     }
   };
 
-  const handleScanConfirm = (title, items, charges = {}) => {
+  const handleScanConfirm = async (title, items, charges = {}) => {
     const taxBehavior =
       charges.taxBehavior === 'inclusive' || charges.taxBehavior === 'exclusive'
         ? charges.taxBehavior
         : scannedTaxBehavior;
+    const keepAttachment = charges.keepAttachment === true;
+    const originalFile = scanFile;
+    const originalDataUrl = scanDataUrl;
     const id = addReceiptWithItems(title, items, {
       taxCost: charges.taxCost ?? 0,
       tipCost: charges.tipCost ?? 0,
@@ -206,7 +270,27 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       currencyCode: charges.currencyCode || scannedCurrencyCode,
       taxBehavior,
     });
-    if (id) navigate(`/groups/${groupId}/receipt/${id}`);
+    if (!id) return;
+    if (keepAttachment && isSupabaseConfigured()) {
+      try {
+        const file = fileFromScanSource(originalFile, originalDataUrl);
+        await persistNow();
+        await uploadAttachment({ groupId, receiptId: id, file });
+        setReceiptsWithAttachments((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          return next;
+        });
+      } catch (err) {
+        setAttachmentToast(
+          err?.message && String(err.message).length < 160
+            ? err.message
+            : 'Could not save the receipt photo.',
+        );
+        return;
+      }
+    }
+    navigate(`/groups/${groupId}/receipt/${id}`);
   };
 
   const formatDate = (ts) =>
@@ -244,7 +328,21 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         sx={{ py: 1.5, px: 2 }}
       >
         <ListItemText
-          primary={<Typography fontWeight={600}>{r.title}</Typography>}
+          primary={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+              <Typography fontWeight={600} component="span" noWrap>
+                {r.title}
+              </Typography>
+              {receiptsWithAttachments.has(r.id) && (
+                <AttachFileIcon
+                  fontSize="small"
+                  color="action"
+                  aria-label="Has attachment"
+                  sx={{ flexShrink: 0 }}
+                />
+              )}
+            </Box>
+          }
           secondary={
             <Box
               component="span"
@@ -461,6 +559,8 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           setScannedGrandTotal(0);
           setScannedCurrencyCode('USD');
           setScannedTaxBehavior('exclusive');
+          setScanFile(null);
+          setScanDataUrl('');
         }}
         items={scannedItems}
         taxCost={scannedTax}
@@ -472,6 +572,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         defaultCurrencyCode={scannedCurrencyCode}
         defaultTaxBehavior={scannedTaxBehavior}
         error={scanFlowError}
+        keepPhotoAvailable={isSupabaseConfigured()}
         onConfirm={handleScanConfirm}
       />
 
@@ -482,6 +583,17 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         autoHideDuration={4000}
         onClose={() => setWrongFileHint('')}
         message={wrongFileHint}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{
+          bottom: { xs: 'calc(16px + env(safe-area-inset-bottom, 0px))', sm: 24 },
+        }}
+      />
+
+      <Snackbar
+        open={!!attachmentToast}
+        autoHideDuration={5000}
+        onClose={() => setAttachmentToast('')}
+        message={attachmentToast}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         sx={{
           bottom: { xs: 'calc(16px + env(safe-area-inset-bottom, 0px))', sm: 24 },

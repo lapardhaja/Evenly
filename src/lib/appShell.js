@@ -16,8 +16,25 @@ export const appShellContentSx = {
   overflow: 'hidden',
 };
 
+export const PUBLIC_EXEMPT_ROUTES = [
+  '/login',
+  '/update-password',
+  '/profile-setup',
+  '/privacy',
+  '/terms',
+  '/cookies',
+  '/copyright',
+  '/share',
+];
+
+/** Routes that skip profile gate, data bootstrap, and pull-to-refresh layout. */
+export function isPublicExemptRoute(pathname) {
+  if (pathname.startsWith('/shared-settlement')) return true;
+  return PUBLIC_EXEMPT_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 export function isPullToRefreshDisabledForRoute(pathname) {
-  return pathname.startsWith('/shared-settlement/');
+  return isPublicExemptRoute(pathname);
 }
 
 export function shouldUsePullToRefreshLayout(onLoginRoute) {

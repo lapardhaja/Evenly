@@ -1,0 +1,13 @@
+# Minimal CLI config so `supabase db push` works in CI.
+# Project ref is supplied at link time (SUPABASE_PROJECT_ID), not committed.
+
+project_id = ""
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 15

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate, Link as RouterLink } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -556,6 +556,17 @@ export default function LoginPage() {
             </Link>
           )}
         </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block', textAlign: 'center' }}>
+          By continuing, you agree to our{' '}
+          <Link component={RouterLink} to="/terms" underline="hover">
+            Terms
+          </Link>{' '}
+          and{' '}
+          <Link component={RouterLink} to="/privacy" underline="hover">
+            Privacy Policy
+          </Link>
+          .
+        </Typography>
       </Paper>
     </Container>
   );

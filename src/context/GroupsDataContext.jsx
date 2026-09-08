@@ -358,8 +358,9 @@ export function GroupsDataProvider({ children }) {
       syncError,
       clearSyncError,
       reloadFromServer,
+      persistNow,
     }),
-    [data, setData, dataReady, cloud, syncError, clearSyncError, reloadFromServer],
+    [data, setData, dataReady, cloud, syncError, clearSyncError, reloadFromServer, persistNow],
   );
 
   return (

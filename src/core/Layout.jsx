@@ -12,7 +12,8 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Badge from '@mui/material/Badge';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
-import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import Link from '@mui/material/Link';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
@@ -27,8 +28,10 @@ import { useProfileGate } from '../hooks/useProfileGate.js';
 import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friendsApi.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
+import CookieNotice from '../components/CookieNotice.jsx';
 import {
   APP_SHELL_HEIGHT,
+  isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
   shouldUsePullToRefreshLayout,
 } from '../lib/appShell.js';
@@ -63,11 +66,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut, configured: supabaseConfigured, loading: authLoading } = useAuth();
-  const onLoginRoute =
-    location.pathname === '/login' ||
-    location.pathname === '/update-password' ||
-    location.pathname === '/profile-setup' ||
-    location.pathname.startsWith('/shared-settlement/');
+  const onLoginRoute = isPublicExemptRoute(location.pathname);
   useProfileGate();
   const { ready: dataReady, cloudSync, syncError, clearSyncError, reloadFromServer } =
     useGroupsData();
@@ -91,7 +90,9 @@ export default function Layout() {
   const skipDataWait =
     location.pathname === '/friends' ||
     location.pathname === '/profile' ||
-    location.pathname === '/profile-setup';
+    location.pathname === '/profile-setup' ||
+    location.pathname === '/share' ||
+    location.pathname.startsWith('/share/');
   const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
 
   const refreshFriendRequestCount = useCallback(async () => {
@@ -175,7 +176,7 @@ export default function Layout() {
         >
           <Toolbar sx={{ minHeight: { xs: 64, sm: 68 } }}>
             <Box
-              component={Link}
+              component={RouterLink}
               to="/"
               aria-label="Evenly home"
               sx={{
@@ -361,8 +362,23 @@ export default function Layout() {
             <Typography variant="caption" color="text.secondary">
               Designed by Servet Lapardhaja
             </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+              <Link component={RouterLink} to="/privacy" variant="caption">
+                Privacy
+              </Link>
+              <Link component={RouterLink} to="/terms" variant="caption">
+                Terms
+              </Link>
+              <Link component={RouterLink} to="/cookies" variant="caption">
+                Cookies
+              </Link>
+              <Link component={RouterLink} to="/copyright" variant="caption">
+                Copyright
+              </Link>
+            </Box>
           </Box>
         </Box>
+        <CookieNotice />
       </Box>
     </ThemeProvider>
   );
