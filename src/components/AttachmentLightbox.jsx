@@ -1,10 +1,9 @@
-import { useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloseIcon from '@mui/icons-material/Close';
 
 export function canPreviewAttachmentInline(mimeType) {
   const mime = String(mimeType || '').toLowerCase();
@@ -38,38 +37,11 @@ async function downloadFromUrl(url, fileName) {
 }
 
 export default function AttachmentLightbox({ open, onClose, url, mimeType, fileName }) {
+  // Do not pushState/history.back() here. HashRouter plus an inline onClose
+  // (new function each render) was eating the history stack, so the header
+  // back control did nothing or skipped the receipt page.
   const displayName = sanitizeFileName(fileName);
   const inline = Boolean(url) && canPreviewAttachmentInline(mimeType);
-  const pushedRef = useRef(false);
-
-  useEffect(() => {
-    if (!open) return undefined;
-
-    const onPopState = () => {
-      pushedRef.current = false;
-      onClose();
-    };
-
-    window.history.pushState({ evenlyAttachmentLightbox: true }, '');
-    pushedRef.current = true;
-    window.addEventListener('popstate', onPopState);
-    return () => {
-      window.removeEventListener('popstate', onPopState);
-      if (pushedRef.current) {
-        pushedRef.current = false;
-        window.history.back();
-      }
-    };
-  }, [open, onClose]);
-
-  const handleClose = () => {
-    if (pushedRef.current) {
-      pushedRef.current = false;
-      window.history.back();
-      return;
-    }
-    onClose();
-  };
 
   const handleOpen = () => {
     if (!url) return;
@@ -84,13 +56,14 @@ export default function AttachmentLightbox({ open, onClose, url, mimeType, fileN
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={onClose}
       fullScreen
       PaperProps={{
         sx: {
           bgcolor: 'background.default',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
           pt: 'env(safe-area-inset-top, 0px)',
           pb: 'env(safe-area-inset-bottom, 0px)',
         },
@@ -102,17 +75,28 @@ export default function AttachmentLightbox({ open, onClose, url, mimeType, fileN
           alignItems: 'center',
           gap: 1,
           px: 1,
-          py: 0.5,
+          py: 1,
+          flexShrink: 0,
+          zIndex: 1,
+          bgcolor: 'background.paper',
           borderBottom: 1,
           borderColor: 'divider',
         }}
       >
-        <IconButton onClick={handleClose} aria-label="Back" size="small">
-          <ArrowBackIcon />
+        <IconButton onClick={onClose} aria-label="Close attachment" edge="start">
+          <CloseIcon />
         </IconButton>
-        <Typography variant="subtitle1" noWrap sx={{ flex: 1, minWidth: 0 }}>
-          {displayName}
-        </Typography>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary" display="block">
+            Attachment
+          </Typography>
+          <Typography variant="subtitle2" noWrap>
+            {displayName}
+          </Typography>
+        </Box>
+        <Button onClick={onClose} size="small">
+          Close
+        </Button>
       </Box>
       {inline ? (
         <Box
@@ -124,12 +108,14 @@ export default function AttachmentLightbox({ open, onClose, url, mimeType, fileN
             overflow: 'auto',
             p: 1,
             minHeight: 0,
+            bgcolor: 'action.hover',
           }}
         >
           <Box
             component="img"
             src={url}
             alt={displayName}
+            draggable={false}
             sx={{
               maxWidth: '100%',
               maxHeight: '100%',
