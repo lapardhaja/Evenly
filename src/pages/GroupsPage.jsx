@@ -25,9 +25,13 @@ import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useGroups } from '../hooks/useGroupData.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 import { getDefaultPeopleMapForNewGroup } from '../lib/defaultGroupPeople.js';
 import { getUsdRatesTable, formatMoneyWithCode } from '../lib/currencies.js';
 import { sumGroupReceiptsInDisplayCurrency } from '../lib/groupSpendConvert.js';
+import { canDeleteGroup, groupListBadge } from '../lib/groupMembership.js';
+import { leaveGroup } from '../lib/groupMembersApi.js';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
 import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
 
@@ -36,10 +40,12 @@ export default function GroupsPage() {
   const theme = useTheme();
   const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
   const { groups, addGroup, deleteGroup, getGroupSnapshot, restoreGroup } = useGroups();
-  const { data } = useGroupsData();
+  const { data, reloadFromServer } = useGroupsData();
   const { user } = useAuth();
+  const { ask, confirmDialog } = useConfirmDialog();
   const [convertedTotals, setConvertedTotals] = useState({});
   const [totalsLoading, setTotalsLoading] = useState(true);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -92,7 +98,25 @@ export default function GroupsPage() {
   };
 
   const handleSwipeDeleteGroup = useCallback(
-    (g) => {
+    async (g) => {
+      if (isSupabaseConfigured() && !canDeleteGroup(g.membershipRole)) {
+        const ok = await ask({
+          title: 'Leave group?',
+          message: `You will lose access to "${g.name}" unless its owner adds you again.`,
+          confirmText: 'Leave group',
+          destructive: true,
+        });
+        if (!ok) return;
+        try {
+          await leaveGroup(g.id);
+          await reloadFromServer();
+        } catch (error) {
+          console.error('Could not leave group:', error);
+          setActionError(error?.message || 'Could not leave the group.');
+        }
+        return;
+      }
+
       const snapshot = getGroupSnapshot(g.id);
       deleteGroup(g.id);
       setUndoDelete({
@@ -101,7 +125,7 @@ export default function GroupsPage() {
         label: g.name,
       });
     },
-    [deleteGroup, getGroupSnapshot],
+    [ask, deleteGroup, getGroupSnapshot, reloadFromServer],
   );
 
   const handleUndoGroupDelete = useCallback(() => {
@@ -132,6 +156,20 @@ export default function GroupsPage() {
               flexWrap: 'wrap',
             }}
           >
+            <Chip
+              label={
+                groupListBadge(g.membershipRole, g.ownerUserId, user?.id) === 'shared'
+                  ? 'Shared'
+                  : 'Owned'
+              }
+              size="small"
+              color={
+                groupListBadge(g.membershipRole, g.ownerUserId, user?.id) === 'shared'
+                  ? 'secondary'
+                  : 'primary'
+              }
+              sx={{ height: 22, fontSize: '0.72rem' }}
+            />
             <Chip
               label={`${g.peopleCount} people`}
               size="small"
@@ -222,6 +260,11 @@ export default function GroupsPage() {
               items={filtered}
               getKey={(g) => g.id}
               onDelete={handleSwipeDeleteGroup}
+              getActionLabel={(g) =>
+                isSupabaseConfigured() && !canDeleteGroup(g.membershipRole)
+                  ? 'Leave'
+                  : 'Delete'
+              }
             >
               {(g) => (
                 <ListItem disablePadding sx={{ display: 'block' }}>
@@ -259,6 +302,7 @@ export default function GroupsPage() {
       </Fab>
 
       {EditTextModal}
+      {confirmDialog}
 
       <Snackbar
         open={!!undoDelete}
@@ -281,6 +325,13 @@ export default function GroupsPage() {
         sx={{
           bottom: { xs: 'calc(16px + env(safe-area-inset-bottom, 0px))', sm: 24 },
         }}
+      />
+      <Snackbar
+        open={!!actionError}
+        autoHideDuration={7000}
+        onClose={() => setActionError('')}
+        message={actionError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
     </Container>
   );
