@@ -18,6 +18,7 @@ import {
   listAttachments,
   uploadAttachment,
 } from '../lib/receiptAttachments.js';
+import { useGroupsData } from '../context/GroupsDataContext.jsx';
 
 function sanitizeFileName(name) {
   const base = String(name || 'attachment').replace(/^.*[/\\]/, '');
@@ -30,6 +31,7 @@ function errorMessage(err) {
 }
 
 export default function ReceiptAttachments({ groupId, receiptId, enabled }) {
+  const { persistNow } = useGroupsData();
   const fileInputRef = useRef(null);
   const [rows, setRows] = useState([]);
   const [signedUrls, setSignedUrls] = useState({});
@@ -93,6 +95,7 @@ export default function ReceiptAttachments({ groupId, receiptId, enabled }) {
         if (nextRows.length >= ATTACHMENT_MAX_PER_RECEIPT) {
           throw new Error(`Maximum ${ATTACHMENT_MAX_PER_RECEIPT} attachments per receipt`);
         }
+        await persistNow();
         const created = await uploadAttachment({ groupId, receiptId, file });
         nextRows = [...nextRows, created];
         setRows(nextRows);

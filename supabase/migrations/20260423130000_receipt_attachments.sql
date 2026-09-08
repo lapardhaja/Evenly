@@ -17,6 +17,27 @@ create index if not exists receipt_attachments_receipt_id_idx
 
 alter table public.receipt_attachments enable row level security;
 
+-- First path segment as uuid, or null if not a UUID (never throw from Storage RLS).
+create or replace function public.storage_path_group_id(p_name text)
+returns uuid
+language plpgsql
+immutable
+parallel safe
+as $$
+declare
+  v_seg text;
+begin
+  v_seg := split_part(coalesce(p_name, ''), '/', 1);
+  if v_seg ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    return v_seg::uuid;
+  end if;
+  return null;
+end;
+$$;
+
+revoke all on function public.storage_path_group_id(text) from public;
+grant execute on function public.storage_path_group_id(text) to anon, authenticated;
+
 drop policy if exists "receipt_attachments_select" on public.receipt_attachments;
 create policy "receipt_attachments_select" on public.receipt_attachments
   for select using (public.is_group_member(group_id));
@@ -52,7 +73,7 @@ create policy "receipt_attachments_storage_select" on storage.objects
   for select to authenticated
   using (
     bucket_id = 'receipt-attachments'
-    and public.is_group_member((split_part(name, '/', 1))::uuid)
+    and public.is_group_member(public.storage_path_group_id(name))
   );
 
 drop policy if exists "receipt_attachments_storage_insert" on storage.objects;
@@ -60,7 +81,7 @@ create policy "receipt_attachments_storage_insert" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'receipt-attachments'
-    and public.is_group_member((split_part(name, '/', 1))::uuid)
+    and public.is_group_member(public.storage_path_group_id(name))
   );
 
 drop policy if exists "receipt_attachments_storage_delete" on storage.objects;
@@ -68,5 +89,5 @@ create policy "receipt_attachments_storage_delete" on storage.objects
   for delete to authenticated
   using (
     bucket_id = 'receipt-attachments'
-    and public.is_group_member((split_part(name, '/', 1))::uuid)
+    and public.is_group_member(public.storage_path_group_id(name))
   );

@@ -162,6 +162,23 @@ create policy "groups_update_member" on public.groups
 create policy "groups_delete_owner" on public.groups
   for delete using (public.is_group_owner(id));
 
+create or replace function public.prevent_groups_user_id_change()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.user_id is distinct from old.user_id then
+    raise exception 'groups.user_id cannot be changed';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_prevent_groups_user_id_change on public.groups;
+create trigger trg_prevent_groups_user_id_change
+  before update of user_id on public.groups
+  for each row execute function public.prevent_groups_user_id_change();
+
 -- group_people
 drop policy if exists "group_people_select" on public.group_people;
 drop policy if exists "group_people_insert" on public.group_people;

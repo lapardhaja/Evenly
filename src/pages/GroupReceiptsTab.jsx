@@ -30,6 +30,7 @@ import useEditTextModal from '../components/useEditTextModal.jsx';
 import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { uploadAttachment } from '../lib/receiptAttachments.js';
 import { fabFixedPlacementSx } from '../core/fabPlacement.js';
 import 'react-swipeable-list/dist/styles.css';
@@ -69,6 +70,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     getReceiptSnapshot,
     restoreReceipt,
   } = groupData;
+  const { persistNow } = useGroupsData();
   const navigate = useNavigate();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const cameraInputRef = useRef(null);
@@ -272,6 +274,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     if (keepAttachment && isSupabaseConfigured()) {
       try {
         const file = fileFromScanSource(originalFile, originalDataUrl);
+        await persistNow();
         await uploadAttachment({ groupId, receiptId: id, file });
         setReceiptsWithAttachments((prev) => {
           const next = new Set(prev);

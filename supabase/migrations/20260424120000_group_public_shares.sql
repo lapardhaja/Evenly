@@ -21,7 +21,8 @@ alter table public.group_public_shares enable row level security;
 
 revoke all on table public.group_public_shares from public;
 revoke all on table public.group_public_shares from anon;
-grant select, insert, update on table public.group_public_shares to authenticated;
+revoke update on table public.group_public_shares from authenticated;
+grant select, insert on table public.group_public_shares to authenticated;
 
 drop policy if exists "group_public_shares_select" on public.group_public_shares;
 create policy "group_public_shares_select" on public.group_public_shares
@@ -36,13 +37,10 @@ create policy "group_public_shares_insert" on public.group_public_shares
     and created_by = auth.uid()
   );
 
+-- Revoke is RPC-only (security definer). No client UPDATE.
 drop policy if exists "group_public_shares_update" on public.group_public_shares;
-create policy "group_public_shares_update" on public.group_public_shares
-  for update to authenticated
-  using (public.is_group_member(group_id))
-  with check (public.is_group_member(group_id));
 
--- Members create/revoke via RPC (also allowed by RLS above).
+-- Members create/revoke via RPC (revoke is security definer; no table UPDATE).
 create or replace function public.create_public_group_share(
   p_group_id uuid,
   p_include_attachments boolean default true
@@ -307,12 +305,32 @@ $$;
 revoke all on function public.has_active_attachment_share(uuid) from public;
 grant execute on function public.has_active_attachment_share(uuid) to anon, authenticated;
 
+create or replace function public.storage_path_group_id(p_name text)
+returns uuid
+language plpgsql
+immutable
+parallel safe
+as $$
+declare
+  v_seg text;
+begin
+  v_seg := split_part(coalesce(p_name, ''), '/', 1);
+  if v_seg ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    return v_seg::uuid;
+  end if;
+  return null;
+end;
+$$;
+
+revoke all on function public.storage_path_group_id(text) from public;
+grant execute on function public.storage_path_group_id(text) to anon, authenticated;
+
 drop policy if exists "receipt_attachments_storage_select_public_share" on storage.objects;
 create policy "receipt_attachments_storage_select_public_share" on storage.objects
   for select to anon, authenticated
   using (
     bucket_id = 'receipt-attachments'
-    and public.has_active_attachment_share((split_part(name, '/', 1))::uuid)
+    and public.has_active_attachment_share(public.storage_path_group_id(name))
   );
 
 revoke all on function public.get_public_group_share(uuid) from public;

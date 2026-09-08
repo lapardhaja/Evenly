@@ -172,6 +172,33 @@ export async function loadNormalizedData(supabase, userId) {
   return out;
 }
 
+const ATTACHMENT_BUCKET = 'receipt-attachments';
+
+/**
+ * Remove Storage objects for attachments that will be cascade-deleted with a
+ * receipt or group. Call before deleting the Postgres row.
+ *
+ * @param {import('@supabase/supabase-js').SupabaseClient} supabase
+ * @param {{ receiptId?: string, groupId?: string }} filter
+ */
+export async function removeStoredAttachments(supabase, filter) {
+  const receiptId = filter?.receiptId;
+  const groupId = filter?.groupId;
+  if (!receiptId && !groupId) return;
+
+  let query = supabase.from('receipt_attachments').select('storage_path');
+  query = receiptId ? query.eq('receipt_id', receiptId) : query.eq('group_id', groupId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const paths = (data || []).map((row) => row.storage_path).filter(Boolean);
+  if (paths.length === 0) return;
+
+  const { error: rmErr } = await supabase.storage.from(ATTACHMENT_BUCKET).remove(paths);
+  if (rmErr) throw rmErr;
+}
+
 /**
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase
  * @param {string} userId
@@ -194,6 +221,7 @@ export async function persistNormalizedData(supabase, userId, data) {
     if (localGroupIds.includes(row.group_id)) continue;
 
     if (row.role === 'owner') {
+      await removeStoredAttachments(supabase, { groupId: row.group_id });
       const { error } = await supabase.from('groups').delete().eq('id', row.group_id);
       if (error) throw error;
     } else {
@@ -268,6 +296,7 @@ export async function persistNormalizedData(supabase, userId, data) {
     if (drErr) throw drErr;
     for (const row of dbReceipts || []) {
       if (!localReceiptIds.includes(row.id)) {
+        await removeStoredAttachments(supabase, { receiptId: row.id });
         const { error } = await supabase.from('receipts').delete().eq('id', row.id);
         if (error) throw error;
       }

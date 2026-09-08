@@ -12,6 +12,8 @@ Notes from the shared-groups / attachments / legal / public-share pass. Marks **
 | `CORS_ALLOW_ORIGIN` (server) | Optional comma-separated origin allowlist. Request `Origin` must match when configured; matching origins are reflected. **`Access-Control-Allow-Origin: *` is never emitted.** |
 | `VITE_SCAN_API_SECRET` (client) | Optional. If set, the SPA sends `x-evenly-scan-secret`. Only for simple deploys where putting the secret in the bundle is acceptable. |
 
+**GitHub Pages → Vercel `/api/scan`:** set `CORS_ALLOW_ORIGIN` to the Pages origin(s) (comma-separated). Without that allowlist, the browser CORS check fails; `Access-Control-Allow-Origin: *` is never emitted.
+
 **Production browsers (same Vercel host):** set `CORS_ALLOW_ORIGIN` to the production origin(s) and leave `SCAN_API_SECRET` unset so `/api/scan` stays same-origin without a secret in the client. Set the server secret for non-browser callers.
 
 **Clamps retained:** image MIME only (PDF rejected); base64 length cap; money fields clamped in `api/scan.js`.
@@ -23,7 +25,7 @@ Notes from the shared-groups / attachments / legal / public-share pass. Marks **
 **Fixed (Tasks 7–8, 14–15).**
 
 - Bucket `receipt-attachments` is **private** (`public = false`), 10 MB, MIME allowlist.
-- Object path `{group_id}/{receipt_id}/{attachment_id}.{ext}` (UUIDs; first segment used for Storage RLS via `split_part(name, '/', 1)`). Client builds paths from UUIDs — no user-controlled traversal into other prefixes.
+- Object path `{group_id}/{receipt_id}/{attachment_id}.{ext}` (UUIDs; first segment via `storage_path_group_id(name)`, which returns null instead of throwing if the segment is not a UUID). Client builds paths from UUIDs — no user-controlled traversal into other prefixes.
 - Authenticated **SELECT/INSERT/DELETE** require `is_group_member(group_id)`.
 - Extra **SELECT** for `anon` and `authenticated` when `has_active_attachment_share(group_id)` (active public share with `include_attachments`).
 - **No LIST policy.** Viewers use short-TTL **signed URLs** (120s) via `createSignedUrl` after members know `storage_path`, or after the public-share RPC returns a path.

@@ -118,23 +118,42 @@ export function GroupsDataProvider({ children }) {
 
   // Debounced persist to Supabase (server-only mode)
   const persistTimer = useRef(null);
+
+  const persistToCloud = useCallback(async () => {
+    const client = getSupabase();
+    if (!client || !user) return;
+    try {
+      await persistNormalizedData(client, user.id, storedValueRef.current);
+    } catch (err) {
+      console.error('Evenly cloud sync save failed:', err);
+      setSyncError(err?.message || 'Could not save to the cloud.');
+      throw err;
+    }
+  }, [user]);
+
+  const persistNow = useCallback(async () => {
+    if (persistTimer.current) {
+      clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+    }
+    if (!cloud || !dataReady || syncError) return;
+    await persistToCloud();
+  }, [cloud, dataReady, syncError, persistToCloud]);
+
   useEffect(() => {
     if (!cloud || !dataReady || syncError) return undefined;
 
     if (persistTimer.current) clearTimeout(persistTimer.current);
     persistTimer.current = window.setTimeout(() => {
-      const client = getSupabase();
-      if (!client || !user) return;
-      persistNormalizedData(client, user.id, storedValueRef.current).catch((err) => {
-        console.error('Evenly cloud sync save failed:', err);
-        setSyncError(err?.message || 'Could not save to the cloud.');
+      persistToCloud().catch(() => {
+        /* persistToCloud already setSyncError */
       });
     }, 700);
 
     return () => {
       if (persistTimer.current) clearTimeout(persistTimer.current);
     };
-  }, [data, cloud, dataReady, user, syncError]);
+  }, [data, cloud, dataReady, syncError, persistToCloud]);
 
   const clearSyncError = useCallback(() => setSyncError(''), []);
 
@@ -166,8 +185,9 @@ export function GroupsDataProvider({ children }) {
       syncError,
       clearSyncError,
       reloadFromServer,
+      persistNow,
     }),
-    [data, setData, authLoading, dataReady, cloud, syncError, clearSyncError, reloadFromServer],
+    [data, setData, authLoading, dataReady, cloud, syncError, clearSyncError, reloadFromServer, persistNow],
   );
 
   return (
