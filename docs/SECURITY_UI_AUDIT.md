@@ -55,7 +55,7 @@ UI: Friends already in the group are disabled with “(already in group)”.
 
 ## Privacy copy
 
-**Fixed (Tasks 10, 16).** Privacy describes: localStorage; Supabase auth/profiles/friends/sync; Storage attachments; Gemini OCR via `/api/scan` (image not kept unless the user keeps the photo); **public `#/share/:id`** (receipts + optional attachments, revoke); **legacy `#/shared-settlement/:token`**. Placeholders `[OPERATOR_EMAIL]` / `[JURISDICTION]` remain for operators.
+**Fixed (Tasks 10, 16).** Privacy describes: localStorage; Supabase auth/profiles/friends/sync; Storage attachments; Gemini OCR via `/api/scan` (image not kept unless the user keeps the photo); **public `#/share/:id`** (receipts + optional attachments, revoke); **legacy `#/shared-settlement/:token`**. Operator contact is `servetlap29@gmail.com`; place of operation is New York, New York.
 
 ## Public share RPCs (`#/share/:id`)
 

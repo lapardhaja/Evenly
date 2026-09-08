@@ -2,13 +2,16 @@ import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import { Link as RouterLink } from 'react-router-dom';
 import LegalPageLayout from './LegalPageLayout.jsx';
+import { OPERATOR_EMAIL, OPERATOR_PLACE } from './operatorInfo.js';
 
 export default function CopyrightPage() {
   return (
     <LegalPageLayout title="Copyright">
       <Typography variant="body1" paragraph>
         Evenly’s name, logos, and in-app brand artwork are product marks of the operator.
-        Contact for IP notices: [OPERATOR_EMAIL]. This notice is written for [JURISDICTION].
+        Contact for IP notices:{' '}
+        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. This notice is written
+        for {OPERATOR_PLACE}.
       </Typography>
 
       <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
@@ -52,7 +55,8 @@ export default function CopyrightPage() {
         Notices
       </Typography>
       <Typography variant="body1" paragraph>
-        If you believe content in Evenly infringes your copyright, email [OPERATOR_EMAIL] with
+        If you believe content in Evenly infringes your copyright, email{' '}
+        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link> with
         the URL (including any <code>#/share/…</code> or receipt context), a description of the
         work, and how to reach you. The operator can remove or restrict content they host when
         they are able to.

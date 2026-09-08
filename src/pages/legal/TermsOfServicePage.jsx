@@ -2,13 +2,16 @@ import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import { Link as RouterLink } from 'react-router-dom';
 import LegalPageLayout from './LegalPageLayout.jsx';
+import { OPERATOR_EMAIL, OPERATOR_LAW, OPERATOR_PLACE } from './operatorInfo.js';
 
 export default function TermsOfServicePage() {
   return (
     <LegalPageLayout title="Terms of Service">
       <Typography variant="body1" paragraph>
         These terms are a plain-language template for using Evenly. They are not a substitute
-        for counsel. Contact: [OPERATOR_EMAIL]. Place of operation: [JURISDICTION].
+        for counsel. Contact:{' '}
+        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. Place of operation:{' '}
+        {OPERATOR_PLACE}.
       </Typography>
 
       <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
@@ -74,7 +77,7 @@ export default function TermsOfServicePage() {
         Disclaimer
       </Typography>
       <Typography variant="body1" paragraph>
-        The software is offered without warranty to the extent allowed in [JURISDICTION].
+        The software is offered without warranty to the extent allowed in {OPERATOR_LAW}.
         Related notices:{' '}
         <Link component={RouterLink} to="/privacy">
           Privacy

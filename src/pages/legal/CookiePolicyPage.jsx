@@ -2,14 +2,15 @@ import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import { Link as RouterLink } from 'react-router-dom';
 import LegalPageLayout from './LegalPageLayout.jsx';
+import { OPERATOR_EMAIL, OPERATOR_PLACE } from './operatorInfo.js';
 
 export default function CookiePolicyPage() {
   return (
     <LegalPageLayout title="Cookie Policy">
       <Typography variant="body1" paragraph>
         Evenly is a client-side web app. It uses essential browser storage so the product can
-        run. It does not currently set marketing, advertising, or analytics cookies. Operator:
-        [OPERATOR_EMAIL]. Place: [JURISDICTION].
+        run. It does not currently set marketing, advertising, or analytics cookies. Operator:{' '}
+        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. Place: {OPERATOR_PLACE}.
       </Typography>
 
       <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
@@ -55,7 +56,7 @@ export default function CookiePolicyPage() {
       <Typography variant="body1" paragraph>
         Sign-in, sync, Storage, and OCR go to Supabase and (for scans) Google via Evenly’s
         server. Those services may set their own cookies on their domains. Hosting (for example
-        Vercel or GitHub Pages) may log requests. See the{' '}
+        Vercel) may log requests. See the{' '}
         <Link component={RouterLink} to="/privacy">
           Privacy Policy
         </Link>{' '}
@@ -68,7 +69,8 @@ export default function CookiePolicyPage() {
       <Typography variant="body1" paragraph>
         Use your browser’s site-data or cookie controls for this origin. Clearing storage signs
         you out of this browser and, in local-only mode, deletes groups stored only on the
-        device. Questions: [OPERATOR_EMAIL].
+        device. Questions:{' '}
+        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>.
       </Typography>
     </LegalPageLayout>
   );

@@ -2,14 +2,16 @@ import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import { Link as RouterLink } from 'react-router-dom';
 import LegalPageLayout from './LegalPageLayout.jsx';
+import { OPERATOR_EMAIL, OPERATOR_PLACE } from './operatorInfo.js';
 
 export default function PrivacyPolicyPage() {
   return (
     <LegalPageLayout title="Privacy Policy">
       <Typography variant="body1" paragraph>
         Evenly is a receipt-splitting app. This page describes what data the product stores,
-        where it goes, and who can see it. Operator: [OPERATOR_EMAIL]. Governing place:
-        [JURISDICTION].
+        where it goes, and who can see it. Operator:{' '}
+        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. Governing place:{' '}
+        {OPERATOR_PLACE}.
       </Typography>
 
       <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
@@ -122,7 +124,7 @@ export default function PrivacyPolicyPage() {
         Processors
       </Typography>
       <Typography variant="body1" paragraph>
-        Hosting and APIs may include GitHub Pages or Vercel (the static app and scan endpoint),
+        Hosting and APIs may include Vercel (the static app and scan endpoint),
         Supabase (Auth, database, Storage), and Google (Gemini OCR). Their own privacy terms
         apply to data they process.
       </Typography>
@@ -133,7 +135,8 @@ export default function PrivacyPolicyPage() {
       <Typography variant="body1" paragraph>
         Local data lasts until you clear it. Cloud account and group data last until you delete
         them in the product or the operator deletes the project. To ask about access or deletion
-        of cloud data the operator controls, email [OPERATOR_EMAIL].
+        of cloud data the operator controls, email{' '}
+        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>.
       </Typography>
 
       <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>

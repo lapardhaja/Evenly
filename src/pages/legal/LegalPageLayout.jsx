@@ -22,8 +22,8 @@ export default function LegalPageLayout({ title, children }) {
         {title}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Last updated: 8 September 2026. This is a product description, not legal advice.
-        Replace [OPERATOR_EMAIL] and [JURISDICTION] before relying on this text in production.
+        Last updated: 8 September 2026. These pages describe how Evenly works. They are not legal
+        advice.
       </Typography>
       <Box
         component="article"
