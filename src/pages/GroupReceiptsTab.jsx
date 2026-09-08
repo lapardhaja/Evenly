@@ -33,6 +33,7 @@ import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { uploadAttachment } from '../lib/receiptAttachments.js';
 import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
+import FabPortal from '../core/FabPortal.jsx';
 import 'react-swipeable-list/dist/styles.css';
 import '../components/swipeable-list-overrides.css';
 import { SwipeableDeleteRow } from '../components/SwipeableDeleteList.jsx';
@@ -511,40 +512,42 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
 
       <ReceiptScanLoadingOverlay open={scanLoading} />
 
-      <SpeedDial
-        ariaLabel="Add receipt"
-        sx={fabFixedPlacementSx}
-        icon={<SpeedDialIcon />}
-        open={speedDialOpen}
-        onOpen={() => setSpeedDialOpen(true)}
-        onClose={() => setSpeedDialOpen(false)}
-      >
-        <SpeedDialAction
-          icon={<AddIcon />}
-          tooltipTitle="New receipt"
-          tooltipOpen
-          onClick={() => {
-            setSpeedDialOpen(false);
-            showEditTextModal({
-              value: '',
-              setValue: handleCreate,
-              title: 'New Receipt',
-            });
-          }}
-        />
-        <SpeedDialAction
-          icon={<PhotoCameraIcon />}
-          tooltipTitle="Take photo"
-          tooltipOpen
-          onClick={openScanCamera}
-        />
-        <SpeedDialAction
-          icon={<UploadFileIcon />}
-          tooltipTitle="Upload receipt"
-          tooltipOpen
-          onClick={openScanUpload}
-        />
-      </SpeedDial>
+      <FabPortal>
+        <SpeedDial
+          ariaLabel="Add receipt"
+          sx={fabFixedPlacementSx}
+          icon={<SpeedDialIcon />}
+          open={speedDialOpen}
+          onOpen={() => setSpeedDialOpen(true)}
+          onClose={() => setSpeedDialOpen(false)}
+        >
+          <SpeedDialAction
+            icon={<AddIcon />}
+            tooltipTitle="New receipt"
+            tooltipOpen
+            onClick={() => {
+              setSpeedDialOpen(false);
+              showEditTextModal({
+                value: '',
+                setValue: handleCreate,
+                title: 'New Receipt',
+              });
+            }}
+          />
+          <SpeedDialAction
+            icon={<PhotoCameraIcon />}
+            tooltipTitle="Take photo"
+            tooltipOpen
+            onClick={openScanCamera}
+          />
+          <SpeedDialAction
+            icon={<UploadFileIcon />}
+            tooltipTitle="Upload receipt"
+            tooltipOpen
+            onClick={openScanUpload}
+          />
+        </SpeedDial>
+      </FabPortal>
 
       <ScanReceiptDialog
         open={scanDialogOpen}
