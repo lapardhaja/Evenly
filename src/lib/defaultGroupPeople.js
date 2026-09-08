@@ -2,8 +2,23 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const SELF_PERSON_NAME = 'Me';
 
+function formatProfileFullName(profile) {
+  if (!profile) return '';
+  const f = profile.first_name?.trim();
+  const l = profile.last_name?.trim();
+  if (f && l) return `${f} ${l}`;
+  if (f) return f;
+  if (l) return l;
+  return profile.display_name?.trim() || '';
+}
+
 function metaString(user, key) {
   const value = user?.user_metadata?.[key];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function profileString(profile, key) {
+  const value = profile?.[key];
   return typeof value === 'string' ? value.trim() : '';
 }
 
@@ -18,35 +33,55 @@ export function authEmailHandle(user) {
 }
 
 /** Username / email local-part — not a display name. */
-export function isHandleLikePersonName(name, user) {
+export function isHandleLikePersonName(name, user, profile) {
   const n = typeof name === 'string' ? name.trim() : '';
   if (!n) return true;
   if (n.includes('@')) return true;
-  const username = authUsername(user);
+  const username = authUsername(user) || profileString(profile, 'username');
   const handle = authEmailHandle(user);
   if (username && n.toLowerCase() === username.toLowerCase()) return true;
   if (handle && n.toLowerCase() === handle.toLowerCase()) return true;
   return false;
 }
 
-export function preferredSelfPersonName(user) {
+/** Stored self labels that should be replaced with the real profile name. */
+export function isReplaceableSelfName(name, user, profile) {
+  const n = typeof name === 'string' ? name.trim() : '';
+  if (!n) return true;
+  if (n.toLowerCase() === SELF_PERSON_NAME.toLowerCase()) return true;
+  return isHandleLikePersonName(n, user, profile);
+}
+
+function firstNonHandleName(candidates, user, profile) {
+  for (const raw of candidates) {
+    const name = typeof raw === 'string' ? raw.trim() : '';
+    if (name && !isHandleLikePersonName(name, user, profile)) return name;
+  }
+  return '';
+}
+
+export function preferredSelfPersonName(user, profile) {
   if (!user?.id) return SELF_PERSON_NAME;
-  const fromParts = [metaString(user, 'first_name'), metaString(user, 'last_name')]
+  const fromProfile = formatProfileFullName(profile);
+  const fromMetaParts = [metaString(user, 'first_name'), metaString(user, 'last_name')]
     .filter(Boolean)
     .join(' ');
-  const display = metaString(user, 'display_name');
-  if (fromParts && !isHandleLikePersonName(fromParts, user)) return fromParts;
-  if (display && !isHandleLikePersonName(display, user)) return display;
-  return SELF_PERSON_NAME;
+  return (
+    firstNonHandleName(
+      [fromProfile, profileString(profile, 'display_name'), fromMetaParts, metaString(user, 'display_name')],
+      user,
+      profile,
+    ) || SELF_PERSON_NAME
+  );
 }
 
 export function isSelfPerson(person, userId) {
   return Boolean(person?.linkedUserId && userId && person.linkedUserId === userId);
 }
 
-export function personDisplayName(person, user) {
-  if (isSelfPerson(person, user?.id) && isHandleLikePersonName(person?.name, user)) {
-    return preferredSelfPersonName(user);
+export function personDisplayName(person, user, profile) {
+  if (isSelfPerson(person, user?.id) && isReplaceableSelfName(person?.name, user, profile)) {
+    return preferredSelfPersonName(user, profile);
   }
   return person?.name || '';
 }
@@ -57,20 +92,20 @@ export function personRowCaption(person, userId) {
   return null;
 }
 
-export function relabelPeopleForDisplay(people, user) {
+export function relabelPeopleForDisplay(people, user, profile) {
   if (!Array.isArray(people)) return [];
   return people.map((person) => {
-    const name = personDisplayName(person, user);
+    const name = personDisplayName(person, user, profile);
     return name === person.name ? person : { ...person, name };
   });
 }
 
-export function relabelSelfPeopleMap(peopleMap, user) {
+export function relabelSelfPeopleMap(peopleMap, user, profile) {
   if (!peopleMap || typeof peopleMap !== 'object') return peopleMap;
   let changed = false;
   const next = {};
   for (const [id, person] of Object.entries(peopleMap)) {
-    const name = personDisplayName({ ...person, id }, user);
+    const name = personDisplayName({ ...person, id }, user, profile);
     if (name !== person.name) {
       next[id] = { ...person, name };
       changed = true;
@@ -85,13 +120,14 @@ export function relabelSelfPeopleMap(peopleMap, user) {
  * When creating a group, seed one person representing the current user (or "Me" when local-only).
  * Never use username / email handle as the visible name.
  * @param {{ id?: string, email?: string | null, user_metadata?: Record<string, unknown> } | null} user
+ * @param {{ first_name?: string, last_name?: string, display_name?: string } | null} [profile]
  */
-export function getDefaultPeopleMapForNewGroup(user) {
+export function getDefaultPeopleMapForNewGroup(user, profile) {
   const id = uuidv4();
   if (!user?.id) {
     return { [id]: { name: SELF_PERSON_NAME } };
   }
   return {
-    [id]: { name: preferredSelfPersonName(user), linkedUserId: user.id },
+    [id]: { name: preferredSelfPersonName(user, profile), linkedUserId: user.id },
   };
 }

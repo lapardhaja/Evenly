@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { applySupabaseAuthFromUrl } from '../lib/supabaseAuthCallback.js';
+import { fetchMyProfile } from '../lib/friendsApi.js';
 
 const AuthContext = createContext(null);
 
@@ -16,6 +17,7 @@ export function AuthProvider({ children }) {
   const configured = isSupabaseConfigured();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(!!client);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     if (!client) {
@@ -50,6 +52,38 @@ export function AuthProvider({ children }) {
       sub.subscription.unsubscribe();
     };
   }, [client]);
+
+  useEffect(() => {
+    if (!client || !session?.user?.id) {
+      setProfile(null);
+      return undefined;
+    }
+    let cancelled = false;
+    fetchMyProfile()
+      .then((p) => {
+        if (!cancelled) setProfile(p);
+      })
+      .catch(() => {
+        if (!cancelled) setProfile(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client, session?.user?.id]);
+
+  const refreshProfile = useCallback(async () => {
+    if (!client || !session?.user?.id) {
+      setProfile(null);
+      return null;
+    }
+    try {
+      const p = await fetchMyProfile();
+      setProfile(p);
+      return p;
+    } catch {
+      return null;
+    }
+  }, [client, session?.user?.id]);
 
   const signIn = useCallback(
     async (email, password) => {
@@ -115,6 +149,8 @@ export function AuthProvider({ children }) {
     () => ({
       user: session?.user ?? null,
       session,
+      profile,
+      refreshProfile,
       loading,
       signIn,
       signUp,
@@ -125,6 +161,8 @@ export function AuthProvider({ children }) {
     }),
     [
       session,
+      profile,
+      refreshProfile,
       loading,
       signIn,
       signUp,

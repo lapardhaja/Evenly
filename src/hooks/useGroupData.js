@@ -12,15 +12,15 @@ import { normalizeCurrencyCode } from '../lib/currencies.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { relabelPeopleForDisplay, relabelSelfPeopleMap } from '../lib/defaultGroupPeople.js';
 
-function useHealSelfPersonNames(groupId, peopleMap, user, setData) {
+function useHealSelfPersonNames(groupId, peopleMap, user, profile, setData) {
   useEffect(() => {
     if (!groupId || !peopleMap || !user?.id) return undefined;
-    const next = relabelSelfPeopleMap(peopleMap, user);
+    const next = relabelSelfPeopleMap(peopleMap, user, profile);
     if (next === peopleMap) return undefined;
     setData((prev) => {
       const g = prev.groups?.[groupId];
       if (!g?.people) return prev;
-      const relabeled = relabelSelfPeopleMap(g.people, user);
+      const relabeled = relabelSelfPeopleMap(g.people, user, profile);
       if (relabeled === g.people) return prev;
       return {
         ...prev,
@@ -28,7 +28,7 @@ function useHealSelfPersonNames(groupId, peopleMap, user, setData) {
       };
     });
     return undefined;
-  }, [groupId, peopleMap, user, setData]);
+  }, [groupId, peopleMap, user, profile, setData]);
 }
 
 // ─── Groups list ────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ export function useGroups() {
 
 export function useGroup(groupId) {
   const { data, setData } = useGroupsData();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const group = useMemo(() => {
     if (!data.groups?.[groupId]) return null;
@@ -140,10 +140,10 @@ export function useGroup(groupId) {
   }, [data.groups, groupId]);
 
   const people = useMemo(
-    () => relabelPeopleForDisplay(idMapToList(group?.people), user),
-    [group?.people, user],
+    () => relabelPeopleForDisplay(idMapToList(group?.people), user, profile),
+    [group?.people, user, profile],
   );
-  useHealSelfPersonNames(groupId, group?.people, user, setData);
+  useHealSelfPersonNames(groupId, group?.people, user, profile, setData);
 
   const receipts = useMemo(() => {
     return idMapToList(group?.receipts).map((r) => {
@@ -412,7 +412,7 @@ export function useGroup(groupId) {
 
 export function useGroupReceipt(groupId, receiptId) {
   const { data, setData } = useGroupsData();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const group = data.groups?.[groupId];
   const receipt = useMemo(() => {
@@ -427,10 +427,10 @@ export function useGroupReceipt(groupId, receiptId) {
   }, [group, receiptId]);
 
   const people = useMemo(
-    () => relabelPeopleForDisplay(idMapToList(group?.people), user),
-    [group?.people, user],
+    () => relabelPeopleForDisplay(idMapToList(group?.people), user, profile),
+    [group?.people, user, profile],
   );
-  useHealSelfPersonNames(groupId, group?.people, user, setData);
+  useHealSelfPersonNames(groupId, group?.people, user, profile, setData);
 
   /** Per-receipt "marked paid" for settle-up tracking (not stored on group person). */
   const peopleWithPaid = useMemo(

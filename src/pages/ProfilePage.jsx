@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [usernameEdit, setUsernameEdit] = useState('');
   const [firstNameEdit, setFirstNameEdit] = useState('');
   const [lastNameEdit, setLastNameEdit] = useState('');
@@ -121,7 +121,7 @@ export default function ProfilePage() {
         lastName: ln,
       });
       setMessage('Profile saved.');
-      const p = await fetchMyProfile();
+      const p = (await refreshProfile()) || (await fetchMyProfile());
       const un = p?.username ? String(p.username) : '';
       savedUsernameRef.current = un;
       setUsernameEdit(un);
