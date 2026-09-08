@@ -111,7 +111,8 @@ begin
   end if;
   if not exists (
     select 1 from public.friendships f
-    where f.user_a = auth.uid() and f.user_b = p_friend_user_id
+    where (f.user_a = auth.uid() and f.user_b = p_friend_user_id)
+       or (f.user_a = p_friend_user_id and f.user_b = auth.uid())
   ) then
     raise exception 'not friends';
   end if;
