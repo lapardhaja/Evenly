@@ -2,7 +2,7 @@
 
 ## Project overview
 
-**Evenly** is a receipt-splitting SPA (React 18 + Vite 6 + MUI 5). Data persists in `localStorage`; optional **Supabase** email/password syncs normalized rows to Postgres (RLS). Deploy to **GitHub Pages** (static only) or **Vercel** (static + `POST /api/scan` using Gemini; env `GEMINI_API_KEY`, optional `GEMINI_MODEL`; default `gemini-3.5-flash-lite` with `gemini-3.1-flash-lite` fallback on model 404). Optional `SCAN_API_SECRET` (server; require `x-evenly-scan-secret` when set). `CORS_ALLOW_ORIGIN` (comma-separated origins; required when GitHub Pages calls Vercel `/api/scan`).
+**Evenly** is a receipt-splitting SPA (React 18 + Vite 6 + MUI 5). Data persists in `localStorage`; optional **Supabase** email/password syncs normalized rows to Postgres (RLS). Deploy on **Vercel** (static + `POST /api/scan` using Gemini; env `GEMINI_API_KEY`, optional `GEMINI_MODEL`; default `gemini-3.5-flash-lite` with `gemini-3.1-flash-lite` fallback on model 404). Optional `SCAN_API_SECRET` (server; require `x-evenly-scan-secret` when set). `CORS_ALLOW_ORIGIN` (comma-separated origins) if a static host calls Vercel `/api/scan`.
 
 ## Tech stack
 
