@@ -31,7 +31,7 @@ Open [http://localhost:5173](http://localhost:5173) to use the app.
 npm run build
 ```
 
-**Vercel** (receipt scan): connect the repo. Vercel sets `VERCEL=1` during build so asset paths use `/`. Add **`GEMINI_API_KEY`** in Project → Settings → Environment Variables. Optional: **`GEMINI_MODEL`** (default `gemini-3.5-flash-lite`, then `gemini-3.1-flash-lite` if that id 404s). Do **not** set a `*-preview` model. The app calls **`POST /api/scan`** (Gemini vision); the key stays on the server.
+**Vercel** (receipt scan): connect the repo. Vercel sets `VERCEL=1` during build so asset paths use `/`. Add **`GEMINI_API_KEY`** in Project → Settings → Environment Variables. Optional: **`GEMINI_MODEL`** (default `gemini-3.5-flash-lite`, then `gemini-3.1-flash-lite` if that id 404s). Do **not** set a `*-preview` model. The app calls **`POST /api/scan`** (Gemini vision); the key stays on the server. Production is Vercel (custom domain / `*.vercel.app`); there is no GitHub Pages deploy.
 
 Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **Sign in** (cloud sync). Never put the Supabase **service role** key in the frontend.
 

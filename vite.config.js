@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// GitHub Pages: relative base. Vercel (VERCEL=1): absolute '/' for assets + /api routes.
+// Relative `./` base for local `vite build` / `preview`. Vercel (VERCEL=1): absolute '/' for assets + /api routes.
 export default defineConfig(({ command }) => ({
   plugins: [
     react(),
