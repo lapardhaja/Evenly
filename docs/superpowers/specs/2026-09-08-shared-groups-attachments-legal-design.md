@@ -14,27 +14,29 @@ Evenly today is single-owner: friends can be labeled on a group via `linked_user
 2. Each expense can hold 0..n attachments (images or PDF: receipts, statements, charge screenshots) that any member can open.
 3. Ship Privacy, Terms, Cookies, and Copyright pages with footer / login discovery and a lightweight cookie notice.
 4. Audit and harden security + mobile/desktop UI after the above land.
+5. Public **no-login** share link shows receipts/charges, settlement, and attachments (not settlement-only).
 
 ## Non-goals (v1)
 
 - Realtime multiplayer sync (keep load + save; last-write-wins).
-- Invite accept/decline flow or join-by-link/code.
+- Invite accept/decline flow or join-by-link/code (membership still friends-only).
 - Group-level media albums (attachments are per-expense only).
 - Role matrix beyond owner vs member (members are full collaborators; only owner deletes the group).
 - Analytics / marketing cookies or consent matrices.
 - Attachments or shared membership in local-only builds (no Supabase).
-- Changing settlement share-link behavior (remains public snapshot).
+- Public share that grants edit access (read-only only).
 
 ## Decisions (locked)
 
 | Topic | Choice |
 |-------|--------|
-| Build order | Shared groups → attachments → legal → security/UI |
+| Build order | Shared groups → attachments → legal → public share (C) → security/UI |
 | Permissions | Full collaborators for all members |
 | Invite | Friends picker; immediate membership; no accept step |
 | Attachments | Per expense; images + PDF |
 | Backend | Supabase Auth + Postgres RLS + Storage |
 | Local-only | No share / no persisted attachments |
+| Public share | Server-backed read-only link with receipts + settlement + attachments |
 
 ---
 
@@ -199,7 +201,8 @@ Run after features 1–3. Deliver code fixes plus a short notes file under `docs
 - [ ] Membership RPC: friends-only; no privilege escalation to owner.
 - [ ] XSS: no `dangerouslySetInnerHTML`; sanitize displayed file names.
 - [ ] Document anon profile/search enumeration surfaces.
-- [ ] Privacy policy mentions settlement share links and OCR.
+- [ ] Privacy policy mentions public share links (receipts + attachments), legacy settlement tokens, and OCR.
+- [ ] Public share RPCs: anon can only read via valid share id; revoke works; no edit path.
 
 ### UI checklist (phone + desktop)
 
@@ -210,6 +213,55 @@ Run after features 1–3. Deliver code fixes plus a short notes file under `docs
 - [ ] Upload empty / error / offline states.
 - [ ] Legal pages + cookie banner in light and dark themes.
 - [ ] Touch targets and keyboard access for attach/delete/open.
+- [ ] Public share page: receipts + settle + attachment open, mobile + desktop, no auth.
+
+---
+
+## 5. Public group share (no login) — Approach C
+
+Replaces “settlement-token only” as the primary share UX. Keep `#/shared-settlement/:token` working for old links.
+
+### Data
+
+Table `group_public_shares`:
+
+| Column | Notes |
+|--------|--------|
+| `id` | uuid PK (also used in URL) |
+| `group_id` | FK → groups |
+| `created_by` | auth.users |
+| `created_at` | |
+| `revoked_at` | null = active |
+| `include_attachments` | boolean default true |
+
+### Access
+
+- Members can INSERT / UPDATE (revoke) shares for their groups.
+- Anon **cannot** SELECT group tables directly.
+- Security-definer RPCs (granted to `anon` + `authenticated`):
+  - `get_public_group_share(share_id uuid)` → group name, currency, people, receipts (items, tax/tip/discount, paidBy, allocations), computed transfers payload (or enough data for client `settlement.js`).
+  - `get_public_share_attachment_url(share_id uuid, attachment_id uuid)` → short-TTL signed Storage URL **only if** share active, `include_attachments`, and attachment belongs to that group.
+- Revoked / missing share → RPC error; UI shows expired message.
+
+### UX
+
+- Settle tab (and/or group menu): **Share group** → creates share row → copy `#/share/:id` (absolute URL).
+- Option toggle: include attachments (default on).
+- Revoke: list active shares / revoke button for members.
+- Public page `#/share/:shareId` (no RequireAuth):
+  - Group title, receipt list → expand receipt (items, payer, totals).
+  - Attachments open via lightbox / PDF (same components as in-app, using signed URLs from RPC).
+  - Settlement transfers section (reuse SharedSettlementPage presentation patterns).
+- Mobile + desktop.
+
+### Privacy
+
+- Banner on share create: “Anyone with this link can view receipts and attachments.”
+- Legal/Privacy copy updated accordingly.
+
+### Local-only
+
+- Cloud-only; local builds keep existing compressed settlement token share only.
 
 ---
 
@@ -223,6 +275,8 @@ Auth user
    │
    ├─ friends (existing) ──► add_friend_to_group RPC
    │
+   ├─ group_public_shares ──► get_public_group_share / attachment URL RPCs ──► anon viewers
+   │
    └─ public legal routes + cookie banner
 ```
 
@@ -233,7 +287,8 @@ Sync remains: sign-in load → in-memory/context → persist on edit (RLS enforc
 - Migration: backfill owners; member can SELECT/UPDATE; non-member denied; non-owner cannot DELETE group.
 - RPC: friend add creates member + person; non-friend rejected; duplicate no-op.
 - Attachments: upload image/PDF within caps; reject bad MIME/oversize; member can signed-URL view; non-member denied; delete cleans DB + Storage.
-- UI: manual phone + desktop pass for attach/view/delete, shared group list, legal links, cookie dismiss.
+- Public share: anon `get_public_group_share` returns receipts; revoked fails; attachment URL only when include_attachments; no write via anon.
+- UI: manual phone + desktop pass for attach/view/delete, shared group list, public share page, legal links, cookie dismiss.
 - Build: `npm run build`; scan API hardening verified with rejected unauthenticated or cross-origin abuse attempts as applicable.
 
 ## Implementation order
@@ -241,7 +296,8 @@ Sync remains: sign-in load → in-memory/context → persist on edit (RLS enforc
 1. Migration `group_members` + RLS rewrite + load/persist + People-tab invite + leave/remove.
 2. Migration `receipt_attachments` + Storage + receipt UI + scan keep-photo.
 3. Legal routes + footer + login line + cookie banner.
-4. Security/UI audit doc + concrete fixes (especially `/api/scan`).
+4. Public group share (table + RPCs + `#/share/:id` + create/revoke UI); keep legacy settlement tokens.
+5. Security/UI audit doc + concrete fixes (especially `/api/scan` + public share surfaces).
 
 ## Open placeholders (content only, not design blockers)
 
