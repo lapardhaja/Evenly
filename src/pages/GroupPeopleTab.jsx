@@ -23,10 +23,13 @@ import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { listFriends } from '../lib/friendsApi.js';
 import { addFriendToGroup } from '../lib/groupMembersApi.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { personRowCaption } from '../lib/defaultGroupPeople.js';
 
 export default function GroupPeopleTab({ groupData }) {
   const { group, people, addPerson, updatePerson, removePerson } = groupData;
   const { reloadFromServer } = useGroupsData();
+  const { user } = useAuth();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const { ask, confirmDialog } = useConfirmDialog();
   const newPersonRef = useRef(null);
@@ -70,7 +73,9 @@ export default function GroupPeopleTab({ groupData }) {
 
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <List disablePadding>
-          {people.map((person) => (
+          {people.map((person) => {
+            const caption = personRowCaption(person, user?.id);
+            return (
             <ListItem
               key={person.id}
               secondaryAction={
@@ -108,14 +113,15 @@ export default function GroupPeopleTab({ groupData }) {
                 sx={{ borderRadius: 1, px: 1, py: 0.5, alignItems: 'flex-start', flexDirection: 'column' }}
               >
                 <Typography fontWeight={500}>{person.name}</Typography>
-                {person.linkedUserId ? (
+                {caption ? (
                   <Typography variant="caption" color="text.secondary">
-                    Friend account
+                    {caption}
                   </Typography>
                 ) : null}
               </ButtonBase>
             </ListItem>
-          ))}
+            );
+          })}
 
           {people.length === 0 && (
             <ListItem>

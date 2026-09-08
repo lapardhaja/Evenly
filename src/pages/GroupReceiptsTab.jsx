@@ -32,7 +32,7 @@ import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { uploadAttachment } from '../lib/receiptAttachments.js';
-import { fabFixedPlacementSx } from '../core/fabPlacement.js';
+import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 import 'react-swipeable-list/dist/styles.css';
 import '../components/swipeable-list-overrides.css';
 import { SwipeableDeleteRow } from '../components/SwipeableDeleteList.jsx';
@@ -506,6 +506,8 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
           </Box>
         </Paper>
       )}
+
+      <Box aria-hidden sx={fabScrollClearanceSx} />
 
       <ReceiptScanLoadingOverlay open={scanLoading} />
 

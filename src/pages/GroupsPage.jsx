@@ -32,7 +32,7 @@ import { sumGroupReceiptsInDisplayCurrency } from '../lib/groupSpendConvert.js';
 import { canDeleteGroup, groupListBadge } from '../lib/groupMembership.js';
 import { leaveGroup } from '../lib/groupMembersApi.js';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
-import { fabFixedPlacementSx } from '../core/fabPlacement.js';
+import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
 
 export default function GroupsPage() {
@@ -41,7 +41,7 @@ export default function GroupsPage() {
   const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
   const { groups, addGroup, deleteGroup, getGroupSnapshot, restoreGroup } = useGroups();
   const { data, reloadFromServer } = useGroupsData();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { ask, confirmDialog } = useConfirmDialog();
   const [convertedTotals, setConvertedTotals] = useState({});
   const [totalsLoading, setTotalsLoading] = useState(true);
@@ -92,7 +92,7 @@ export default function GroupsPage() {
   const handleCreate = (name) => {
     if (!name.trim()) return;
     const id = addGroup(name.trim(), {
-      initialPeople: getDefaultPeopleMapForNewGroup(user),
+      initialPeople: getDefaultPeopleMapForNewGroup(user, profile),
     });
     if (id) navigate(`/groups/${id}/people`);
   };
@@ -283,6 +283,8 @@ export default function GroupsPage() {
           )}
         </>
       )}
+
+      <Box aria-hidden sx={fabScrollClearanceSx} />
 
       <Fab
         color="primary"
