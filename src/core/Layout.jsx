@@ -29,6 +29,7 @@ import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friends
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 import CookieNotice from '../components/CookieNotice.jsx';
+import { FAB_OVERLAY_ROOT_ID } from './FabPortal.jsx';
 import {
   APP_SHELL_HEIGHT,
   isPublicExemptRoute,
@@ -61,6 +62,49 @@ const darkTheme = createTheme({
   },
   shape: { borderRadius: 12 },
 });
+
+/** In-flow legal strip — not shell chrome, so FABs can sit above Safari/Chrome toolbars. */
+function AppLegalFooter() {
+  return (
+    <Box
+      component="footer"
+      sx={{
+        py: 2,
+        px: 2,
+        pb: {
+          xs: 'calc(88px + env(safe-area-inset-bottom, 0px) + var(--evenly-cookie-banner-offset, 0px))',
+          sm: 3,
+        },
+        textAlign: 'center',
+        borderTop: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, alignItems: 'center' }}>
+        <Typography variant="caption" color="text.secondary">
+          &copy; {new Date().getFullYear()} Evenly
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Designed by Servet Lapardhaja
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+          <Link component={RouterLink} to="/privacy" variant="caption">
+            Privacy
+          </Link>
+          <Link component={RouterLink} to="/terms" variant="caption">
+            Terms
+          </Link>
+          <Link component={RouterLink} to="/cookies" variant="caption">
+            Cookies
+          </Link>
+          <Link component={RouterLink} to="/copyright" variant="caption">
+            Copyright
+          </Link>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -155,6 +199,7 @@ export default function Layout() {
         <CircularProgress color="inherit" />
         <Typography variant="body2">Loading…</Typography>
       </Backdrop>
+      <Box id={FAB_OVERLAY_ROOT_ID} />
       <Box
         sx={{
           flexGrow: 1,
@@ -333,6 +378,7 @@ export default function Layout() {
               disabled={pullToRefreshDisabledForRoute}
             >
               <Outlet />
+              <AppLegalFooter />
             </PullToRefreshLayout>
           ) : (
             <Box
@@ -340,43 +386,9 @@ export default function Layout() {
               sx={{ flex: 1, minHeight: 0, overflow: 'auto', WebkitOverflowScrolling: 'touch' }}
             >
               <Outlet />
+              <AppLegalFooter />
             </Box>
           )}
-        </Box>
-
-        <Box
-          component="footer"
-          sx={{
-            mt: 'auto',
-            py: 2,
-            px: 2,
-            textAlign: 'center',
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, alignItems: 'center' }}>
-            <Typography variant="caption" color="text.secondary">
-              &copy; {new Date().getFullYear()} Evenly
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Designed by Servet Lapardhaja
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
-              <Link component={RouterLink} to="/privacy" variant="caption">
-                Privacy
-              </Link>
-              <Link component={RouterLink} to="/terms" variant="caption">
-                Terms
-              </Link>
-              <Link component={RouterLink} to="/cookies" variant="caption">
-                Cookies
-              </Link>
-              <Link component={RouterLink} to="/copyright" variant="caption">
-                Copyright
-              </Link>
-            </Box>
-          </Box>
         </Box>
         <CookieNotice />
       </Box>

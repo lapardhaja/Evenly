@@ -33,6 +33,7 @@ import { canDeleteGroup, groupListBadge } from '../lib/groupMembership.js';
 import { leaveGroup } from '../lib/groupMembersApi.js';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
+import FabPortal from '../core/FabPortal.jsx';
 import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
 
 export default function GroupsPage() {
@@ -286,19 +287,21 @@ export default function GroupsPage() {
 
       <Box aria-hidden sx={fabScrollClearanceSx} />
 
-      <Fab
-        color="primary"
-        onClick={() =>
-          showEditTextModal({
-            value: '',
-            setValue: handleCreate,
-            title: 'Create New Group',
-          })
-        }
-        sx={fabFixedPlacementSx}
-      >
-        <AddIcon />
-      </Fab>
+      <FabPortal>
+        <Fab
+          color="primary"
+          onClick={() =>
+            showEditTextModal({
+              value: '',
+              setValue: handleCreate,
+              title: 'Create New Group',
+            })
+          }
+          sx={fabFixedPlacementSx}
+        >
+          <AddIcon />
+        </Fab>
+      </FabPortal>
 
       {EditTextModal}
       {confirmDialog}

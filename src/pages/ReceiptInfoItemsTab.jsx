@@ -34,6 +34,7 @@ import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 import useAddItemModal from './components/UseAddItemModal.jsx';
 import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
+import FabPortal from '../core/FabPortal.jsx';
 
 export default function ReceiptInfoItemsTab({ receiptData }) {
   const {
@@ -567,13 +568,15 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
       {!receipt.locked && (
         <>
           <Box aria-hidden sx={fabScrollClearanceSx} />
-          <Fab
-            color="primary"
-            onClick={showAddItemModal}
-            sx={fabFixedPlacementSx}
-          >
-            <AddIcon />
-          </Fab>
+          <FabPortal>
+            <Fab
+              color="primary"
+              onClick={showAddItemModal}
+              sx={fabFixedPlacementSx}
+            >
+              <AddIcon />
+            </Fab>
+          </FabPortal>
         </>
       )}
 
