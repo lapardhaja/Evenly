@@ -37,7 +37,7 @@ export default function GroupsPage() {
   const isMobileSwipe = useMediaQuery(theme.breakpoints.down('md'));
   const { groups, addGroup, deleteGroup, getGroupSnapshot, restoreGroup } = useGroups();
   const { data } = useGroupsData();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [convertedTotals, setConvertedTotals] = useState({});
   const [totalsLoading, setTotalsLoading] = useState(true);
 
@@ -86,7 +86,7 @@ export default function GroupsPage() {
   const handleCreate = (name) => {
     if (!name.trim()) return;
     const id = addGroup(name.trim(), {
-      initialPeople: getDefaultPeopleMapForNewGroup(user),
+      initialPeople: getDefaultPeopleMapForNewGroup(user, profile),
     });
     if (id) navigate(`/groups/${id}/people`);
   };
