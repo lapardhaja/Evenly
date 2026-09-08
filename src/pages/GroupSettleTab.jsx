@@ -20,7 +20,9 @@ import IosShareIcon from '@mui/icons-material/IosShare';
 import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
 import { computeNetBalances, minimizeTransfers } from '../functions/settlement.js';
+import GroupShareDialog from '../components/GroupShareDialog.jsx';
 import SettlementShareDialog from '../components/SettlementShareDialog.jsx';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import CurrencyAutocomplete from '../components/CurrencyAutocomplete.jsx';
 import {
   getUsdRatesTable,
@@ -347,14 +349,26 @@ export default function GroupSettleTab({ groupId, groupData }) {
         Share Cost Evenly
       </Button>
 
-      <SettlementShareDialog
-        open={shareLinkOpen}
-        onClose={() => setShareLinkOpen(false)}
-        groupName={group?.name}
-        transfers={transfersForShare}
-        warnings={shareWarnings}
-        settleCurrencyCode={settleCode}
-      />
+      {isSupabaseConfigured() ? (
+        <GroupShareDialog
+          open={shareLinkOpen}
+          onClose={() => setShareLinkOpen(false)}
+          groupId={groupId}
+          groupName={group?.name}
+          transfers={transfersForShare}
+          warnings={shareWarnings}
+          settleCurrencyCode={settleCode}
+        />
+      ) : (
+        <SettlementShareDialog
+          open={shareLinkOpen}
+          onClose={() => setShareLinkOpen(false)}
+          groupName={group?.name}
+          transfers={transfersForShare}
+          warnings={shareWarnings}
+          settleCurrencyCode={settleCode}
+        />
+      )}
 
       {transfers.length === 0 ? (
         <Paper

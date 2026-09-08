@@ -1048,7 +1048,9 @@ git commit -m "fix(security): harden scan API auth and CORS"
 
 **Interfaces:** none new
 
-- [ ] **Step 1: Write `docs/SECURITY_UI_AUDIT.md`** with checklist from the spec, mark items fixed in this PR vs residual risk (settlement share links public, profile search enumeration).
+- [ ] **Step 1: Write `docs/SECURITY_UI_AUDIT.md`** with checklist from the spec, mark items fixed in this PR vs residual risk (settlement share links public, profile search enumeration). Include:
+  - Public share RPCs: `create_public_group_share` / `revoke_public_group_share` authenticated members only; `get_public_group_share` / `get_public_share_attachment_url` granted to anon but fail closed for missing/revoked (`share not found`); no anon SELECT on `group_public_shares` or group tables.
+  - Anon attachment URL abuse: attachment RPC returns a path only when the share is active, `include_attachments` is true, and the file belongs to that group; short-TTL signed URLs; Storage RLS + unguessable UUID paths; no LIST policy; revoked shares must not mint URLs.
 
 - [ ] **Step 2: Fix residual UI bugs discovered while testing Phases A–C** (only concrete bugs — no drive-by refactors).
 

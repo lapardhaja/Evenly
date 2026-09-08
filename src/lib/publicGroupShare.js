@@ -102,6 +102,26 @@ export function publicShareTransfers(group) {
   return minimizeTransfers(computeNetBalances(group));
 }
 
+function shareIdFromCreateRpc(data) {
+  if (typeof data === 'string' && data) return data;
+  if (data && typeof data === 'object' && typeof data.id === 'string' && data.id) {
+    return data.id;
+  }
+  throw new Error('Couldn’t create share');
+}
+
+export async function listActivePublicGroupShares(groupId) {
+  const supabase = await clientOrThrow();
+  const { data, error } = await supabase
+    .from('group_public_shares')
+    .select('id, include_attachments, created_at')
+    .eq('group_id', groupId)
+    .is('revoked_at', null)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
 export async function createPublicGroupShare(groupId, includeAttachments = true) {
   const supabase = await clientOrThrow();
   const { data, error } = await supabase.rpc('create_public_group_share', {
@@ -109,7 +129,7 @@ export async function createPublicGroupShare(groupId, includeAttachments = true)
     p_include_attachments: includeAttachments,
   });
   if (error) throw error;
-  return data;
+  return shareIdFromCreateRpc(data);
 }
 
 export async function revokePublicGroupShare(shareId) {

@@ -107,13 +107,15 @@ export default function PrivacyPolicyPage() {
         Public group share (receipts and attachments)
       </Typography>
       <Typography variant="body1" paragraph>
-        Cloud group members can create a public share (<code>#/share/:id</code>). Anyone with
-        an active link can view group name, people labels, receipts (items, payer, tax/tip/
-        discount, allocations), and settlement transfers — without signing in. If
-        attachments are included (default on), viewers can open those files through short-lived
-        signed URLs. Members can revoke a share; revoked or missing ids do not return group data.
-        Anyone with the link can view receipts and attachments until you revoke it. Do not share
-        that URL beyond people you trust with that content.
+        Cloud group members can create a public share (<code>#/share/:id</code>) from the Settle
+        tab. Anyone with an active link can view group name, people labels, receipts (items,
+        payer, tax/tip/discount, allocations), and settlement transfers — without signing in. If
+        attachments are included (default on; you can turn this off before creating a link),
+        viewers can open those files through short-lived signed URLs. Members can copy or revoke
+        a share; revoked or missing ids do not return group data. Anyone with the link can view
+        receipts and attachments until you revoke it. Do not share that URL beyond people you
+        trust with that content. Local-only builds keep the compressed settlement-token link
+        instead of this server share.
       </Typography>
 
       <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
