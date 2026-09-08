@@ -33,7 +33,7 @@ import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 import useAddItemModal from './components/UseAddItemModal.jsx';
-import { fabFixedPlacementSx } from '../core/fabPlacement.js';
+import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 
 export default function ReceiptInfoItemsTab({ receiptData }) {
   const {
@@ -565,13 +565,16 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
       </Box>
 
       {!receipt.locked && (
-        <Fab
-          color="primary"
-          onClick={showAddItemModal}
-          sx={fabFixedPlacementSx}
-        >
-          <AddIcon />
-        </Fab>
+        <>
+          <Box aria-hidden sx={fabScrollClearanceSx} />
+          <Fab
+            color="primary"
+            onClick={showAddItemModal}
+            sx={fabFixedPlacementSx}
+          >
+            <AddIcon />
+          </Fab>
+        </>
       )}
 
       {EditTextModal}
