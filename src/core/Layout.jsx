@@ -29,6 +29,7 @@ import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 import {
   APP_SHELL_HEIGHT,
+  isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
   shouldUsePullToRefreshLayout,
 } from '../lib/appShell.js';
@@ -63,11 +64,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut, configured: supabaseConfigured, loading: authLoading } = useAuth();
-  const onLoginRoute =
-    location.pathname === '/login' ||
-    location.pathname === '/update-password' ||
-    location.pathname === '/profile-setup' ||
-    location.pathname.startsWith('/shared-settlement/');
+  const onLoginRoute = isPublicExemptRoute(location.pathname);
   useProfileGate();
   const { ready: dataReady, cloudSync, syncError, clearSyncError, reloadFromServer } =
     useGroupsData();

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   appShellContentSx,
   appShellRootSx,
+  isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
   shouldUsePullToRefreshLayout,
 } from './appShell.js';
@@ -12,6 +13,16 @@ test('groups and receipts routes keep pull-to-refresh enabled', () => {
   assert.equal(isPullToRefreshDisabledForRoute('/groups/g1/receipts'), false);
   assert.equal(isPullToRefreshDisabledForRoute('/groups/g1/people'), false);
   assert.equal(isPullToRefreshDisabledForRoute('/shared-settlement/demo'), true);
+  assert.equal(isPullToRefreshDisabledForRoute('/privacy'), true);
+  assert.equal(isPullToRefreshDisabledForRoute('/terms'), true);
+});
+
+test('public legal and auth routes skip profile gate and bootstrap', () => {
+  assert.equal(isPublicExemptRoute('/login'), true);
+  assert.equal(isPublicExemptRoute('/privacy'), true);
+  assert.equal(isPublicExemptRoute('/copyright'), true);
+  assert.equal(isPublicExemptRoute('/shared-settlement/abc'), true);
+  assert.equal(isPublicExemptRoute('/groups/g1/receipts'), false);
 });
 
 test('all non-login app routes use the shared pull-to-refresh layout', () => {
