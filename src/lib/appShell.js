@@ -34,7 +34,9 @@ export function isPublicExemptRoute(pathname) {
 }
 
 export function isPullToRefreshDisabledForRoute(pathname) {
-  return isPublicExemptRoute(pathname);
+  if (isPublicExemptRoute(pathname)) return true;
+  if (pathname.startsWith('/chat/')) return true;
+  return false;
 }
 
 export function shouldUsePullToRefreshLayout(onLoginRoute) {

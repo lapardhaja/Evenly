@@ -1,7 +1,8 @@
-# Minimal CLI config so `supabase db push` works in CI.
-# Project ref is supplied at link time (SUPABASE_PROJECT_ID), not committed.
+# Local CLI label (not the cloud project ref). `supabase link --project-ref`
+# in GitHub Actions still uses SUPABASE_PROJECT_ID. An empty string is rejected
+# by the CLI / Git branching preview ("Missing required field in config: project_id").
 
-project_id = ""
+project_id = "evenly"
 
 [api]
 enabled = true

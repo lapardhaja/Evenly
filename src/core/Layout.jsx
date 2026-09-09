@@ -17,6 +17,7 @@ import Link from '@mui/material/Link';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
@@ -26,6 +27,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
 import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friendsApi.js';
+import { countUnreadConversations, subscribeToAllMessages } from '../lib/chatApi.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 import CookieNotice from '../components/CookieNotice.jsx';
@@ -135,9 +137,12 @@ export default function Layout() {
     location.pathname === '/friends' ||
     location.pathname === '/profile' ||
     location.pathname === '/profile-setup' ||
+    location.pathname === '/chat' ||
+    location.pathname.startsWith('/chat/') ||
     location.pathname === '/share' ||
     location.pathname.startsWith('/share/');
   const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
+  const [unreadChats, setUnreadChats] = useState(0);
 
   const refreshFriendRequestCount = useCallback(async () => {
     if (!supabaseConfigured || !user || onLoginRoute || syncError || !dataReady) return;
@@ -148,6 +153,16 @@ export default function Layout() {
       setPendingFriendRequests(0);
     }
   }, [supabaseConfigured, user, onLoginRoute, syncError, dataReady]);
+
+  const refreshUnreadChats = useCallback(async () => {
+    if (!supabaseConfigured || !user || onLoginRoute) return;
+    try {
+      const n = await countUnreadConversations();
+      setUnreadChats(n);
+    } catch {
+      setUnreadChats(0);
+    }
+  }, [supabaseConfigured, user, onLoginRoute]);
 
   useEffect(() => {
     refreshFriendRequestCount();
@@ -169,6 +184,30 @@ export default function Layout() {
       window.clearInterval(id);
     };
   }, [refreshFriendRequestCount]);
+
+  useEffect(() => {
+    refreshUnreadChats();
+  }, [refreshUnreadChats, user?.id]);
+
+  useEffect(() => {
+    if (!supabaseConfigured || !user || onLoginRoute) return undefined;
+    const onVis = () => {
+      if (document.visibilityState === 'visible') refreshUnreadChats();
+    };
+    const onChatEvt = () => refreshUnreadChats();
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('evenly-chat-unread-changed', onChatEvt);
+    window.addEventListener('evenly-pull-to-refresh', onChatEvt);
+    const unsub = subscribeToAllMessages(() => refreshUnreadChats());
+    const id = window.setInterval(refreshUnreadChats, 90_000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('evenly-chat-unread-changed', onChatEvt);
+      window.removeEventListener('evenly-pull-to-refresh', onChatEvt);
+      unsub();
+      window.clearInterval(id);
+    };
+  }, [refreshUnreadChats, supabaseConfigured, user, onLoginRoute]);
 
   const handlePullRefresh = useCallback(async () => {
     await reloadFromServer();
@@ -248,6 +287,20 @@ export default function Layout() {
               >
                 <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
                 <IconButton
+                  color="inherit"
+                  aria-label={unreadChats > 0 ? `Chat, ${unreadChats} unread` : 'Chat'}
+                  onClick={() => navigate('/chat')}
+                >
+                  <Badge
+                    color="primary"
+                    badgeContent={unreadChats > 0 ? unreadChats : 0}
+                    max={99}
+                    invisible={unreadChats === 0}
+                  >
+                    <ChatBubbleOutlineIcon />
+                  </Badge>
+                </IconButton>
+                <IconButton
                   id="account-menu-button"
                   color="inherit"
                   aria-label="Open account menu"
@@ -298,6 +351,26 @@ export default function Layout() {
                       <PersonIcon fontSize="small" />
                     </ListItemIcon>
                     <ListItemText>Profile</ListItemText>
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setAccountAnchor(null);
+                      navigate('/chat');
+                    }}
+                    selected={location.pathname === '/chat' || location.pathname.startsWith('/chat/')}
+                    aria-label={unreadChats > 0 ? `Chat, ${unreadChats} unread` : 'Chat'}
+                  >
+                    <ListItemIcon>
+                      <Badge
+                        color="primary"
+                        badgeContent={unreadChats > 0 ? unreadChats : 0}
+                        max={99}
+                        invisible={unreadChats === 0}
+                      >
+                        <ChatBubbleOutlineIcon fontSize="small" />
+                      </Badge>
+                    </ListItemIcon>
+                    <ListItemText primary="Chat" />
                   </MenuItem>
                   <MenuItem
                     onClick={() => {

@@ -15,6 +15,8 @@ Split receipts easily — a clean, responsive web app for splitting shared expen
 - **Data storage** — With **Supabase** configured, **sign-in is required** and groups/receipts live **only on the server** (Postgres + RLS); the app does not keep a copy in `localStorage`. Without Supabase env vars, builds stay **local-only** (`evenly:data:v2` in the browser).
 - **Appearance** — Light, dark, or Auto (follow device); choice is saved in the browser
 - **Mobile** — Swipe left a short way to reveal **Delete** (red); tap it to remove; **Undo** appears on a snackbar for a few seconds
+- **Chat (cloud)** — Group thread plus 1:1 DMs with friends or people who share a group
+- **Venmo** — Store a handle on your profile; Settle can open Venmo with amount filled in or post a pay request in chat. Evenly does not move money.
 
 ## Getting Started
 

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -10,6 +10,8 @@ import ListItemText from '@mui/material/ListItemText';
 import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import Checkbox from '@mui/material/Checkbox';
 import Button from '@mui/material/Button';
@@ -31,10 +33,17 @@ import {
   normalizeCurrencyCode,
 } from '../lib/currencies.js';
 import { listReceiptsCurrencyMeta, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { getProfilesByIds } from '../lib/friendsApi.js';
 import {
-  transferStorageKey,
-  normalizeStoredSettledKeys,
-} from '../lib/settledTransfersKey.js';
+  getOrCreateDm,
+  getGroupConversation,
+  sendPaymentMessage,
+  notifyChatUnreadChanged,
+} from '../lib/chatApi.js';
+import { transferStorageKey, normalizeStoredSettledKeys } from '../lib/settledTransfersKey.js';
+import { venmoUsdAmount, venmoNoteForTransfer } from '../lib/chatPayment.js';
+import { isValidVenmoUsername, openVenmoPayment } from '../lib/venmoLinks.js';
 
 export default function GroupSettleTab({ groupId, groupData }) {
   const {
@@ -45,11 +54,17 @@ export default function GroupSettleTab({ groupId, groupData }) {
     setDisplayCurrency,
     setSettledTransfers,
   } = groupData;
+  const { user } = useAuth();
   const storageKey = `evenly-settled-${groupId}`;
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
   const [fxLoading, setFxLoading] = useState(false);
   const [fxError, setFxError] = useState('');
   const [receiptFactors, setReceiptFactors] = useState({});
+  const [usdRates, setUsdRates] = useState(null);
+  const [alsoPostGroup, setAlsoPostGroup] = useState(false);
+  const [profilesByUser, setProfilesByUser] = useState({});
+  const [payBusy, setPayBusy] = useState(null);
+  const [paySnack, setPaySnack] = useState('');
 
   const peopleMap = useMemo(() => {
     const map = {};
@@ -80,6 +95,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
       const failed = [];
       const rates = await getUsdRatesTable();
       if (cancelled) return;
+      setUsdRates(rates || null);
       if (!rates) {
         for (const row of meta) {
           factors[row.id] = 1;
@@ -113,6 +129,31 @@ export default function GroupSettleTab({ groupId, groupData }) {
       cancelled = true;
     };
   }, [group, settleCode]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return undefined;
+    const ids = people.map((p) => p.linkedUserId).filter(Boolean);
+    if (ids.length === 0) {
+      setProfilesByUser({});
+      return undefined;
+    }
+    let cancelled = false;
+    getProfilesByIds(ids)
+      .then((profs) => {
+        if (cancelled) return;
+        const map = {};
+        profs.forEach((pr) => {
+          map[pr.user_id] = pr;
+        });
+        setProfilesByUser(map);
+      })
+      .catch(() => {
+        if (!cancelled) setProfilesByUser({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [people]);
 
   const scaledGroup = useMemo(
     () => (group ? scaleGroupMoneyForDisplay(group, receiptFactors) : null),
@@ -218,6 +259,70 @@ export default function GroupSettleTab({ groupId, groupData }) {
       /* ignore */
     }
   };
+
+  const payOnVenmo = useCallback(
+    (t, fromPerson, toPerson) => {
+      const handle = profilesByUser[toPerson.linkedUserId]?.venmo_username;
+      if (!isValidVenmoUsername(handle)) {
+        setPaySnack(`${toPerson.name} hasn’t added a Venmo username (Profile).`);
+        return;
+      }
+      const usd = venmoUsdAmount(t.amount, settleCode, usdRates);
+      if (usd == null) {
+        setPaySnack('Couldn’t convert to USD for Venmo.');
+        return;
+      }
+      openVenmoPayment({
+        username: handle,
+        amount: usd,
+        note: venmoNoteForTransfer({
+          groupName: group?.name,
+          fromName: fromPerson.name,
+          toName: toPerson.name,
+        }),
+      });
+    },
+    [profilesByUser, settleCode, usdRates, group?.name],
+  );
+
+  const requestPayment = useCallback(
+    async (t, fromPerson, toPerson) => {
+      const fromUid = fromPerson.linkedUserId;
+      const toUid = toPerson.linkedUserId;
+      if (!user?.id || !fromUid || !toUid) return;
+      const other = user.id === fromUid ? toUid : fromUid;
+      const key = transferStorageKey(t);
+      setPayBusy(key);
+      try {
+        const dmId = await getOrCreateDm(other);
+        const handle = profilesByUser[toUid]?.venmo_username || null;
+        const usd = venmoUsdAmount(t.amount, settleCode, usdRates);
+        const fields = {
+          groupId,
+          fromUserId: fromUid,
+          toUserId: toUid,
+          fromPersonId: fromPerson.id,
+          toPersonId: toPerson.id,
+          amount: usd != null ? usd : t.amount,
+          currency: usd != null ? 'USD' : settleCode,
+          transferKey: key,
+          venmoUsername: handle,
+        };
+        await sendPaymentMessage(dmId, fields);
+        if (alsoPostGroup) {
+          const gid = await getGroupConversation(groupId);
+          await sendPaymentMessage(gid, fields);
+        }
+        notifyChatUnreadChanged();
+        setPaySnack('Payment request sent in chat.');
+      } catch (e) {
+        setPaySnack(e?.message || 'Couldn’t send payment request.');
+      } finally {
+        setPayBusy(null);
+      }
+    },
+    [user?.id, profilesByUser, settleCode, usdRates, groupId, alsoPostGroup],
+  );
 
   const allSettled =
     transfers.length > 0 &&
@@ -350,6 +455,20 @@ export default function GroupSettleTab({ groupId, groupData }) {
       </Button>
 
       {isSupabaseConfigured() ? (
+        <FormControlLabel
+          sx={{ display: 'flex', mb: 1 }}
+          control={
+            <Checkbox
+              checked={alsoPostGroup}
+              onChange={(e) => setAlsoPostGroup(e.target.checked)}
+              size="small"
+            />
+          }
+          label="Also post payment requests in group chat"
+        />
+      ) : null}
+
+      {isSupabaseConfigured() ? (
         <GroupShareDialog
           open={shareLinkOpen}
           onClose={() => setShareLinkOpen(false)}
@@ -388,12 +507,25 @@ export default function GroupSettleTab({ groupId, groupData }) {
               const toPerson = peopleMap[t.to];
               const isSettled = settledKeys.has(transferStorageKey(t));
               if (!fromPerson || !toPerson) return null;
+              const fromUid = fromPerson.linkedUserId;
+              const toUid = toPerson.linkedUserId;
+              const iAmParty =
+                isSupabaseConfigured() &&
+                user?.id &&
+                fromUid &&
+                toUid &&
+                (user.id === fromUid || user.id === toUid);
+              const iAmDebtor = Boolean(user?.id && fromUid && user.id === fromUid);
+              const creditorVenmo = profilesByUser[toUid]?.venmo_username;
+              const usdAmt = venmoUsdAmount(t.amount, settleCode, usdRates);
+              const rowKey = transferStorageKey(t);
               return (
                 <Box key={idx}>
                   {idx > 0 && <Divider />}
                   <ListItem
                     sx={{
                       py: 1.5,
+                      alignItems: 'flex-start',
                       opacity: isSettled ? 0.5 : 1,
                       transition: 'opacity 0.2s',
                     }}
@@ -409,10 +541,19 @@ export default function GroupSettleTab({ groupId, groupData }) {
                     <Box
                       sx={{
                         display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1,
+                        pr: 4,
+                        minWidth: 0,
+                        flex: 1,
+                      }}
+                    >
+                    <Box
+                      sx={{
+                        display: 'flex',
                         alignItems: 'center',
                         gap: { xs: 0.75, sm: 1.5 },
                         flexWrap: 'wrap',
-                        pr: 4,
                       }}
                     >
                       <Avatar
@@ -469,6 +610,29 @@ export default function GroupSettleTab({ groupId, groupData }) {
                         sx={{ fontWeight: 700 }}
                       />
                     </Box>
+                    {iAmParty && !isSettled ? (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {iAmDebtor ? (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => payOnVenmo(t, fromPerson, toPerson)}
+                            disabled={!isValidVenmoUsername(creditorVenmo) || usdAmt == null}
+                          >
+                            Pay on Venmo
+                          </Button>
+                        ) : null}
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => requestPayment(t, fromPerson, toPerson)}
+                          disabled={payBusy === rowKey}
+                        >
+                          Request
+                        </Button>
+                      </Box>
+                    ) : null}
+                    </Box>
                   </ListItem>
                 </Box>
               );
@@ -486,6 +650,13 @@ export default function GroupSettleTab({ groupId, groupData }) {
           All transfers marked as settled!
         </Alert>
       )}
+      <Snackbar
+        open={!!paySnack}
+        autoHideDuration={4000}
+        onClose={() => setPaySnack('')}
+        message={paySnack}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

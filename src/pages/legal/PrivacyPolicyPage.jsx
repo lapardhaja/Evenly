@@ -59,7 +59,7 @@ export default function PrivacyPolicyPage() {
       <Typography variant="body1" paragraph>
         When cloud sign-in is enabled, Evenly uses Supabase Auth (email and password). Passwords
         are stored by Auth, not in Evenly’s public tables. Profiles may include username,
-        display name, optional first/last name, and an email used for friend search. Friend
+        display name, optional first/last name, optional Venmo username (for pay links), and an email used for friend search. Friend
         requests and accepted friendships are stored so you can invite friends into groups.
         Other users can find you by username or email through in-app search; treat those as
         enumerable to people who use the product.
@@ -73,6 +73,18 @@ export default function PrivacyPolicyPage() {
         in Postgres and loaded after sign-in. Access is membership-based: owners and invited
         members can read and edit group content according to the app’s rules. Evenly syncs
         that data when you change it while signed in.
+      </Typography>
+
+      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
+        Chat and Venmo pay links
+      </Typography>
+      <Typography variant="body1" paragraph>
+        Signed-in members can message in a group thread and in 1:1 chats with friends or people
+        who share a group. Messages live in Postgres and are visible to conversation members
+        only (not on public share links). Settlement can post a payment-request card with amount
+        and a Venmo username. Tapping Pay on Venmo opens Venmo (or venmo.com) with amount and
+        note filled in. Evenly does not process payments, does not receive a receipt from Venmo,
+        and “I paid” is an honor-system mark on the settlement list.
       </Typography>
 
       <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>

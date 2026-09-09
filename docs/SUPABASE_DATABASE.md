@@ -24,7 +24,7 @@ npx supabase migration repair --status applied 20260210120000
 npx supabase db push
 ```
 
-Then let CI own new files (including `20260423120000_group_members`, `20260423130000_receipt_attachments`, `20260424120000_group_public_shares`).
+Then let CI own new files (including `20260423120000_group_members`, `20260423130000_receipt_attachments`, `20260424120000_group_public_shares`, `20260909120000_chat_and_venmo`).
 
 **Dashboard alternative:** Supabase → Project → Integrations → GitHub → deploy migrations on push to `main` (same `supabase/migrations` folder; skip the Action if you use this).
 
@@ -37,13 +37,14 @@ Run `20260421120000_username_availability_rpc.sql` for **`is_username_available(
 Run `20260422120000_email_availability_and_sign_in_resolve.sql` for **`is_email_available(text)`** (sign-up email check vs `auth.users`) and **`resolve_sign_in_email(text)`** (username → profile email for sign-in / reset).  
 Run `20260423120000_group_members.sql` for **`group_members`**, membership-based RLS on group data, and **`add_friend_to_group(uuid, uuid)`** (invite a friend into a shared group).  
 Run `20260423130000_receipt_attachments.sql` for **`receipt_attachments`** (receipt file metadata) and the private **`receipt-attachments`** Storage bucket.  
-Run `20260424120000_group_public_shares.sql` for **`group_public_shares`** and no-login share RPCs (`create_public_group_share`, `revoke_public_group_share`, `get_public_group_share`, `get_public_share_attachment_url`).
+Run `20260424120000_group_public_shares.sql` for **`group_public_shares`** and no-login share RPCs (`create_public_group_share`, `revoke_public_group_share`, `get_public_group_share`, `get_public_share_attachment_url`).  
+Run `20260909120000_chat_and_venmo.sql` for **`conversations`**, **`conversation_members`**, **`messages`**, optional **`profiles.venmo_username`**, and chat RPCs (`get_or_create_dm`, `list_my_conversations`, `mark_payment_paid`, etc.). Evenly does not process Venmo payments — handles are for pay-link deep links only.
 
 | Table | Purpose |
 |--------|--------|
 | **`groups`** | One row per split group; `user_id` = creator/owner (`auth.users.id`). Optional `display_currency` (default USD) for Settle tab display. Optional `settled_transfers` (JSON array of strings) for which “Settle up” rows are marked done. |
 | **`group_members`** | Membership for shared groups: `(group_id, user_id, role)` where `role` is `owner` or `member`. One owner per group (partial unique index). Backfilled from `groups.user_id`; new groups get an owner row via trigger. |
-| **`profiles`** | One row per `auth.users` row: `username`, `display_name`, optional `first_name` / `last_name`, `email_lookup` (for friend search). |
+| **`profiles`** | One row per `auth.users` row: `username`, `display_name`, optional `first_name` / `last_name`, optional `venmo_username` (pay-link handle), `email_lookup` (for friend search). |
 | **`friend_requests`** | Pending/accepted/declined friend requests between users. |
 | **`friendships`** | Accepted friendships (`user_a` &lt; `user_b`). |
 | **`group_people`** | People in a group (`group_id` FK). Optional `linked_user_id` → friend’s `auth.users.id`. |
@@ -52,6 +53,9 @@ Run `20260424120000_group_public_shares.sql` for **`group_public_shares`** and n
 | **`receipt_allocations`** | Who claimed how much of each line item. |
 | **`receipt_attachments`** | File metadata for receipt attachments (images/PDF). `group_id` is denormalized for RLS; `storage_path` is bucket-relative. Max 10 MB per row (`byte_size` check). |
 | **`group_public_shares`** | No-login share links for a group. `id` is the URL token. `revoked_at` null = active. `include_attachments` (default true) gates attachment metadata and Storage access. |
+| **`conversations`** | Chat rooms: `kind` `group` (one per group) or `dm` (unique user pair). |
+| **`conversation_members`** | Who can read/write a conversation; `last_read_at` for unread. Group membership is mirrored from `group_members`. |
+| **`messages`** | Text or `payment` cards (`payload` JSON). Client insert only; paid/cancel via RPCs. |
 
 Group data access is **membership-based** via **`group_members`**, not `groups.user_id` alone. **`is_group_member(uuid)`** and **`is_group_owner(uuid)`** (security definer) power RLS on `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations`, `receipt_attachments`, and **`group_public_shares`**. Clients cannot insert/update `group_members` directly; owners are created on group insert, and friends are added via **`add_friend_to_group(p_group_id, p_friend_user_id)`** (caller must be a member; friend must be in `friendships`; creates a `member` row and a linked `group_people` row if missing).
 
