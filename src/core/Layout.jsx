@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -11,6 +11,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Badge from '@mui/material/Badge';
+import Snackbar from '@mui/material/Snackbar';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
 import { Link as RouterLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import Link from '@mui/material/Link';
@@ -26,7 +27,16 @@ import ThemeModeMenu from './ThemeModeMenu.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
-import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friendsApi.js';
+import {
+  countIncomingFriendRequests,
+  formatFullName,
+  getProfilesByIds,
+  incomingFriendRequestSnackText,
+  isIncomingPendingFriendRequest,
+  notifyFriendRequestsChanged,
+  notifyPullToRefresh,
+  subscribeToFriendRequests,
+} from '../lib/friendsApi.js';
 import { countUnreadConversations, subscribeToAllMessages } from '../lib/chatApi.js';
 import { visualViewportBottomGap } from '../lib/visualViewportBottom.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
@@ -168,16 +178,19 @@ export default function Layout() {
     location.pathname.startsWith('/share/');
   const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
+  const [friendSnack, setFriendSnack] = useState('');
+  const locationPathRef = useRef(location.pathname);
+  locationPathRef.current = location.pathname;
 
   const refreshFriendRequestCount = useCallback(async () => {
-    if (!supabaseConfigured || !user || onLoginRoute || syncError || !dataReady) return;
+    if (!supabaseConfigured || !user || onLoginRoute) return;
     try {
       const n = await countIncomingFriendRequests();
       setPendingFriendRequests(n);
     } catch {
       setPendingFriendRequests(0);
     }
-  }, [supabaseConfigured, user, onLoginRoute, syncError, dataReady]);
+  }, [supabaseConfigured, user, onLoginRoute]);
 
   const refreshUnreadChats = useCallback(async () => {
     if (!supabaseConfigured || !user || onLoginRoute) return;
@@ -194,6 +207,8 @@ export default function Layout() {
   }, [refreshFriendRequestCount, user?.id]);
 
   useEffect(() => {
+    if (!supabaseConfigured || !user || onLoginRoute) return undefined;
+    const myId = user.id;
     const onVis = () => {
       if (document.visibilityState === 'visible') refreshFriendRequestCount();
     };
@@ -201,14 +216,32 @@ export default function Layout() {
     document.addEventListener('visibilitychange', onVis);
     window.addEventListener('evenly-friend-requests-changed', onFriendsEvt);
     window.addEventListener('evenly-pull-to-refresh', onFriendsEvt);
+    const unsub = subscribeToFriendRequests(async (payload) => {
+      refreshFriendRequestCount();
+      notifyFriendRequestsChanged();
+      if (!isIncomingPendingFriendRequest(payload, myId)) return;
+      if (locationPathRef.current === '/friends') return;
+      const fromId = payload?.new?.from_user_id;
+      let name = '';
+      if (fromId) {
+        try {
+          const [pr] = await getProfilesByIds([fromId]);
+          name = formatFullName(pr) || pr?.username || pr?.display_name || '';
+        } catch {
+          name = '';
+        }
+      }
+      setFriendSnack(incomingFriendRequestSnackText(name));
+    });
     const id = window.setInterval(refreshFriendRequestCount, 90_000);
     return () => {
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('evenly-friend-requests-changed', onFriendsEvt);
       window.removeEventListener('evenly-pull-to-refresh', onFriendsEvt);
+      unsub();
       window.clearInterval(id);
     };
-  }, [refreshFriendRequestCount]);
+  }, [refreshFriendRequestCount, supabaseConfigured, user, onLoginRoute]);
 
   useEffect(() => {
     refreshUnreadChats();
@@ -324,6 +357,24 @@ export default function Layout() {
                     invisible={unreadChats === 0}
                   >
                     <ChatBubbleOutlineIcon />
+                  </Badge>
+                </IconButton>
+                <IconButton
+                  color="inherit"
+                  aria-label={
+                    pendingFriendRequests > 0
+                      ? `Friends, ${pendingFriendRequests} pending requests`
+                      : 'Friends'
+                  }
+                  onClick={() => navigate('/friends')}
+                >
+                  <Badge
+                    color="warning"
+                    badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
+                    max={99}
+                    invisible={pendingFriendRequests === 0}
+                  >
+                    <PeopleIcon />
                   </Badge>
                 </IconButton>
                 <IconButton
@@ -497,6 +548,26 @@ export default function Layout() {
           )}
         </Box>
         <CookieNotice />
+        <Snackbar
+          open={Boolean(friendSnack)}
+          autoHideDuration={6000}
+          onClose={() => setFriendSnack('')}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          message={friendSnack}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => {
+                setFriendSnack('');
+                navigate('/friends');
+              }}
+            >
+              View
+            </Button>
+          }
+          sx={{ mt: 7 }}
+        />
       </Box>
     </ThemeProvider>
   );

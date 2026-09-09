@@ -71,7 +71,7 @@ export default function FriendsPage() {
       setError('Couldn’t load friends. Try again in a moment.');
     } finally {
       if (!silent) setLoading(false);
-      notifyFriendRequestsChanged();
+      if (!opts.skipNotify) notifyFriendRequestsChanged();
     }
   }, []);
 
@@ -80,9 +80,13 @@ export default function FriendsPage() {
   }, [loadAll]);
 
   useEffect(() => {
-    const onPull = () => loadAll({ silent: true });
-    window.addEventListener('evenly-pull-to-refresh', onPull);
-    return () => window.removeEventListener('evenly-pull-to-refresh', onPull);
+    const onFriends = () => loadAll({ silent: true, skipNotify: true });
+    window.addEventListener('evenly-pull-to-refresh', onFriends);
+    window.addEventListener('evenly-friend-requests-changed', onFriends);
+    return () => {
+      window.removeEventListener('evenly-pull-to-refresh', onFriends);
+      window.removeEventListener('evenly-friend-requests-changed', onFriends);
+    };
   }, [loadAll]);
 
   useEffect(() => {

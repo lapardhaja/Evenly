@@ -3,7 +3,13 @@
  */
 
 import { getSupabase } from './supabaseClient.js';
+import { subscribeToFriendRequests as subscribeFriendRequestRows } from './friendRequestEvents.js';
 import { isValidVenmoUsername, normalizeVenmoUsername } from './venmoLinks.js';
+
+export {
+  incomingFriendRequestSnackText,
+  isIncomingPendingFriendRequest,
+} from './friendRequestEvents.js';
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 
@@ -204,6 +210,11 @@ export function notifyFriendRequestsChanged() {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('evenly-friend-requests-changed'));
   }
+}
+
+/** Live friend_requests rows for this user (RLS). Layout uses this for the app-bar badge. */
+export function subscribeToFriendRequests(onChange, channelName) {
+  return subscribeFriendRequestRows(getSupabase(), onChange, channelName);
 }
 
 /** Fired after pull-to-refresh reloads cloud data — Friends / Profile can refetch their own data. */
