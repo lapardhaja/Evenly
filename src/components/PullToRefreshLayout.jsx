@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
-import { chatFillChildSx, pullToRefreshFillSx } from '../lib/appShell.js';
+import { chatFillChildSx, pullToRefreshFillSx, pullToRefreshScrollSx } from '../lib/appShell.js';
 
 /**
  * Scrollable region with pull-down-to-refresh (touch). Keeps user on the same route.
@@ -25,18 +25,7 @@ export default function PullToRefreshLayout({
     <Box
       id="evenly-main-scroll"
       ref={containerRef}
-      sx={
-        fill
-          ? pullToRefreshFillSx
-          : {
-              flex: 1,
-              minHeight: 0,
-              overflow: 'auto',
-              overscrollBehaviorY: 'contain',
-              WebkitOverflowScrolling: 'touch',
-              position: 'relative',
-            }
-      }
+      sx={fill ? pullToRefreshFillSx : pullToRefreshScrollSx}
     >
       {showBar ? (
         <Box

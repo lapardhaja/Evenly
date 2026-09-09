@@ -14,8 +14,12 @@ import {
   isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
   pullToRefreshFillSx,
+  pullToRefreshScrollSx,
   shouldShowAppLegalFooter,
   shouldUsePullToRefreshLayout,
+  appLegalFooterSx,
+  appShellFooterPinSx,
+  appShellFooterPinMainSx,
 } from './appShell.js';
 import { scrollChatToBottom, isChatNearBottom, pinChatToLatestAfterLayout } from './chatScroll.js';
 
@@ -70,6 +74,34 @@ test('legal footer is hidden on composer routes so the bar can sit on the layout
   assert.equal(shouldShowAppLegalFooter('/groups/g1/chat'), false);
   assert.equal(shouldShowAppLegalFooter('/chat'), true);
   assert.equal(shouldShowAppLegalFooter('/'), true);
+});
+
+test('legal footer pin column fills the scrollport so a short desktop page still sits the strip at the bottom', () => {
+  assert.equal(appShellFooterPinSx.minHeight, '100%');
+  assert.equal(appShellFooterPinSx.flex, '1 0 auto');
+  assert.equal(appShellFooterPinSx.display, 'flex');
+  assert.equal(appShellFooterPinSx.flexDirection, 'column');
+  assert.equal(appShellFooterPinMainSx.flex, '1 0 auto');
+  assert.equal(appLegalFooterSx.mt, 'auto');
+  assert.equal(appLegalFooterSx.flexShrink, 0);
+});
+
+test('legal footer keeps fat mobile clearance and only a small desktop pad plus cookie offset', () => {
+  assert.match(appLegalFooterSx.pb.xs, /88px/);
+  assert.match(appLegalFooterSx.pb.sm, /24px/);
+  assert.equal(appLegalFooterSx.pb.sm.includes('88px'), false);
+  assert.match(appLegalFooterSx.pb.sm, /evenly-cookie-banner-offset/);
+  assert.equal(pullToRefreshScrollSx.display, 'flex');
+  assert.equal(pullToRefreshScrollSx.flexDirection, 'column');
+  assert.equal(pullToRefreshScrollSx.overflow, 'auto');
+});
+
+test('Layout pins the legal footer under a min-height 100% column', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../core/Layout.jsx', import.meta.url), 'utf8');
+  assert.match(src, /appShellFooterPinSx/);
+  assert.match(src, /appShellFooterPinMainSx/);
+  assert.match(src, /appLegalFooterSx/);
 });
 
 test('chat column uses a desktop-width container, not the phone sm cap', () => {

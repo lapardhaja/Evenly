@@ -119,3 +119,43 @@ export const pullToRefreshFillSx = {
   overscrollBehaviorY: 'none',
   position: 'relative',
 };
+
+/** Default main scroller (groups, friends, inbox). Flex column so a short page still fills the viewport. */
+export const pullToRefreshScrollSx = {
+  flex: 1,
+  minHeight: 0,
+  overflow: 'auto',
+  overscrollBehaviorY: 'contain',
+  WebkitOverflowScrolling: 'touch',
+  position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+/** Wrap page + legal footer so the strip sits at the bottom of a short desktop viewport. */
+export const appShellFooterPinSx = {
+  minHeight: '100%',
+  flex: '1 0 auto',
+  display: 'flex',
+  flexDirection: 'column',
+  boxSizing: 'border-box',
+  width: '100%',
+};
+
+export const appShellFooterPinMainSx = {
+  flex: '1 0 auto',
+};
+
+export const appLegalFooterSx = {
+  py: 2,
+  px: 2,
+  pb: {
+    xs: 'calc(88px + env(safe-area-inset-bottom, 0px) + var(--evenly-cookie-banner-offset, 0px))',
+    sm: 'calc(24px + var(--evenly-cookie-banner-offset, 0px))',
+  },
+  textAlign: 'center',
+  borderTop: '1px solid',
+  borderColor: 'divider',
+  flexShrink: 0,
+  mt: 'auto',
+};
