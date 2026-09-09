@@ -3,6 +3,7 @@
  */
 
 import { normalizeCurrencyCode } from './currencies.js';
+import { isStaleGroupWrite, planRemoteGroupRemovals } from './syncConflict.js';
 
 /**
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase
@@ -166,6 +167,7 @@ export async function loadNormalizedData(supabase, userId) {
       settledTransfers,
       people: peopleMap,
       receipts: receiptsMap,
+      updatedAt: g.updated_at || null,
     };
   }
 
@@ -217,27 +219,46 @@ export async function persistNormalizedData(supabase, userId, data) {
   const membershipsByGroup = new Map(
     remoteMemberships.map((row) => [row.group_id, row.role]),
   );
-  for (const row of remoteMemberships) {
-    if (localGroupIds.includes(row.group_id)) continue;
+  const { deleteGroupIds, leaveGroupIds } = planRemoteGroupRemovals({
+    localIds: localGroupIds,
+    remoteMemberships,
+  });
+  for (const groupId of deleteGroupIds) {
+    await removeStoredAttachments(supabase, { groupId });
+    const { error } = await supabase.from('groups').delete().eq('id', groupId);
+    if (error) throw error;
+  }
+  for (const groupId of leaveGroupIds) {
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('user_id', userId);
+    if (error) throw error;
+  }
 
-    if (row.role === 'owner') {
-      await removeStoredAttachments(supabase, { groupId: row.group_id });
-      const { error } = await supabase.from('groups').delete().eq('id', row.group_id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from('group_members')
-        .delete()
-        .eq('group_id', row.group_id)
-        .eq('user_id', userId);
-      if (error) throw error;
+  const remoteUpdatedAt = new Map();
+  if (localGroupIds.length > 0) {
+    const { data: remoteMeta, error: metaErr } = await supabase
+      .from('groups')
+      .select('id, updated_at')
+      .in('id', localGroupIds);
+    if (metaErr) throw metaErr;
+    for (const row of remoteMeta || []) {
+      remoteUpdatedAt.set(row.id, row.updated_at);
     }
   }
 
   const nowIso = new Date().toISOString();
+  const skippedIds = [];
+  const writtenAt = {};
 
   for (const gid of localGroupIds) {
     const g = data.groups[gid];
+    if (isStaleGroupWrite(g.updatedAt, remoteUpdatedAt.get(gid) || null)) {
+      skippedIds.push(gid);
+      continue;
+    }
     const stArr = Array.isArray(g.settledTransfers)
       ? g.settledTransfers.filter((x) => typeof x === 'string')
       : [];
@@ -380,5 +401,8 @@ export async function persistNormalizedData(supabase, userId, data) {
         if (insA) throw insA;
       }
     }
+    writtenAt[gid] = nowIso;
   }
+
+  return { skippedIds, writtenAt };
 }

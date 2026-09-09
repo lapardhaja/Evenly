@@ -266,3 +266,160 @@ test('persistNormalizedData removes storage before owner deletes a group', async
   assert.ok(storageIdx >= 0 && deleteIdx >= 0, events.join('|'));
   assert.ok(storageIdx < deleteIdx);
 });
+
+test('persistNormalizedData skips a group whose server updated_at is newer', async () => {
+  const events = [];
+  const supabase = {
+    from(table) {
+      const builder = {
+        _eq: [],
+        select() {
+          return builder;
+        },
+        in() {
+          events.push(`select-in:${table}`);
+          return builder;
+        },
+        eq(col, val) {
+          builder._eq = [col, val];
+          return builder;
+        },
+        then(resolve, reject) {
+          return Promise.resolve()
+            .then(() => {
+              if (table === 'group_members') {
+                return { data: [{ group_id: 'g1', role: 'owner' }], error: null };
+              }
+              if (table === 'groups') {
+                return { data: [{ id: 'g1', updated_at: '2026-09-08T13:00:00.000Z' }], error: null };
+              }
+              if (table === 'receipts') {
+                events.push('listed-receipts');
+                return { data: [{ id: 'keep-me' }], error: null };
+              }
+              return { data: [], error: null };
+            })
+            .then(resolve, reject);
+        },
+        delete() {
+          events.push(`delete:${table}`);
+          return {
+            eq() {
+              events.push(`delete:${table}`);
+              return Promise.resolve({ error: null });
+            },
+          };
+        },
+        update() {
+          events.push(`update:${table}`);
+          return { eq: async () => ({ error: null }) };
+        },
+        insert: async () => {
+          events.push(`insert:${table}`);
+          return { error: null };
+        },
+        upsert: async () => {
+          events.push(`upsert:${table}`);
+          return { error: null };
+        },
+      };
+      return builder;
+    },
+    storage: {
+      from() {
+        return { remove: async () => ({ error: null }) };
+      },
+    },
+  };
+
+  const result = await persistNormalizedData(supabase, 'user-1', {
+    groups: {
+      g1: {
+        name: 'Stale',
+        date: 1,
+        updatedAt: '2026-09-08T12:00:00.000Z',
+        displayCurrency: 'USD',
+        settledTransfers: [],
+        people: {},
+        receipts: {},
+      },
+    },
+  });
+
+  assert.deepEqual(result.skippedIds, ['g1']);
+  assert.deepEqual(result.writtenAt, {});
+  assert.equal(events.includes('listed-receipts'), false);
+  assert.equal(events.includes('update:groups'), false);
+  assert.equal(events.includes('delete:receipts'), false);
+});
+
+test('persistNormalizedData writes when local updatedAt matches server', async () => {
+  const events = [];
+  const supabase = {
+    from(table) {
+      const builder = {
+        select() {
+          return builder;
+        },
+        in() {
+          return builder;
+        },
+        eq(col, val) {
+          builder._eq = [col, val];
+          return builder;
+        },
+        then(resolve, reject) {
+          return Promise.resolve()
+            .then(() => {
+              if (table === 'group_members') {
+                return { data: [{ group_id: 'g1', role: 'owner' }], error: null };
+              }
+              if (table === 'groups') {
+                return { data: [{ id: 'g1', updated_at: '2026-09-08T12:00:00.000Z' }], error: null };
+              }
+              if (table === 'receipts') {
+                events.push('listed-receipts');
+                return { data: [], error: null };
+              }
+              return { data: [], error: null };
+            })
+            .then(resolve, reject);
+        },
+        delete() {
+          return { eq: async () => ({ error: null }) };
+        },
+        update() {
+          events.push(`update:${table}`);
+          return { eq: async () => ({ error: null }) };
+        },
+        insert: async () => ({ error: null }),
+        upsert: async () => ({ error: null }),
+      };
+      return builder;
+    },
+    storage: {
+      from() {
+        return { remove: async () => ({ error: null }) };
+      },
+    },
+  };
+
+  const result = await persistNormalizedData(supabase, 'user-1', {
+    groups: {
+      g1: {
+        name: 'Current',
+        date: 1,
+        updatedAt: '2026-09-08T12:00:00.000Z',
+        displayCurrency: 'USD',
+        settledTransfers: [],
+        people: {},
+        receipts: {},
+      },
+    },
+  });
+
+  assert.deepEqual(result.skippedIds, []);
+  assert.equal(typeof result.writtenAt.g1, 'string');
+  assert.equal(events.includes('update:groups'), true);
+  assert.equal(events.includes('listed-receipts'), true);
+});

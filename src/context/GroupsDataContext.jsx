@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { loadNormalizedData, persistNormalizedData } from '../lib/supabaseSync.js';
+import { applyPersistResult } from '../lib/syncConflict.js';
 import {
   readLegacyEvenlyData,
   writeLegacyEvenlyData,
@@ -104,10 +105,36 @@ export function GroupsDataProvider({ children }) {
     if (!client) return Promise.resolve();
     const gen = persistGenRef.current;
     return persistNormalizedData(client, uid, payload)
-      .then(() => {
+      .then(async (result) => {
+        const skippedIds = result?.skippedIds || [];
+        const writtenAt = result?.writtenAt || {};
+        let serverGroups = {};
+        if (skippedIds.length > 0) {
+          try {
+            const fresh = await loadNormalizedData(client, uid);
+            serverGroups = fresh?.groups || {};
+          } catch {
+            /* keep skip list; merge will no-op without server copy */
+          }
+        }
+        const merged = {
+          groups: applyPersistResult(storedValueRef.current.groups, {
+            skippedIds,
+            writtenAt,
+            serverGroups,
+          }),
+        };
+        storedValueRef.current = merged;
+        setStoredValue(merged);
         if (gen === persistGenRef.current) dirtyRef.current = false;
-        writeCache(uid, storedValueRef.current, { pendingPersist: dirtyRef.current });
-        setSyncError('');
+        writeCache(uid, merged, { pendingPersist: false });
+        if (skippedIds.length > 0) {
+          setSyncError(
+            'This group was updated on another device. Reloaded the server copy so you don’t overwrite it.',
+          );
+        } else {
+          setSyncError('');
+        }
       })
       .catch((err) => {
         console.error('Evenly cloud sync save failed:', err);
