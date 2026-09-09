@@ -22,7 +22,9 @@ import { emitOpenChatConversation, requestChatNotificationPermission } from '../
 import PaymentMessageCard from './PaymentMessageCard.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
-import { chatComposerBarSx, chatMessagesSx, chatThreadRootSx } from '../lib/appShell.js';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
+import { chatComposerBarSx, chatMessagesSx, chatThreadRootSx, chatBubbleMaxWidthSx } from '../lib/appShell.js';
 import { isChatNearBottom, pinChatToLatestAfterLayout } from '../lib/chatScroll.js';
 
 function profileLabel(profile, fallback) {
@@ -38,6 +40,8 @@ export default function ChatThread({
   minHeight = 360,
 }) {
   const { user } = useAuth();
+  const theme = useTheme();
+  const desktop = useMediaQuery(theme.breakpoints.up('md'));
   const [messages, setMessages] = useState([]);
   const [profiles, setProfiles] = useState({});
   const [draft, setDraft] = useState('');
@@ -239,11 +243,18 @@ export default function ChatThread({
                 }}
               >
                 {!mine ? (
-                  <Avatar sx={{ width: 28, height: 28, fontSize: '0.7rem', bgcolor: 'primary.main' }}>
+                  <Avatar
+                    sx={{
+                      width: { xs: 28, md: 36 },
+                      height: { xs: 28, md: 36 },
+                      fontSize: { xs: '0.7rem', md: '0.85rem' },
+                      bgcolor: 'primary.main',
+                    }}
+                  >
                     {nameToInitials(label)}
                   </Avatar>
                 ) : null}
-                <Box sx={{ maxWidth: '80%' }}>
+                <Box sx={chatBubbleMaxWidthSx}>
                   {!mine ? (
                     <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
                       {label}
@@ -263,14 +274,22 @@ export default function ChatThread({
                   ) : (
                     <Box
                       sx={{
-                        px: 1.5,
-                        py: 1,
+                        px: { xs: 1.5, md: 2 },
+                        py: { xs: 1, md: 1.25 },
                         borderRadius: 2,
                         bgcolor: mine ? 'primary.main' : 'action.hover',
                         color: mine ? 'primary.contrastText' : 'text.primary',
                       }}
                     >
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          fontSize: { xs: '0.875rem', md: '1rem' },
+                          lineHeight: 1.45,
+                        }}
+                      >
                         {m.body}
                       </Typography>
                     </Box>
@@ -295,7 +314,7 @@ export default function ChatThread({
           onFocus={() => requestChatNotificationPermission()}
           placeholder="Message"
           fullWidth
-          size="small"
+          size={desktop ? 'medium' : 'small'}
           multiline
           maxRows={4}
         />
