@@ -265,7 +265,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
       const handle = profilesByUser[toPerson.linkedUserId]?.venmo_username;
       if (!isValidVenmoUsername(handle)) {
         setPaySnack(
-          `${toPerson.name} hasn’t added a Venmo $cashtag. Ask them to add it on Profile and tap Check in Venmo.`,
+          `${toPerson.name} hasn’t added a Venmo username. Ask them to add it on Profile and tap Check in Venmo.`,
         );
         return;
       }
@@ -307,7 +307,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
       });
       if (!url) {
         setPaySnack(
-          `${toPerson.name} hasn’t added a Venmo $cashtag (Profile → Check in Venmo).`,
+          `${toPerson.name} hasn’t added a Venmo username (Profile → Check in Venmo).`,
         );
         return;
       }
@@ -658,7 +658,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
                     </Box>
                     {iAmDebtor && !isSettled && !isValidVenmoUsername(creditorVenmo) ? (
                       <Typography variant="caption" color="text.secondary">
-                        {toPerson.name} hasn’t added a Venmo $cashtag yet. Ask them to set it on
+                        {toPerson.name} hasn’t added a Venmo username yet. Ask them to set it on
                         Profile and tap Check in Venmo.
                       </Typography>
                     ) : null}

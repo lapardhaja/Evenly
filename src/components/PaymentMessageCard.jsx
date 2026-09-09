@@ -102,7 +102,7 @@ export default function PaymentMessageCard({
             </>
           ) : isDebtor && !isValidVenmoUsername(payload.venmo_username) ? (
             <Typography variant="caption" color="text.secondary">
-              {toName} hasn’t added a Venmo $cashtag. Copy {money} and pay them another way.
+              {toName} hasn’t added a Venmo username. Copy {money} and pay them another way.
             </Typography>
           ) : null}
           {!usdOnly && canVenmo ? (

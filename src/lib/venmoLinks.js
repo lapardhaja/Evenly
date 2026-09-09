@@ -50,7 +50,7 @@ export function venmoAppPayUrl(opts = {}) {
   return `venmo://paycharge?${q.params.toString()}`;
 }
 
-/** Public profile — used to confirm the typed $cashtag is really theirs. */
+/** Public profile — used to confirm the typed handle is really theirs. */
 export function venmoProfileUrl(raw) {
   const u = normalizeVenmoUsername(raw);
   if (!isValidVenmoUsername(u)) return '';

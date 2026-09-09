@@ -224,14 +224,14 @@ export default function ProfilePage() {
               />
             </Box>
             <Alert severity="info" sx={{ borderRadius: 2 }}>
-              Evenly can’t log into Venmo (they don’t offer that for split apps). Add your $cashtag,
-              tap <strong>Check in Venmo</strong> to confirm it’s you, then Save. On Settle, whoever
+              Evenly can’t log into Venmo (they don’t offer that for split apps). Add your Venmo
+              username, tap <strong>Check in Venmo</strong> to confirm it’s you, then Save. On Settle, whoever
               owes you taps Pay on Venmo — that opens Venmo with the amount. They send it there, then
               tap I paid here.
             </Alert>
             <TextField
               size="small"
-              label="Venmo $cashtag"
+              label="Venmo username"
               value={venmoEdit}
               onChange={(e) => setVenmoEdit(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
               placeholder="your-venmo"
@@ -245,10 +245,10 @@ export default function ProfilePage() {
                 onClick={() => {
                   const url = openVenmoProfile(venmoEdit);
                   if (!url) {
-                    setError('Enter a Venmo $cashtag first.');
+                    setError('Enter a Venmo username first.');
                     return;
                   }
-                  setMessage('If that’s your Venmo profile, tap Save. If not, fix the $cashtag.');
+                  setMessage('If that’s your Venmo profile, tap Save. If not, fix the username.');
                 }}
               >
                 Check in Venmo
