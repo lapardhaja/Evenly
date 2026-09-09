@@ -22,6 +22,7 @@ import GroupPeopleTab from './GroupPeopleTab.jsx';
 import GroupSettleTab from './GroupSettleTab.jsx';
 import GroupChatTab from './GroupChatTab.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { requestChatNotificationPermission } from '../lib/chatAlerts.js';
 import { chatThreadPageSx } from '../lib/appShell.js';
 
 const TABS = isSupabaseConfigured()
@@ -142,7 +143,10 @@ export default function GroupDetailPage() {
 
       <Tabs
         value={currentTab}
-        onChange={(_, v) => navigate(`/groups/${groupId}/${TABS[v]}`)}
+        onChange={(_, v) => {
+          if (TABS[v] === 'chat') requestChatNotificationPermission();
+          navigate(`/groups/${groupId}/${TABS[v]}`);
+        }}
         indicatorColor="primary"
         textColor="primary"
         centered
