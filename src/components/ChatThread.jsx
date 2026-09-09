@@ -21,6 +21,7 @@ import { clipMessageBody, MESSAGE_BODY_MAX, parsePaymentPayload } from '../lib/c
 import PaymentMessageCard from './PaymentMessageCard.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
+import { chatComposerBarSx, chatThreadRootSx } from '../lib/appShell.js';
 
 function profileLabel(profile, fallback) {
   if (!profile) return fallback;
@@ -174,13 +175,13 @@ export default function ChatThread({
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight, height: '100%' }}>
+    <Box sx={{ ...chatThreadRootSx, minHeight: minHeight || 0 }}>
       {error ? (
         <Alert severity="error" sx={{ mb: 1 }} onClose={() => setError('')}>
           {error}
         </Alert>
       ) : null}
-      <Box sx={{ flex: 1, overflow: 'auto', px: 0.5, py: 1 }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 0.5, py: 1 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={28} />
@@ -252,11 +253,8 @@ export default function ChatThread({
         component="form"
         onSubmit={handleSend}
         sx={{
-          display: 'flex',
-          gap: 1,
-          alignItems: 'flex-end',
-          pt: 1,
-          pb: 'env(safe-area-inset-bottom, 0px)',
+          ...chatComposerBarSx,
+          pb: 'max(8px, env(safe-area-inset-bottom, 0px), var(--evenly-vv-bottom, 0px), var(--evenly-cookie-banner-offset, 0px))',
         }}
       >
         <TextField

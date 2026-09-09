@@ -86,12 +86,14 @@ export default function GroupChatTab({ groupId, groupData }) {
   }
 
   return (
-    <ChatThread
-      conversationId={conversationId}
-      groupName={group?.name}
-      nameByUserId={nameByUserId}
-      onPaymentSettled={onPaymentSettled}
-      minHeight={420}
-    />
+    <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <ChatThread
+        conversationId={conversationId}
+        groupName={group?.name}
+        nameByUserId={nameByUserId}
+        onPaymentSettled={onPaymentSettled}
+        minHeight={0}
+      />
+    </Box>
   );
 }

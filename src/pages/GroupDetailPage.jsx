@@ -22,6 +22,7 @@ import GroupPeopleTab from './GroupPeopleTab.jsx';
 import GroupSettleTab from './GroupSettleTab.jsx';
 import GroupChatTab from './GroupChatTab.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { chatThreadPageSx } from '../lib/appShell.js';
 
 const TABS = isSupabaseConfigured()
   ? ['people', 'receipts', 'settle', 'chat']
@@ -90,8 +91,15 @@ export default function GroupDetailPage() {
     isSupabaseConfigured() && !canDeleteGroup(group.membershipRole);
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 3 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+    <Container
+      maxWidth="md"
+      sx={
+        TABS[currentTab] === 'chat'
+          ? { ...chatThreadPageSx, py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 3 } }
+          : { py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 3 } }
+      }
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexShrink: 0 }}>
         <IconButton onClick={() => navigate('/')} size="small">
           <ArrowBackIcon />
         </IconButton>
@@ -138,7 +146,7 @@ export default function GroupDetailPage() {
         indicatorColor="primary"
         textColor="primary"
         centered
-        sx={{ mb: { xs: 1, sm: 2 } }}
+        sx={{ mb: { xs: 1, sm: 2 }, flexShrink: 0 }}
       >
         {TABS.map((t) => (
           <Tab key={t} label={t.charAt(0).toUpperCase() + t.slice(1)} />
@@ -149,7 +157,9 @@ export default function GroupDetailPage() {
       {currentTab === 1 && <GroupReceiptsTab groupId={groupId} groupData={groupData} />}
       {currentTab === 2 && <GroupSettleTab groupId={groupId} groupData={groupData} />}
       {TABS[currentTab] === 'chat' && (
-        <GroupChatTab groupId={groupId} groupData={groupData} />
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <GroupChatTab groupId={groupId} groupData={groupData} />
+        </Box>
       )}
 
       {EditTextModal}

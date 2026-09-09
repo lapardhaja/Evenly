@@ -12,6 +12,7 @@ import { formatFullName, getProfilesByIds } from '../lib/friendsApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { chatThreadPageSx } from '../lib/appShell.js';
 
 export default function ChatThreadPage() {
   const { conversationId } = useParams();
@@ -90,23 +91,15 @@ export default function ChatThreadPage() {
 
   if (!isSupabaseConfigured()) {
     return (
-      <Container maxWidth="sm" sx={{ py: 4 }}>
+      <Container maxWidth="sm" sx={chatThreadPageSx}>
         <Typography color="text.secondary">Chat needs a signed-in cloud account.</Typography>
       </Container>
     );
   }
 
   return (
-    <Container
-      maxWidth="sm"
-      sx={{
-        py: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: { xs: 'calc(100dvh - 88px)', sm: 'calc(100dvh - 96px)' },
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+    <Container maxWidth="sm" sx={chatThreadPageSx}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexShrink: 0 }}>
         <IconButton onClick={() => navigate('/chat')} size="small" aria-label="Back to chats">
           <ArrowBackIcon />
         </IconButton>
@@ -115,7 +108,7 @@ export default function ChatThreadPage() {
         </Typography>
       </Box>
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <CircularProgress />
         </Box>
       ) : (
@@ -124,7 +117,7 @@ export default function ChatThreadPage() {
           groupName={groupName}
           nameByUserId={nameByUserId}
           onPaymentSettled={onPaymentSettled}
-          minHeight={280}
+          minHeight={0}
         />
       )}
     </Container>
