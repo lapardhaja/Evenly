@@ -9,7 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useTheme } from '@mui/material/styles';
 import { nameToInitials } from '../../functions/utils.js';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../../lib/currencies.js';
-import { itemHighlightNeeded } from '../../lib/itemAssignLayout.js';
+import { itemHighlightNeeded, itemAssignCaption } from '../../lib/itemAssignLayout.js';
 import ItemPersonAssign from './ItemPersonAssign.jsx';
 
 export default function ReceiptItemCards({
@@ -145,7 +145,13 @@ export default function ReceiptItemCards({
                 sx={{ height: 24, fontWeight: 700 }}
               />
               <Typography variant="caption" color="text.secondary">
-                {assigned}/{item.quantity} assigned
+                {itemAssignCaption({
+                  quantity: item.quantity,
+                  assignedShares: assigned,
+                  assignedPeople: people.filter(
+                    (person) => getItemQuantityForPerson(person.id, item.id) > 0,
+                  ).length,
+                })}
               </Typography>
             </Box>
 

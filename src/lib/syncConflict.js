@@ -64,6 +64,10 @@ export function conflictSyncMessage({ skippedIds = [], reloaded = true } = {}) {
     : 'This group was updated on another device. Reloaded the server copy so you don’t overwrite it.';
 }
 
+export function shouldApplySkipReload({ reloaded, persistGen, currentGen }) {
+  return Boolean(reloaded) && persistGen === currentGen;
+}
+
 export function withPersistPartial(err, { skippedIds = [], writtenAt = {} } = {}) {
   const wrapped = err instanceof Error ? err : new Error(String(err));
   wrapped.persistPartial = { skippedIds, writtenAt };
