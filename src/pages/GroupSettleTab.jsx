@@ -43,7 +43,7 @@ import {
 } from '../lib/chatApi.js';
 import { transferStorageKey, normalizeStoredSettledKeys } from '../lib/settledTransfersKey.js';
 import { venmoUsdAmount, venmoNoteForTransfer } from '../lib/chatPayment.js';
-import { isValidVenmoUsername, openVenmoPayment } from '../lib/venmoLinks.js';
+import { isValidVenmoUsername, openVenmoPayment, venmoWebPayUrl } from '../lib/venmoLinks.js';
 
 export default function GroupSettleTab({ groupId, groupData }) {
   const {
@@ -264,7 +264,9 @@ export default function GroupSettleTab({ groupId, groupData }) {
     (t, fromPerson, toPerson) => {
       const handle = profilesByUser[toPerson.linkedUserId]?.venmo_username;
       if (!isValidVenmoUsername(handle)) {
-        setPaySnack(`${toPerson.name} hasn’t added a Venmo username (Profile).`);
+        setPaySnack(
+          `${toPerson.name} hasn’t added a Venmo $cashtag. Ask them to add it on Profile and tap Check in Venmo.`,
+        );
         return;
       }
       const usd = venmoUsdAmount(t.amount, settleCode, usdRates);
@@ -272,7 +274,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         setPaySnack('Couldn’t convert to USD for Venmo.');
         return;
       }
-      openVenmoPayment({
+      const used = openVenmoPayment({
         username: handle,
         amount: usd,
         note: venmoNoteForTransfer({
@@ -281,6 +283,43 @@ export default function GroupSettleTab({ groupId, groupData }) {
           toName: toPerson.name,
         }),
       });
+      if (!used) {
+        setPaySnack('Couldn’t open Venmo.');
+        return;
+      }
+      setPaySnack('Venmo should open with the amount filled in. Send it there, then come back and tap I paid.');
+    },
+    [profilesByUser, settleCode, usdRates, group?.name],
+  );
+
+  const copyVenmoLink = useCallback(
+    (t, fromPerson, toPerson) => {
+      const handle = profilesByUser[toPerson.linkedUserId]?.venmo_username;
+      const usd = venmoUsdAmount(t.amount, settleCode, usdRates);
+      const url = venmoWebPayUrl({
+        username: handle,
+        amount: usd,
+        note: venmoNoteForTransfer({
+          groupName: group?.name,
+          fromName: fromPerson.name,
+          toName: toPerson.name,
+        }),
+      });
+      if (!url) {
+        setPaySnack(
+          `${toPerson.name} hasn’t added a Venmo $cashtag (Profile → Check in Venmo).`,
+        );
+        return;
+      }
+      const clip = typeof navigator !== 'undefined' ? navigator.clipboard : null;
+      if (!clip?.writeText) {
+        setPaySnack(url);
+        return;
+      }
+      clip.writeText(url).then(
+        () => setPaySnack('Venmo link copied. Open it on your phone if the app didn’t launch.'),
+        () => setPaySnack(url),
+      );
     },
     [profilesByUser, settleCode, usdRates, group?.name],
   );
@@ -455,6 +494,13 @@ export default function GroupSettleTab({ groupId, groupData }) {
       </Button>
 
       {isSupabaseConfigured() ? (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+          Pay on Venmo opens the Venmo app (or venmo.com) with the amount filled in. Evenly never
+          sends money. After you send it in Venmo, tap I paid here.
+        </Alert>
+      ) : null}
+
+      {isSupabaseConfigured() ? (
         <FormControlLabel
           sx={{ display: 'flex', mb: 1 }}
           control={
@@ -610,17 +656,43 @@ export default function GroupSettleTab({ groupId, groupData }) {
                         sx={{ fontWeight: 700 }}
                       />
                     </Box>
+                    {iAmDebtor && !isSettled && !isValidVenmoUsername(creditorVenmo) ? (
+                      <Typography variant="caption" color="text.secondary">
+                        {toPerson.name} hasn’t added a Venmo $cashtag yet. Ask them to set it on
+                        Profile and tap Check in Venmo.
+                      </Typography>
+                    ) : null}
+                    {iAmDebtor && !isSettled && isValidVenmoUsername(creditorVenmo) && usdAmt == null ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Couldn’t convert to USD for Venmo. Copy the amount and pay them in the app.
+                      </Typography>
+                    ) : null}
                     {iAmParty && !isSettled ? (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {iAmDebtor ? (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => payOnVenmo(t, fromPerson, toPerson)}
-                            disabled={!isValidVenmoUsername(creditorVenmo) || usdAmt == null}
-                          >
-                            Pay on Venmo
-                          </Button>
+                          <>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={() => payOnVenmo(t, fromPerson, toPerson)}
+                            >
+                              Pay on Venmo
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => copyVenmoLink(t, fromPerson, toPerson)}
+                            >
+                              Copy Venmo link
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => toggleSettled(t)}
+                            >
+                              I paid
+                            </Button>
+                          </>
                         ) : null}
                         <Button
                           size="small"
@@ -652,7 +724,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
       )}
       <Snackbar
         open={!!paySnack}
-        autoHideDuration={4000}
+        autoHideDuration={8000}
         onClose={() => setPaySnack('')}
         message={paySnack}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
