@@ -45,6 +45,7 @@ import { transferStorageKey, normalizeStoredSettledKeys } from '../lib/settledTr
 import { venmoUsdAmount, venmoNoteForTransfer } from '../lib/chatPayment.js';
 import { isValidVenmoUsername, openVenmoPayment, venmoWebPayUrl } from '../lib/venmoLinks.js';
 import { copyPlainText } from '../lib/copyPlainText.js';
+import { settleRowActions } from '../lib/settleRowActions.js';
 
 export default function GroupSettleTab({ groupId, groupData }) {
   const {
@@ -564,6 +565,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
                 toUid &&
                 (user.id === fromUid || user.id === toUid);
               const iAmDebtor = Boolean(user?.id && fromUid && user.id === fromUid);
+              const rowActions = settleRowActions({ iAmParty, iAmDebtor, isSettled });
               const creditorVenmo = profilesByUser[toUid]?.venmo_username;
               const usdAmt = venmoUsdAmount(t.amount, settleCode, usdRates);
               const rowKey = transferStorageKey(t);
@@ -669,9 +671,9 @@ export default function GroupSettleTab({ groupId, groupData }) {
                         Couldn’t convert to USD for Venmo. Copy the amount and pay them in the app.
                       </Typography>
                     ) : null}
-                    {iAmParty && !isSettled ? (
+                    {rowActions.pay || rowActions.request ? (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {iAmDebtor ? (
+                        {rowActions.pay ? (
                           <>
                             <Button
                               size="small"
@@ -696,14 +698,16 @@ export default function GroupSettleTab({ groupId, groupData }) {
                             </Button>
                           </>
                         ) : null}
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => requestPayment(t, fromPerson, toPerson)}
-                          disabled={payBusy === rowKey}
-                        >
-                          Request
-                        </Button>
+                        {rowActions.request ? (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => requestPayment(t, fromPerson, toPerson)}
+                            disabled={payBusy === rowKey}
+                          >
+                            Request
+                          </Button>
+                        ) : null}
                       </Box>
                     ) : null}
                     </Box>
