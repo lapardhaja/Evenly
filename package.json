@@ -21,7 +21,10 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.3",
     "react-swipeable-list": "^1.10.0",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "web-push": "^3.6.7",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

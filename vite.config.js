@@ -7,6 +7,9 @@ export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       includeAssets: [
         'brand/evenly-icon.svg',
@@ -14,6 +17,9 @@ export default defineConfig(({ command }) => ({
         'brand/pwa-192.png',
         'brand/pwa-512.png',
       ],
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,svg,png,woff2}'],
+      },
       manifest: {
         name: 'Evenly',
         short_name: 'Evenly',
@@ -45,13 +51,6 @@ export default defineConfig(({ command }) => ({
             purpose: 'maskable',
           },
         ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,svg,png,woff2}'],
-        navigateFallbackDenylist: [/^\/api\//],
-        skipWaiting: true,
-        clientsClaim: true,
-        cleanupOutdatedCaches: true,
       },
       devOptions: {
         enabled: false,

@@ -46,6 +46,7 @@ import {
   requestChatNotificationPermission,
   shouldAlertIncomingChat,
 } from '../lib/chatAlerts.js';
+import { syncChatPushSubscription } from '../lib/chatPushClient.js';
 import { visualViewportBottomGap } from '../lib/visualViewportBottom.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
@@ -302,6 +303,14 @@ export default function Layout() {
       window.clearInterval(id);
     };
   }, [refreshUnreadChats, supabaseConfigured, user, onLoginRoute]);
+
+  useEffect(() => {
+    if (!supabaseConfigured || !user || onLoginRoute) return undefined;
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      void syncChatPushSubscription().catch(() => {});
+    }
+    return undefined;
+  }, [supabaseConfigured, user, onLoginRoute]);
 
   const handlePullRefresh = useCallback(async () => {
     await reloadFromServer();

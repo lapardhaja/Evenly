@@ -9,6 +9,7 @@ import Alert from '@mui/material/Alert';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
 import { isValidVenmoUsername, normalizeVenmoUsername, openVenmoProfile } from '../lib/venmoLinks.js';
+import { enableChatNotifications } from '../lib/chatAlerts.js';
 
 export default function ProfilePage() {
   const { user, refreshProfile } = useAuth();
@@ -24,6 +25,7 @@ export default function ProfilePage() {
   const [usernameStatus, setUsernameStatus] = useState('idle');
   const usernameDebounceRef = useRef(null);
   const savedUsernameRef = useRef('');
+  const [notifyHint, setNotifyHint] = useState('');
 
   const loadProfile = useCallback(async (opts = {}) => {
     const silent = !!opts.silent;
@@ -241,6 +243,26 @@ export default function ProfilePage() {
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Button
                 variant="outlined"
+                onClick={async () => {
+                  const perm = await enableChatNotifications();
+                  if (perm === 'granted') {
+                    setNotifyHint('Message alerts on. Leave Evenly and you’ll still get a banner.');
+                    setError('');
+                  } else if (perm === 'denied') {
+                    setError('Alerts are blocked. Enable notifications for Evenly in iOS Settings.');
+                    setNotifyHint('');
+                  } else if (perm === 'unsupported') {
+                    setError('This browser can’t show notifications.');
+                    setNotifyHint('');
+                  } else {
+                    setNotifyHint('On iPhone, add Evenly to the Home Screen first, then tap this again.');
+                  }
+                }}
+              >
+                Enable message alerts
+              </Button>
+              <Button
+                variant="outlined"
                 disabled={!isValidVenmoUsername(venmoEdit)}
                 onClick={() => {
                   const url = openVenmoProfile(venmoEdit);
@@ -270,6 +292,15 @@ export default function ProfilePage() {
             <Typography variant="caption" color="text.secondary">
               Signed in as {user?.email || '…'}
             </Typography>
+            {notifyHint ? (
+              <Typography variant="caption" color="text.secondary">
+                {notifyHint}
+              </Typography>
+            ) : (
+              <Typography variant="caption" color="text.secondary">
+                iPhone: Add to Home Screen, then Enable message alerts. Safari tabs can’t push.
+              </Typography>
+            )}
           </Box>
         )}
       </Paper>

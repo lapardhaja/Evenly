@@ -1,5 +1,6 @@
 import { getSupabase, isSupabaseConfigured } from './supabaseClient.js';
 import { clipMessageBody, buildPaymentPayload, parsePaymentPayload } from './chatPayment.js';
+import { notifyChatPush } from './chatPushClient.js';
 
 function clientOrThrow() {
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
@@ -108,6 +109,7 @@ export async function sendTextMessage(conversationId, body) {
     .select('id, conversation_id, sender_id, type, body, payload, created_at')
     .single();
   if (error) throw error;
+  void notifyChatPush(data.id).catch(() => {});
   return data;
 }
 
@@ -131,6 +133,7 @@ export async function sendPaymentMessage(conversationId, paymentFields) {
     .select('id, conversation_id, sender_id, type, body, payload, created_at')
     .single();
   if (error) throw error;
+  void notifyChatPush(data.id).catch(() => {});
   return data;
 }
 
