@@ -18,6 +18,7 @@ import {
   notifyChatUnreadChanged,
 } from '../lib/chatApi.js';
 import { clipMessageBody, MESSAGE_BODY_MAX, parsePaymentPayload } from '../lib/chatPayment.js';
+import { emitOpenChatConversation, requestChatNotificationPermission } from '../lib/chatAlerts.js';
 import PaymentMessageCard from './PaymentMessageCard.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
@@ -84,6 +85,11 @@ export default function ChatThread({
     pinnedForConversationRef.current = null;
     load();
   }, [load]);
+
+  useEffect(() => {
+    emitOpenChatConversation(conversationId || '');
+    return () => emitOpenChatConversation('');
+  }, [conversationId]);
 
   useEffect(() => {
     if (!conversationId) return undefined;
@@ -286,6 +292,7 @@ export default function ChatThread({
         <TextField
           value={draft}
           onChange={(e) => setDraft(e.target.value.slice(0, MESSAGE_BODY_MAX))}
+          onFocus={() => requestChatNotificationPermission()}
           placeholder="Message"
           fullWidth
           size="small"

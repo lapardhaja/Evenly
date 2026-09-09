@@ -38,6 +38,14 @@ import {
   subscribeToFriendRequests,
 } from '../lib/friendsApi.js';
 import { countUnreadConversations, subscribeToAllMessages } from '../lib/chatApi.js';
+import {
+  EVENLY_CHAT_OPEN_EVENT,
+  alertIncomingChat,
+  incomingChatPreview,
+  parseIncomingChatMessage,
+  requestChatNotificationPermission,
+  shouldAlertIncomingChat,
+} from '../lib/chatAlerts.js';
 import { visualViewportBottomGap } from '../lib/visualViewportBottom.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
@@ -181,6 +189,7 @@ export default function Layout() {
   const [friendSnack, setFriendSnack] = useState('');
   const locationPathRef = useRef(location.pathname);
   locationPathRef.current = location.pathname;
+  const openChatIdRef = useRef('');
 
   const refreshFriendRequestCount = useCallback(async () => {
     if (!supabaseConfigured || !user || onLoginRoute) return;
@@ -248,7 +257,16 @@ export default function Layout() {
   }, [refreshUnreadChats, user?.id]);
 
   useEffect(() => {
+    const onOpen = (e) => {
+      openChatIdRef.current = e?.detail?.conversationId || '';
+    };
+    window.addEventListener(EVENLY_CHAT_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(EVENLY_CHAT_OPEN_EVENT, onOpen);
+  }, []);
+
+  useEffect(() => {
     if (!supabaseConfigured || !user || onLoginRoute) return undefined;
+    const myId = user.id;
     const onVis = () => {
       if (document.visibilityState === 'visible') refreshUnreadChats();
     };
@@ -256,7 +274,25 @@ export default function Layout() {
     document.addEventListener('visibilitychange', onVis);
     window.addEventListener('evenly-chat-unread-changed', onChatEvt);
     window.addEventListener('evenly-pull-to-refresh', onChatEvt);
-    const unsub = subscribeToAllMessages(() => refreshUnreadChats());
+    const unsub = subscribeToAllMessages((payload) => {
+      refreshUnreadChats();
+      const message = parseIncomingChatMessage(payload);
+      if (
+        !shouldAlertIncomingChat({
+          myUserId: myId,
+          message,
+          openConversationId: openChatIdRef.current,
+          visibilityState: document.visibilityState,
+        })
+      ) {
+        return;
+      }
+      alertIncomingChat({
+        title: 'Evenly',
+        body: incomingChatPreview(message),
+        tag: message.conversationId,
+      });
+    });
     const id = window.setInterval(refreshUnreadChats, 90_000);
     return () => {
       document.removeEventListener('visibilitychange', onVis);
@@ -348,7 +384,10 @@ export default function Layout() {
                 <IconButton
                   color="inherit"
                   aria-label={unreadChats > 0 ? `Chat, ${unreadChats} unread` : 'Chat'}
-                  onClick={() => navigate('/chat')}
+                  onClick={() => {
+                    requestChatNotificationPermission();
+                    navigate('/chat');
+                  }}
                 >
                   <Badge
                     color="primary"
@@ -432,6 +471,7 @@ export default function Layout() {
                   <MenuItem
                     onClick={() => {
                       setAccountAnchor(null);
+                      requestChatNotificationPermission();
                       navigate('/chat');
                     }}
                     selected={location.pathname === '/chat' || location.pathname.startsWith('/chat/')}
