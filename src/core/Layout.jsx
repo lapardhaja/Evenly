@@ -359,7 +359,7 @@ export default function Layout() {
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {supabaseConfigured && user && syncError && !onLoginRoute ? (
             <Alert
-              severity="error"
+              severity={syncError.includes('another device') ? 'warning' : 'error'}
               onClose={clearSyncError}
               action={
                 <Button color="inherit" size="small" onClick={handleRetrySync}>
@@ -368,8 +368,7 @@ export default function Layout() {
               }
               sx={{ borderRadius: 0 }}
             >
-              Couldn’t refresh from the cloud. Your latest edits are still on this device. Tap Retry
-              to sync.
+              {syncError}
             </Alert>
           ) : null}
           {usesPullToRefreshLayout ? (

@@ -4,6 +4,7 @@ import {
   isStaleGroupWrite,
   planRemoteGroupRemovals,
   applyPersistResult,
+  conflictSyncMessage,
 } from './syncConflict.js';
 
 describe('isStaleGroupWrite', () => {
@@ -80,5 +81,25 @@ describe('applyPersistResult', () => {
       serverGroups: {},
     });
     assert.equal(next.stale.name, 'old');
+  });
+});
+
+describe('conflictSyncMessage', () => {
+  it('is empty when nothing was skipped', () => {
+    assert.equal(conflictSyncMessage({ skippedIds: [] }), '');
+  });
+
+  it('says the server copy was reloaded for one group', () => {
+    assert.match(
+      conflictSyncMessage({ skippedIds: ['g1'], reloaded: true }),
+      /Reloaded the server copy/,
+    );
+  });
+
+  it('does not claim a reload when the fetch failed', () => {
+    assert.match(
+      conflictSyncMessage({ skippedIds: ['g1'], reloaded: false }),
+      /Couldn’t reload the server copy/,
+    );
   });
 });

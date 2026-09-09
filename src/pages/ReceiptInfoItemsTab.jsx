@@ -252,7 +252,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                         disabled={receipt.locked}
                         sx={{ borderRadius: 1, px: 0.5 }}
                       >
-                        {currency(item.cost).format()}
+                        {formatMoneyWithCode(item.cost, receiptCurrency)}
                       </ButtonBase>
                     </TableCell>
                     <TableCell align="center">

@@ -3,7 +3,7 @@
  */
 
 import { normalizeCurrencyCode } from './currencies.js';
-import { isStaleGroupWrite, planRemoteGroupRemovals } from './syncConflict.js';
+import { isStaleGroupWrite, planRemoteGroupRemovals, withPersistPartial } from './syncConflict.js';
 
 /**
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase
@@ -253,7 +253,8 @@ export async function persistNormalizedData(supabase, userId, data) {
   const skippedIds = [];
   const writtenAt = {};
 
-  for (const gid of localGroupIds) {
+  try {
+    for (const gid of localGroupIds) {
     const g = data.groups[gid];
     if (isStaleGroupWrite(g.updatedAt, remoteUpdatedAt.get(gid) || null)) {
       skippedIds.push(gid);
@@ -271,13 +272,24 @@ export async function persistNormalizedData(supabase, userId, data) {
       settled_transfers: stArr,
       updated_at: nowIso,
     };
-    const { error: ugErr } = membershipsByGroup.has(gid)
-      ? await supabase.from('groups').update(groupPayload).eq('id', gid)
-      : await supabase.from('groups').insert({
-          ...groupPayload,
-          user_id: userId,
-        });
-    if (ugErr) throw ugErr;
+    if (membershipsByGroup.has(gid)) {
+      let updateQuery = supabase.from('groups').update(groupPayload).eq('id', gid);
+      if (g.updatedAt) {
+        updateQuery = updateQuery.eq('updated_at', g.updatedAt);
+      }
+      const { data: updatedRows, error: ugErr } = await updateQuery.select('id');
+      if (ugErr) throw ugErr;
+      if (g.updatedAt && (!updatedRows || updatedRows.length === 0)) {
+        skippedIds.push(gid);
+        continue;
+      }
+    } else {
+      const { error: ugErr } = await supabase.from('groups').insert({
+        ...groupPayload,
+        user_id: userId,
+      });
+      if (ugErr) throw ugErr;
+    }
 
     const localPeopleIds = Object.keys(g.people || {});
     const { data: dbPeople, error: dpErr } = await supabase
@@ -405,4 +417,7 @@ export async function persistNormalizedData(supabase, userId, data) {
   }
 
   return { skippedIds, writtenAt };
+  } catch (err) {
+    throw withPersistPartial(err, { skippedIds, writtenAt });
+  }
 }

@@ -41,3 +41,22 @@ export function applyPersistResult(localGroups, { skippedIds = [], writtenAt = {
   }
   return next;
 }
+
+export function conflictSyncMessage({ skippedIds = [], reloaded = true } = {}) {
+  if (!skippedIds.length) return '';
+  const many = skippedIds.length > 1;
+  if (!reloaded) {
+    return many
+      ? 'Some groups were updated on another device. Couldn’t reload the server copies. Your edits were not saved. Tap Retry.'
+      : 'This group was updated on another device. Couldn’t reload the server copy. Your edits were not saved. Tap Retry.';
+  }
+  return many
+    ? 'Some groups were updated on another device. Reloaded the server copies so you don’t overwrite them.'
+    : 'This group was updated on another device. Reloaded the server copy so you don’t overwrite it.';
+}
+
+export function withPersistPartial(err, { skippedIds = [], writtenAt = {} } = {}) {
+  const wrapped = err instanceof Error ? err : new Error(String(err));
+  wrapped.persistPartial = { skippedIds, writtenAt };
+  return wrapped;
+}

@@ -2,6 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { persistNormalizedData, removeStoredAttachments } from './supabaseSync.js';
 
+function groupsUpdateChain({ events, empty = false } = {}) {
+  const chain = {
+    eq() {
+      return chain;
+    },
+    select: async () => ({
+      data: empty ? [] : [{ id: 'g1' }],
+      error: null,
+    }),
+  };
+  return () => {
+    if (events) events.push('update:groups');
+    return chain;
+  };
+}
+
 test('removeStoredAttachments skips storage remove when no paths', async () => {
   const removed = [];
   const supabase = {
@@ -149,11 +165,7 @@ test('persistNormalizedData removes storage before deleting a receipt', async ()
           };
           return del;
         },
-        update() {
-          return {
-            eq: async () => ({ error: null }),
-          };
-        },
+        update: groupsUpdateChain({ events }),
         insert: async () => ({ error: null }),
         upsert: async () => ({ error: null }),
       };
@@ -207,6 +219,7 @@ test('persistNormalizedData removes storage before owner deletes a group', async
           return builder;
         },
         in() {
+          events.push(`in:${table}`);
           return builder;
         },
         eq(col, val) {
@@ -235,9 +248,7 @@ test('persistNormalizedData removes storage before owner deletes a group', async
             },
           };
         },
-        update() {
-          return { eq: async () => ({ error: null }) };
-        },
+        update: groupsUpdateChain({ events }),
         insert: async () => ({ error: null }),
         upsert: async () => ({ error: null }),
       };
@@ -265,6 +276,7 @@ test('persistNormalizedData removes storage before owner deletes a group', async
   );
   assert.ok(storageIdx >= 0 && deleteIdx >= 0, events.join('|'));
   assert.ok(storageIdx < deleteIdx);
+  assert.equal(events.includes('in:groups'), false);
 });
 
 test('persistNormalizedData skips a group whose server updated_at is newer', async () => {
@@ -310,10 +322,7 @@ test('persistNormalizedData skips a group whose server updated_at is newer', asy
             },
           };
         },
-        update() {
-          events.push(`update:${table}`);
-          return { eq: async () => ({ error: null }) };
-        },
+        update: groupsUpdateChain({ events }),
         insert: async () => {
           events.push(`insert:${table}`);
           return { error: null };
@@ -388,10 +397,7 @@ test('persistNormalizedData writes when local updatedAt matches server', async (
         delete() {
           return { eq: async () => ({ error: null }) };
         },
-        update() {
-          events.push(`update:${table}`);
-          return { eq: async () => ({ error: null }) };
-        },
+        update: groupsUpdateChain({ events }),
         insert: async () => ({ error: null }),
         upsert: async () => ({ error: null }),
       };
@@ -422,4 +428,79 @@ test('persistNormalizedData writes when local updatedAt matches server', async (
   assert.equal(typeof result.writtenAt.g1, 'string');
   assert.equal(events.includes('update:groups'), true);
   assert.equal(events.includes('listed-receipts'), true);
+});
+
+test('persistNormalizedData skips when optimistic lock update matches 0 rows', async () => {
+  const events = [];
+  const supabase = {
+    from(table) {
+      const builder = {
+        select() {
+          return builder;
+        },
+        in() {
+          return builder;
+        },
+        eq(col, val) {
+          builder._eq = [col, val];
+          return builder;
+        },
+        then(resolve, reject) {
+          return Promise.resolve()
+            .then(() => {
+              if (table === 'group_members') {
+                return { data: [{ group_id: 'g1', role: 'owner' }], error: null };
+              }
+              if (table === 'groups') {
+                return { data: [{ id: 'g1', updated_at: '2026-09-08T12:00:00.000Z' }], error: null };
+              }
+              if (table === 'receipts') {
+                events.push('listed-receipts');
+                return { data: [{ id: 'keep-me' }], error: null };
+              }
+              return { data: [], error: null };
+            })
+            .then(resolve, reject);
+        },
+        delete() {
+          events.push(`delete:${table}`);
+          return {
+            eq() {
+              events.push(`delete:${table}`);
+              return Promise.resolve({ error: null });
+            },
+          };
+        },
+        update: groupsUpdateChain({ events, empty: true }),
+        insert: async () => ({ error: null }),
+        upsert: async () => ({ error: null }),
+      };
+      return builder;
+    },
+    storage: {
+      from() {
+        return { remove: async () => ({ error: null }) };
+      },
+    },
+  };
+
+  const result = await persistNormalizedData(supabase, 'user-1', {
+    groups: {
+      g1: {
+        name: 'Raced',
+        date: 1,
+        updatedAt: '2026-09-08T12:00:00.000Z',
+        displayCurrency: 'USD',
+        settledTransfers: [],
+        people: {},
+        receipts: {},
+      },
+    },
+  });
+
+  assert.deepEqual(result.skippedIds, ['g1']);
+  assert.deepEqual(result.writtenAt, {});
+  assert.equal(events.includes('update:groups'), true);
+  assert.equal(events.includes('listed-receipts'), false);
+  assert.equal(events.includes('delete:receipts'), false);
 });
