@@ -7,6 +7,8 @@ import {
   alertIncomingChat,
   emitOpenChatConversation,
   enableChatNotifications,
+  chatAlertsEnableHint,
+  isIosSafariTab,
 } from './chatAlerts.js';
 
 test('parseIncomingChatMessage reads INSERT new row', () => {
@@ -235,9 +237,98 @@ test('enableChatNotifications returns push:false when subscribe cannot run', asy
   const result = await enableChatNotifications({
     Notification: FakeNotification,
     navigator: {},
+    vapidPublicKey: 'AQID',
+    getSupabase: async () => ({
+      auth: { getUser: async () => ({ data: { user: { id: 'u1' } } }) },
+    }),
   });
   assert.equal(result.permission, 'granted');
   assert.equal(result.push, false);
+  assert.equal(result.reason, 'no-sw');
+});
+
+test('isIosSafariTab is true for iPhone Safari that is not a Home Screen app', () => {
+  assert.equal(
+    isIosSafariTab({
+      navigator: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1', standalone: false },
+      matchMedia: () => ({ matches: false }),
+    }),
+    true,
+  );
+  assert.equal(
+    isIosSafariTab({
+      navigator: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', standalone: true },
+      matchMedia: () => ({ matches: true }),
+    }),
+    false,
+  );
+});
+
+test('chatAlertsEnableHint does not blame missing server keys when subscribe failed', () => {
+  const granted = chatAlertsEnableHint({ permission: 'granted', push: false, reason: 'subscribe-failed' }, {
+    navigator: { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120' },
+  });
+  assert.match(granted, /register this device|reload|Enable again/i);
+  assert.equal(/Web Push keys on the server/i.test(granted), false);
+});
+
+test('chatAlertsEnableHint tells iPhone Safari to Add to Home Screen', () => {
+  const hint = chatAlertsEnableHint(
+    { permission: 'granted', push: false, reason: 'subscribe-failed' },
+    {
+      navigator: {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile Safari/604.1',
+        standalone: false,
+      },
+      matchMedia: () => ({ matches: false }),
+    },
+  );
+  assert.match(hint, /Home Screen/i);
+});
+
+test('chatAlertsEnableHint confirms lock-screen banners when push subscribed', () => {
+  const hint = chatAlertsEnableHint({ permission: 'granted', push: true, reason: 'ok' });
+  assert.match(hint, /banner/i);
+  assert.equal(/while Evenly is open/i.test(hint), false);
+});
+
+test('alertIncomingChat falls through when the service worker never acks', async () => {
+  const shown = [];
+  class FakeChannel {
+    constructor() {
+      this.port1 = { onmessage: null };
+      this.port2 = {};
+    }
+  }
+  function FakeNotification() {
+    throw new Error('should use registration.showNotification');
+  }
+  FakeNotification.permission = 'granted';
+  await alertIncomingChat(
+    { title: 'Evenly', body: 'hey', tag: 'c1' },
+    {
+      MessageChannel: FakeChannel,
+      chatNotifyAckTimeoutMs: 20,
+      navigator: {
+        vibrate() {},
+        serviceWorker: {
+          controller: {
+            postMessage() {},
+          },
+          ready: Promise.resolve({
+            showNotification: async (title, opts) => {
+              shown.push({ title, opts });
+            },
+          }),
+        },
+      },
+      Notification: FakeNotification,
+    },
+    { readyTimeoutMs: 50 },
+  );
+  assert.equal(shown.length, 1);
+  assert.equal(shown[0].title, 'Evenly');
+  assert.equal(shown[0].opts.requireInteraction, true);
 });
 
 test('alertIncomingChat still vibrates when notification permission is denied', async () => {

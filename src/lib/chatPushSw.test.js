@@ -6,6 +6,7 @@ import {
   parsePushEventData,
   shouldShowChatPush,
   chatNotificationClickUrl,
+  shouldDedupeChatNotification,
 } from './chatPushSw.js';
 
 test('applyChatOpenMessage stores the open thread', () => {
@@ -107,4 +108,12 @@ test('chatNotificationClickUrl uses the origin plus hash route', () => {
     chatNotificationClickUrl('https://evenly.example', '#/chat/c1'),
     'https://evenly.example/#/chat/c1',
   );
+});
+
+test('shouldDedupeChatNotification collapses a local banner plus the matching push', () => {
+  const prev = { tag: 'c1', at: 1000 };
+  assert.equal(shouldDedupeChatNotification(prev, { tag: 'c1', now: 1500 }), true);
+  assert.equal(shouldDedupeChatNotification(prev, { tag: 'c1', now: 4000 }), false);
+  assert.equal(shouldDedupeChatNotification(prev, { tag: 'c2', now: 1100 }), false);
+  assert.equal(shouldDedupeChatNotification(null, { tag: 'c1', now: 1100 }), false);
 });

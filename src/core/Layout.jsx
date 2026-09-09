@@ -311,10 +311,18 @@ export default function Layout() {
 
   useEffect(() => {
     if (!supabaseConfigured || !user || onLoginRoute) return undefined;
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      void syncChatPushSubscription().catch(() => {});
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      return undefined;
     }
-    return undefined;
+    const sync = () => {
+      void syncChatPushSubscription().catch(() => {});
+    };
+    sync();
+    const sw = navigator.serviceWorker;
+    sw?.addEventListener?.('controllerchange', sync);
+    return () => {
+      sw?.removeEventListener?.('controllerchange', sync);
+    };
   }, [supabaseConfigured, user, onLoginRoute]);
 
   const handlePullRefresh = useCallback(async () => {

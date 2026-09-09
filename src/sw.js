@@ -5,6 +5,7 @@ import {
   applyShowNotificationMessage,
   chatNotificationClickUrl,
   parsePushEventData,
+  shouldDedupeChatNotification,
   shouldShowChatPush,
 } from './lib/chatPushSw.js';
 
@@ -14,19 +15,38 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
 let chatOpenState = { openConversationId: '' };
+let lastChatNotification = null;
+
+function ackShowNotification(event) {
+  try {
+    event.ports?.[0]?.postMessage({ ok: true });
+  } catch {
+    /* no MessageChannel */
+  }
+}
+
+async function showChatNotification(title, options) {
+  const tag = options?.tag || '';
+  const now = Date.now();
+  if (shouldDedupeChatNotification(lastChatNotification, { tag, now })) return;
+  lastChatNotification = { tag, at: now };
+  await self.registration.showNotification(title, {
+    silent: false,
+    renotify: true,
+    requireInteraction: true,
+    vibrate: [80, 40, 80],
+    icon: '/brand/pwa-192.png',
+    badge: '/brand/pwa-192.png',
+    ...options,
+  });
+}
 
 self.addEventListener('message', (event) => {
   chatOpenState = applyChatOpenMessage(chatOpenState, event.data);
   const local = applyShowNotificationMessage(event.data);
   if (local) {
-    const shown = self.registration.showNotification(local.title, {
-      silent: false,
-      renotify: true,
-      vibrate: [80, 40, 80],
-      icon: '/brand/pwa-192.png',
-      badge: '/brand/pwa-192.png',
-      ...local.options,
-    });
+    ackShowNotification(event);
+    const shown = showChatNotification(local.title, local.options);
     if (typeof event.waitUntil === 'function') event.waitUntil(shown);
   }
 });
@@ -54,14 +74,10 @@ async function handlePush(event) {
   ) {
     return;
   }
-  await self.registration.showNotification(data.title, {
+  await showChatNotification(data.title, {
     body: data.body,
     tag: data.tag,
-    icon: '/brand/pwa-192.png',
-    badge: '/brand/pwa-192.png',
-    silent: false,
-    renotify: true,
-    vibrate: [80, 40, 80],
+    requireInteraction: true,
     data: { path: data.path, conversationId: data.conversationId },
   });
 }

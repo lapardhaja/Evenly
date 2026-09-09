@@ -57,7 +57,7 @@ export default function ChatInboxPage() {
   const [filter, setFilter] = useState('');
   const [pickerBusy, setPickerBusy] = useState(false);
   const [notifyBanner, setNotifyBanner] = useState(
-    typeof Notification !== 'undefined' && Notification.permission === 'default',
+    typeof Notification !== 'undefined' && Notification.permission !== 'denied',
   );
 
   const load = useCallback(async () => {
@@ -78,6 +78,29 @@ export default function ChatInboxPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (typeof Notification === 'undefined') {
+        if (!cancelled) setNotifyBanner(false);
+        return;
+      }
+      if (Notification.permission === 'denied') {
+        if (!cancelled) setNotifyBanner(false);
+        return;
+      }
+      if (Notification.permission === 'default') {
+        if (!cancelled) setNotifyBanner(true);
+        return;
+      }
+      const { push } = await enableChatNotifications();
+      if (!cancelled) setNotifyBanner(!push);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const onPull = () => load();
@@ -146,15 +169,15 @@ export default function ChatInboxPage() {
               color="inherit"
               size="small"
               onClick={async () => {
-                const { permission } = await enableChatNotifications();
-                setNotifyBanner(permission === 'default');
+                const { permission, push } = await enableChatNotifications();
+                setNotifyBanner(permission === 'default' || (permission === 'granted' && !push));
               }}
             >
               Enable
             </Button>
           }
         >
-          Turn on alerts so you get a banner when someone texts.
+          Turn on alerts so this phone or computer shows a banner when someone texts.
         </Alert>
       ) : null}
       {error ? (
