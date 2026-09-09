@@ -1,6 +1,44 @@
 import currency from 'currency.js';
 import { idMapToList } from './utils.js';
-import { taxableSubtotalAfterDiscount, additiveTaxAmount, receiptGrandTotal } from './receiptTotals.js';
+import { receiptGrandTotal } from './receiptTotals.js';
+
+/**
+ * Split `amount` dollars across weighted ids so shares sum to the amount in cents.
+ * Remainder cents go to the largest fractional parts (stable by id).
+ */
+export function splitDollarsByWeight(amount, weightById) {
+  const ids = Object.keys(weightById || {}).filter((id) => (Number(weightById[id]) || 0) > 0);
+  const totalW = ids.reduce((s, id) => s + Number(weightById[id]), 0);
+  if (ids.length === 0 || !(totalW > 0)) return {};
+
+  const cents = Math.round(currency(amount).multiply(100).value);
+  const rows = ids.map((id) => {
+    const exact = (cents * Number(weightById[id])) / totalW;
+    const floor = Math.floor(exact);
+    return { id, floor, frac: exact - floor };
+  });
+  let leftover = cents - rows.reduce((s, r) => s + r.floor, 0);
+  const byFrac = [...rows].sort((a, b) => b.frac - a.frac || a.id.localeCompare(b.id));
+  const extra = new Set();
+  for (let i = 0; i < leftover; i += 1) extra.add(byFrac[i].id);
+
+  const out = {};
+  for (const r of rows) {
+    out[r.id] = (r.floor + (extra.has(r.id) ? 1 : 0)) / 100;
+  }
+  return out;
+}
+
+function itemShareWeight(receipt, personId, item) {
+  const qty = receipt.personToItemQuantityMap?.[personId]?.[item.id] || 0;
+  if (qty <= 0) return 0;
+  const totalShares = Object.values(receipt.itemToPersonQuantityMap?.[item.id] || {}).reduce(
+    (s, v) => s + (v || 0),
+    0,
+  );
+  if (totalShares <= 0) return 0;
+  return (Number(item.cost) || 0) * (qty / totalShares);
+}
 
 /**
  * Compute net balances across all receipts in a group.
@@ -9,6 +47,7 @@ import { taxableSubtotalAfterDiscount, additiveTaxAmount, receiptGrandTotal } fr
  * For each receipt:
  *   - The payer paid the full total
  *   - Each person's share is their proportional item cost + tax + tip
+ *   - Shares are allocated in integer cents so they sum to the receipt total
  *   - Net = sum of (what they paid) - (what they consumed)
  */
 export function computeNetBalances(group) {
@@ -31,38 +70,18 @@ export function computeNetBalances(group) {
       receipt.tipCost,
       tb,
     );
-    const taxableBase = taxableSubtotalAfterDiscount(subTotal, receipt.discountCost);
-    const taxAdditive = additiveTaxAmount(tb, receipt.taxCost);
 
     if (receipt.paidById && balances[receipt.paidById] !== undefined) {
       balances[receipt.paidById] = currency(balances[receipt.paidById]).add(total).value;
     }
 
+    const weights = {};
     people.forEach((person) => {
-      let personSub = 0;
-      items.forEach((item) => {
-        const qty = receipt.personToItemQuantityMap?.[person.id]?.[item.id] || 0;
-        if (qty <= 0) return;
-        const totalShares = Object.values(
-          receipt.itemToPersonQuantityMap?.[item.id] || {},
-        ).reduce((s, v) => s + (v || 0), 0);
-        if (totalShares <= 0) return;
-        personSub = currency(personSub).add(
-          currency(item.cost).multiply(qty).divide(totalShares),
-        ).value;
-      });
-
-      let personTotal = personSub;
-      if (subTotal > 0) {
-        const ratio = personSub / subTotal;
-        const afterDiscount = currency(personSub)
-          .multiply(taxableBase)
-          .divide(subTotal).value;
-        personTotal = currency(afterDiscount)
-          .add(currency(taxAdditive).multiply(ratio))
-          .add(currency(receipt.tipCost || 0).multiply(ratio)).value;
-      }
-
+      weights[person.id] = items.reduce((s, item) => s + itemShareWeight(receipt, person.id, item), 0);
+    });
+    const shares = splitDollarsByWeight(total, weights);
+    people.forEach((person) => {
+      const personTotal = shares[person.id] || 0;
       balances[person.id] = currency(balances[person.id] || 0).subtract(personTotal).value;
     });
   });
