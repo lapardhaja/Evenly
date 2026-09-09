@@ -370,6 +370,28 @@ export default function GroupSettleTab({ groupId, groupData }) {
     transfers.length > 0 &&
     transfers.every((t) => settledKeys.has(transferStorageKey(t)));
 
+  const canRequestAny = useMemo(() => {
+    if (!user?.id) return false;
+    return transfers.some((t) => {
+      const fromPerson = peopleMap[t.from];
+      const toPerson = peopleMap[t.to];
+      if (!fromPerson || !toPerson) return false;
+      const fromUid = fromPerson.linkedUserId;
+      const toUid = toPerson.linkedUserId;
+      const iAmParty = Boolean(
+        isSupabaseConfigured() &&
+          fromUid &&
+          toUid &&
+          (user.id === fromUid || user.id === toUid),
+      );
+      return settleRowActions({
+        iAmParty,
+        iAmDebtor: Boolean(fromUid && user.id === fromUid),
+        isSettled: settledKeys.has(transferStorageKey(t)),
+      }).request;
+    });
+  }, [transfers, peopleMap, user?.id, settledKeys]);
+
   if (people.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -503,7 +525,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         </Alert>
       ) : null}
 
-      {isSupabaseConfigured() ? (
+      {isSupabaseConfigured() && canRequestAny ? (
         <FormControlLabel
           sx={{ display: 'flex', mb: 1 }}
           control={
