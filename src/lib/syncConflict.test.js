@@ -5,6 +5,7 @@ import {
   planRemoteGroupRemovals,
   applyPersistResult,
   conflictSyncMessage,
+  shouldApplySkipReload,
 } from './syncConflict.js';
 
 describe('isStaleGroupWrite', () => {
@@ -27,6 +28,13 @@ describe('isStaleGroupWrite', () => {
     const t = '2026-09-08T12:00:00.000Z';
     assert.equal(isStaleGroupWrite(t, t), false);
     assert.equal(isStaleGroupWrite('2026-09-08T12:00:05.000Z', t), false);
+  });
+
+  it('is not stale when Z and +00:00 are the same instant', () => {
+    assert.equal(
+      isStaleGroupWrite('2026-09-08T12:00:00.000Z', '2026-09-08T12:00:00.000+00:00'),
+      false,
+    );
   });
 });
 
@@ -96,6 +104,23 @@ describe('applyPersistResult', () => {
     });
     assert.equal(next.gone, undefined);
     assert.equal(next.keep.name, 'still-mine');
+  });
+});
+
+describe('shouldApplySkipReload', () => {
+  it('applies the server copy only when persist gen is still current', () => {
+    assert.equal(
+      shouldApplySkipReload({ reloaded: true, persistGen: 3, currentGen: 3 }),
+      true,
+    );
+    assert.equal(
+      shouldApplySkipReload({ reloaded: true, persistGen: 3, currentGen: 4 }),
+      false,
+    );
+    assert.equal(
+      shouldApplySkipReload({ reloaded: false, persistGen: 3, currentGen: 3 }),
+      false,
+    );
   });
 });
 

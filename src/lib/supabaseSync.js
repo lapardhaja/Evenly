@@ -273,15 +273,19 @@ export async function persistNormalizedData(supabase, userId, data) {
       updated_at: nowIso,
     };
     if (membershipsByGroup.has(gid)) {
+      const lockTs = remoteUpdatedAt.get(gid) || g.updatedAt;
       let updateQuery = supabase.from('groups').update(groupPayload).eq('id', gid);
-      if (g.updatedAt) {
-        updateQuery = updateQuery.eq('updated_at', g.updatedAt);
+      if (lockTs) {
+        updateQuery = updateQuery.eq('updated_at', lockTs);
       }
-      const { data: updatedRows, error: ugErr } = await updateQuery.select('id');
+      const { data: updatedRows, error: ugErr } = await updateQuery.select('id, updated_at');
       if (ugErr) throw ugErr;
-      if (g.updatedAt && (!updatedRows || updatedRows.length === 0)) {
+      if (lockTs && (!updatedRows || updatedRows.length === 0)) {
         skippedIds.push(gid);
         continue;
+      }
+      if (updatedRows?.[0]?.updated_at) {
+        writtenAt[gid] = updatedRows[0].updated_at;
       }
     } else {
       const { error: ugErr } = await supabase.from('groups').insert({
@@ -413,7 +417,7 @@ export async function persistNormalizedData(supabase, userId, data) {
         if (insA) throw insA;
       }
     }
-    writtenAt[gid] = nowIso;
+    if (!writtenAt[gid]) writtenAt[gid] = nowIso;
   }
 
   return { skippedIds, writtenAt };

@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { loadNormalizedData, persistNormalizedData } from '../lib/supabaseSync.js';
-import { applyPersistResult, conflictSyncMessage } from '../lib/syncConflict.js';
+import { applyPersistResult, conflictSyncMessage, shouldApplySkipReload } from '../lib/syncConflict.js';
 import {
   readLegacyEvenlyData,
   writeLegacyEvenlyData,
@@ -68,6 +68,7 @@ export function GroupsDataProvider({ children }) {
   const persistGenRef = useRef(0);
   const persistTimer = useRef(null);
   const persistNowRef = useRef(() => Promise.resolve());
+  const persistChainRef = useRef(Promise.resolve());
 
   const writeCache = useCallback((uid, payload, meta) => {
     if (!uid) return;
@@ -93,19 +94,20 @@ export function GroupsDataProvider({ children }) {
   );
 
   const persistNow = useCallback(() => {
-    if (!useServerOnly || !dirtyRef.current) return Promise.resolve();
-    const uid = user?.id || lastUserIdRef.current || readLastCloudCacheUserId();
-    if (!uid) return Promise.resolve();
-    const payload = storedValueRef.current;
-    if (!shouldFlushCloudPersist({ data: payload, serverHydrated: serverHydratedRef.current })) {
-      return Promise.resolve();
-    }
-    writeCache(uid, payload, { pendingPersist: true });
-    const client = getSupabase();
-    if (!client) return Promise.resolve();
-    const gen = persistGenRef.current;
-    return persistNormalizedData(client, uid, payload)
-      .then(async (result) => {
+    const run = async () => {
+      if (!useServerOnly || !dirtyRef.current) return;
+      const uid = user?.id || lastUserIdRef.current || readLastCloudCacheUserId();
+      if (!uid) return;
+      const payload = storedValueRef.current;
+      if (!shouldFlushCloudPersist({ data: payload, serverHydrated: serverHydratedRef.current })) {
+        return;
+      }
+      writeCache(uid, payload, { pendingPersist: true });
+      const client = getSupabase();
+      if (!client) return;
+      const gen = persistGenRef.current;
+      try {
+        const result = await persistNormalizedData(client, uid, payload);
         const skippedIds = result?.skippedIds || [];
         const writtenAt = result?.writtenAt || {};
         let serverGroups = {};
@@ -118,12 +120,17 @@ export function GroupsDataProvider({ children }) {
             reloaded = false;
           }
         }
+        const applySkip = shouldApplySkipReload({
+          reloaded,
+          persistGen: gen,
+          currentGen: persistGenRef.current,
+        });
         const merged = {
           groups: applyPersistResult(storedValueRef.current.groups, {
-            skippedIds: reloaded ? skippedIds : [],
+            skippedIds: applySkip ? skippedIds : [],
             writtenAt,
             serverGroups,
-            dropMissingSkipped: reloaded,
+            dropMissingSkipped: applySkip,
           }),
         };
         storedValueRef.current = merged;
@@ -131,9 +138,12 @@ export function GroupsDataProvider({ children }) {
         const stillDirty = gen !== persistGenRef.current || (skippedIds.length > 0 && !reloaded);
         dirtyRef.current = stillDirty;
         writeCache(uid, merged, { pendingPersist: stillDirty });
-        setSyncError(conflictSyncMessage({ skippedIds, reloaded }));
-      })
-      .catch((err) => {
+        if (skippedIds.length > 0 && (applySkip || !reloaded)) {
+          setSyncError(conflictSyncMessage({ skippedIds, reloaded }));
+        } else {
+          setSyncError('');
+        }
+      } catch (err) {
         const partial = err?.persistPartial;
         if (partial && Object.keys(partial.writtenAt || {}).length > 0) {
           const merged = {
@@ -149,7 +159,14 @@ export function GroupsDataProvider({ children }) {
         console.error('Evenly cloud sync save failed:', err);
         setSyncError(errorMessage(err, 'Could not save to the cloud.'));
         throw err;
-      });
+      }
+    };
+    const queued = persistChainRef.current.then(run, run);
+    persistChainRef.current = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queued;
   }, [useServerOnly, user?.id, writeCache]);
   persistNowRef.current = persistNow;
 

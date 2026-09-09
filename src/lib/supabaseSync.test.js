@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { persistNormalizedData, removeStoredAttachments } from './supabaseSync.js';
 
-function groupsUpdateChain({ events, empty = false } = {}) {
+function groupsUpdateChain({ events, empty = false, eqs } = {}) {
   const chain = {
-    eq() {
+    eq(col, val) {
+      if (eqs) eqs.push([col, val]);
       return chain;
     },
     select: async () => ({
-      data: empty ? [] : [{ id: 'g1' }],
+      data: empty ? [] : [{ id: 'g1', updated_at: '2026-09-08T12:00:01.000+00:00' }],
       error: null,
     }),
   };
@@ -428,6 +429,72 @@ test('persistNormalizedData writes when local updatedAt matches server', async (
   assert.equal(typeof result.writtenAt.g1, 'string');
   assert.equal(events.includes('update:groups'), true);
   assert.equal(events.includes('listed-receipts'), true);
+});
+
+test('persistNormalizedData optimistic-locks with the fetched server updated_at string', async () => {
+  const eqs = [];
+  const supabase = {
+    from(table) {
+      const builder = {
+        select() {
+          return builder;
+        },
+        in() {
+          return builder;
+        },
+        eq(col, val) {
+          builder._eq = [col, val];
+          return builder;
+        },
+        then(resolve, reject) {
+          return Promise.resolve()
+            .then(() => {
+              if (table === 'group_members') {
+                return { data: [{ group_id: 'g1', role: 'owner' }], error: null };
+              }
+              if (table === 'groups') {
+                return { data: [{ id: 'g1', updated_at: '2026-09-08T12:00:00+00:00' }], error: null };
+              }
+              return { data: [], error: null };
+            })
+            .then(resolve, reject);
+        },
+        delete() {
+          return { eq: async () => ({ error: null }) };
+        },
+        update: groupsUpdateChain({ eqs }),
+        insert: async () => ({ error: null }),
+        upsert: async () => ({ error: null }),
+      };
+      return builder;
+    },
+    storage: {
+      from() {
+        return { remove: async () => ({ error: null }) };
+      },
+    },
+  };
+
+  const result = await persistNormalizedData(supabase, 'user-1', {
+    groups: {
+      g1: {
+        name: 'Current',
+        date: 1,
+        updatedAt: '2026-09-08T12:00:00.000Z',
+        displayCurrency: 'USD',
+        settledTransfers: [],
+        people: {},
+        receipts: {},
+      },
+    },
+  });
+
+  assert.deepEqual(result.skippedIds, []);
+  assert.equal(result.writtenAt.g1, '2026-09-08T12:00:01.000+00:00');
+  assert.deepEqual(eqs, [
+    ['id', 'g1'],
+    ['updated_at', '2026-09-08T12:00:00+00:00'],
+  ]);
 });
 
 test('persistNormalizedData skips when optimistic lock update matches 0 rows', async () => {
