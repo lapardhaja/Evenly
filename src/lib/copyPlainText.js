@@ -23,6 +23,25 @@ export async function copyPlainText(text, env = globalThis) {
   return false;
 }
 
+/** Copy from a visible input/textarea already on screen — hidden nodes often copy blank on iOS. */
+export function copyFromInputElement(el, env = globalThis) {
+  if (!el || typeof el.value !== 'string' || !el.value) return false;
+  const doc = env.document;
+  if (!doc || typeof doc.execCommand !== 'function') return false;
+  try {
+    el.focus?.();
+    el.select?.();
+    el.setSelectionRange?.(0, el.value.length);
+  } catch {
+    /* still try execCommand */
+  }
+  try {
+    return !!doc.execCommand('copy');
+  } catch {
+    return false;
+  }
+}
+
 function copyViaExecCommand(text, env) {
   const doc = env.document;
   if (!doc?.body || typeof doc.createElement !== 'function') return false;

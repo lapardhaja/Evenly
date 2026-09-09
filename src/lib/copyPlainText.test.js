@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { copyPlainText } from './copyPlainText.js';
+import { copyFromInputElement, copyPlainText } from './copyPlainText.js';
 
 function mockDom({ execOk = true, clipboard = null, hasDocument = true } = {}) {
   const removed = [];
@@ -101,4 +101,32 @@ test('copyPlainText returns false when both strategies fail', async () => {
     },
   });
   assert.equal(await copyPlainText('nope', env), false);
+});
+
+test('copyFromInputElement copies a visible field (iOS share link)', () => {
+  const focused = [];
+  const selected = [];
+  let range = null;
+  const { env } = mockDom({ execOk: true });
+  const input = {
+    value: 'https://evenly.example/#/share/abc',
+    focus() {
+      focused.push(true);
+    },
+    select() {
+      selected.push(true);
+    },
+    setSelectionRange(a, b) {
+      range = [a, b];
+    },
+  };
+  assert.equal(copyFromInputElement(input, env), true);
+  assert.equal(focused.length, 1);
+  assert.equal(selected.length, 1);
+  assert.deepEqual(range, [0, input.value.length]);
+});
+
+test('copyFromInputElement returns false without an input', () => {
+  const { env } = mockDom({ execOk: true });
+  assert.equal(copyFromInputElement(null, env), false);
 });
