@@ -21,7 +21,8 @@ import { clipMessageBody, MESSAGE_BODY_MAX, parsePaymentPayload } from '../lib/c
 import PaymentMessageCard from './PaymentMessageCard.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
-import { chatComposerBarSx, chatThreadRootSx } from '../lib/appShell.js';
+import { chatComposerBarSx, chatMessagesSx, chatThreadRootSx } from '../lib/appShell.js';
+import { scrollChatToBottom } from '../lib/chatScroll.js';
 
 function profileLabel(profile, fallback) {
   if (!profile) return fallback;
@@ -42,7 +43,7 @@ export default function ChatThread({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const bottomRef = useRef(null);
+  const listRef = useRef(null);
 
   const load = useCallback(async () => {
     if (!conversationId) return;
@@ -97,7 +98,7 @@ export default function ChatThread({
   }, [conversationId, onPaymentSettled]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollChatToBottom(listRef.current);
   }, [messages.length]);
 
   const names = useMemo(() => {
@@ -181,7 +182,7 @@ export default function ChatThread({
           {error}
         </Alert>
       ) : null}
-      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 0.5, py: 1 }}>
+      <Box ref={listRef} id="evenly-chat-scroller" sx={chatMessagesSx}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={28} />
@@ -247,7 +248,6 @@ export default function ChatThread({
             );
           })
         )}
-        <div ref={bottomRef} />
       </Box>
       <Box
         component="form"

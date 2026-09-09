@@ -4,14 +4,18 @@ import {
   appShellContentSx,
   appShellRootSx,
   chatComposerBarSx,
+  chatFillChildSx,
+  chatMessagesSx,
   chatThreadPageSx,
   chatThreadRootSx,
   isChatComposerRoute,
   isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
+  pullToRefreshFillSx,
   shouldShowAppLegalFooter,
   shouldUsePullToRefreshLayout,
 } from './appShell.js';
+import { scrollChatToBottom } from './chatScroll.js';
 
 test('groups and receipts routes keep pull-to-refresh enabled', () => {
   assert.equal(isPullToRefreshDisabledForRoute('/'), false);
@@ -66,13 +70,42 @@ test('legal footer is hidden on composer routes so the bar can sit on the layout
   assert.equal(shouldShowAppLegalFooter('/'), true);
 });
 
-test('chat thread page fills the shell content box instead of a 100dvh-88px guess', () => {
+test('chat thread page is a bounded flex column; only the message pane scrolls', () => {
   assert.equal(chatThreadPageSx.flex, 1);
-  assert.equal(chatThreadPageSx.height, '100%');
   assert.equal(chatThreadPageSx.minHeight, 0);
-  assert.equal(chatThreadPageSx.maxHeight, '100%');
-  assert.equal(Object.prototype.hasOwnProperty.call(chatThreadPageSx, 'minHeight') && chatThreadPageSx.minHeight !== 'calc(100dvh - 88px)', true);
+  assert.equal(chatThreadPageSx.overflow, 'hidden');
+  assert.equal(chatThreadPageSx.display, 'flex');
   assert.equal(chatThreadRootSx.flex, 1);
   assert.equal(chatThreadRootSx.minHeight, 0);
+  assert.equal(chatThreadRootSx.overflow, 'hidden');
+  assert.equal(chatMessagesSx.overflow, 'auto');
+  assert.equal(chatMessagesSx.minHeight, 0);
+  assert.equal(chatMessagesSx.flex, 1);
+  assert.equal(chatMessagesSx.overscrollBehaviorY, 'contain');
   assert.equal(chatComposerBarSx.flexShrink, 0);
+  assert.equal(chatFillChildSx.overflow, 'hidden');
+  assert.equal(chatFillChildSx.minHeight, 0);
+  assert.equal(pullToRefreshFillSx.overflow, 'hidden');
+  assert.equal(pullToRefreshFillSx.WebkitOverflowScrolling, undefined);
+});
+
+test('scrollChatToBottom moves the list, not the page via scrollIntoView', () => {
+  const el = {
+    scrollHeight: 800,
+    scrollTop: 0,
+    scrollIntoView() {
+      throw new Error('must not scrollIntoView — that scrolls the page');
+    },
+  };
+  scrollChatToBottom(el);
+  assert.equal(el.scrollTop, 800);
+  scrollChatToBottom(null);
+});
+
+test('html/body/#root lock document scroll so chat cannot pan the page', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../index.css'), 'utf8');
+  assert.match(css, /html,\s*body,\s*#root\s*\{[^}]*overflow:\s*hidden/s);
 });
