@@ -20,9 +20,9 @@ import ListItem from '@mui/material/ListItem';
 import Collapse from '@mui/material/Collapse';
 import Divider from '@mui/material/Divider';
 import ButtonBase from '@mui/material/ButtonBase';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
@@ -30,9 +30,13 @@ import currency from 'currency.js';
 import { nameToInitials } from '../functions/utils.js';
 import { appliedDiscountAmount, isTaxInclusive } from '../functions/receiptTotals.js';
 import { formatMoneyWithCode, normalizeCurrencyCode } from '../lib/currencies.js';
+import { shouldUseStackedItems } from '../lib/itemAssignLayout.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 import useAddItemModal from './components/UseAddItemModal.jsx';
+import ItemPersonAssign from './components/ItemPersonAssign.jsx';
+import ReceiptItemCards from './components/ReceiptItemCards.jsx';
+import ReceiptChargeSummary from './components/ReceiptChargeSummary.jsx';
 import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 import FabPortal from '../core/FabPortal.jsx';
 
@@ -57,6 +61,8 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
   } = receiptData;
 
   const theme = useTheme();
+  const isNarrow = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+  const stacked = shouldUseStackedItems(isNarrow);
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const { ask, confirmDialog } = useConfirmDialog();
   const { AddItemModal, showAddItemModal } = useAddItemModal({
@@ -75,8 +81,43 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
     ? ((currency(receipt.tipCost).value / currency(pctBase).value) * 100).toFixed(2)
     : '0.00';
 
+  const cardAssignProps = {
+    items,
+    people,
+    receipt,
+    getPersonCountForItem,
+    getItemQuantityForPerson,
+    setPersonItemQuantity,
+    assignAllPeopleToItem,
+    isEveryoneAssignedToItem,
+    updateReceiptItemValue,
+    removeItem,
+    showEditTextModal,
+    ask,
+  };
+
+  const chargeSummaryProps = {
+    receipt,
+    subTotal,
+    taxableBaseAfterDiscount,
+    total,
+    taxPct,
+    tipPct,
+    taxInclusive,
+    locked: !!receipt.locked,
+    updateChargeValue,
+    updateChargeValueByPct,
+    showEditTextModal,
+  };
+
   return (
     <Box>
+      {stacked ? (
+        <>
+          <ReceiptItemCards {...cardAssignProps} />
+          <ReceiptChargeSummary {...chargeSummaryProps} />
+        </>
+      ) : (
       <TableContainer
         component={Paper}
         variant="outlined"
@@ -244,73 +285,13 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
                       const personQty = getItemQuantityForPerson(person.id, item.id);
                       return (
                         <TableCell key={person.id} align="center">
-                          {item.quantity > 1 ? (
-                            <Box
-                              sx={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 0.25,
-                              }}
-                            >
-                              <IconButton
-                                size="small"
-                                disabled={personQty <= 0 || receipt.locked}
-                                onClick={() =>
-                                  setPersonItemQuantity(person.id, item.id, personQty - 1)
-                                }
-                                sx={{ p: 0.25 }}
-                              >
-                                <RemoveIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                              <Box
-                                sx={{
-                                  width: 22,
-                                  height: 22,
-                                  borderRadius: 0.5,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 700,
-                                  bgcolor: personQty > 0
-                                    ? 'primary.main'
-                                    : 'transparent',
-                                  color: personQty > 0
-                                    ? 'primary.contrastText'
-                                    : 'text.disabled',
-                                  border: personQty <= 0
-                                    ? '2px solid'
-                                    : 'none',
-                                  borderColor: 'divider',
-                                }}
-                              >
-                                {personQty > 0 ? personQty : ''}
-                              </Box>
-                              <IconButton
-                                size="small"
-                                disabled={isFull || receipt.locked}
-                                onClick={() =>
-                                  setPersonItemQuantity(person.id, item.id, personQty + 1)
-                                }
-                                sx={{ p: 0.25 }}
-                              >
-                                <AddIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                            </Box>
-                          ) : (
-                            <Checkbox
-                              checked={personQty > 0}
-                              onChange={(e) =>
-                                setPersonItemQuantity(
-                                  person.id,
-                                  item.id,
-                                  e.target.checked ? 1 : 0,
-                                )
-                              }
-                              disabled={receipt.locked}
-                              sx={{ p: 0, '& .MuiSvgIcon-root': { fontSize: 24 } }}
-                            />
-                          )}
+                          <ItemPersonAssign
+                            quantity={item.quantity}
+                            personQty={personQty}
+                            isFull={isFull}
+                            locked={receipt.locked}
+                            onSetQty={(qty) => setPersonItemQuantity(person.id, item.id, qty)}
+                          />
                         </TableCell>
                       );
                     })}
@@ -537,6 +518,7 @@ export default function ReceiptInfoItemsTab({ receiptData }) {
           </TableBody>
         </Table>
       </TableContainer>
+      )}
 
       {/* Per-person breakdown */}
       <Box sx={{ mt: 3 }}>
