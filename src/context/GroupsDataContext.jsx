@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { loadNormalizedData, persistNormalizedData } from '../lib/supabaseSync.js';
+import { applyPersistResult, conflictSyncMessage } from '../lib/syncConflict.js';
 import {
   readLegacyEvenlyData,
   writeLegacyEvenlyData,
@@ -104,12 +105,46 @@ export function GroupsDataProvider({ children }) {
     if (!client) return Promise.resolve();
     const gen = persistGenRef.current;
     return persistNormalizedData(client, uid, payload)
-      .then(() => {
-        if (gen === persistGenRef.current) dirtyRef.current = false;
-        writeCache(uid, storedValueRef.current, { pendingPersist: dirtyRef.current });
-        setSyncError('');
+      .then(async (result) => {
+        const skippedIds = result?.skippedIds || [];
+        const writtenAt = result?.writtenAt || {};
+        let serverGroups = {};
+        let reloaded = true;
+        if (skippedIds.length > 0) {
+          try {
+            const fresh = await loadNormalizedData(client, uid);
+            serverGroups = fresh?.groups || {};
+          } catch {
+            reloaded = false;
+          }
+        }
+        const merged = {
+          groups: applyPersistResult(storedValueRef.current.groups, {
+            skippedIds: reloaded ? skippedIds : [],
+            writtenAt,
+            serverGroups,
+          }),
+        };
+        storedValueRef.current = merged;
+        setStoredValue(merged);
+        const stillDirty = gen !== persistGenRef.current || (skippedIds.length > 0 && !reloaded);
+        dirtyRef.current = stillDirty;
+        writeCache(uid, merged, { pendingPersist: stillDirty });
+        setSyncError(conflictSyncMessage({ skippedIds, reloaded }));
       })
       .catch((err) => {
+        const partial = err?.persistPartial;
+        if (partial && Object.keys(partial.writtenAt || {}).length > 0) {
+          const merged = {
+            groups: applyPersistResult(storedValueRef.current.groups, {
+              writtenAt: partial.writtenAt,
+            }),
+          };
+          storedValueRef.current = merged;
+          setStoredValue(merged);
+          dirtyRef.current = true;
+          writeCache(uid, merged, { pendingPersist: true });
+        }
         console.error('Evenly cloud sync save failed:', err);
         setSyncError(errorMessage(err, 'Could not save to the cloud.'));
         throw err;
@@ -212,14 +247,33 @@ export function GroupsDataProvider({ children }) {
         }
 
         const local = storedValueRef.current;
+        let skippedIds = [];
         if (dirtyRef.current) {
           try {
-            await persistNormalizedData(client, user.id, local);
+            const result = await persistNormalizedData(client, user.id, local);
             if (cancelled) return;
-            dirtyRef.current = false;
-            writeCache(user.id, storedValueRef.current, { pendingPersist: false });
+            skippedIds = result?.skippedIds || [];
+            const writtenAt = result?.writtenAt || {};
+            if (Object.keys(writtenAt).length > 0) {
+              const stamped = {
+                groups: applyPersistResult(storedValueRef.current.groups, { writtenAt }),
+              };
+              storedValueRef.current = stamped;
+              setStoredValue(stamped);
+            }
           } catch (persistErr) {
             if (cancelled) return;
+            const partial = persistErr?.persistPartial;
+            if (partial && Object.keys(partial.writtenAt || {}).length > 0) {
+              const stamped = {
+                groups: applyPersistResult(storedValueRef.current.groups, {
+                  writtenAt: partial.writtenAt,
+                }),
+              };
+              storedValueRef.current = stamped;
+              setStoredValue(stamped);
+              writeCache(user.id, stamped, { pendingPersist: true });
+            }
             console.error('Evenly cloud sync save failed:', persistErr);
             setSyncError(errorMessage(persistErr, 'Could not save to the cloud.'));
             setDataReady(true);
@@ -237,7 +291,7 @@ export function GroupsDataProvider({ children }) {
         purgeEvenlyDataFromLocalStorage();
         serverHydratedRef.current = true;
         dirtyRef.current = false;
-        setSyncError('');
+        setSyncError(conflictSyncMessage({ skippedIds, reloaded: true }));
         setDataReady(true);
       } catch (e) {
         console.error('Evenly cloud sync load failed:', e);
@@ -317,12 +371,31 @@ export function GroupsDataProvider({ children }) {
     if (!client) return;
     try {
       const local = storedValueRef.current;
+      let skippedIds = [];
       if (dirtyRef.current) {
         try {
-          await persistNormalizedData(client, uid, local);
-          dirtyRef.current = false;
-          writeCache(uid, storedValueRef.current, { pendingPersist: false });
+          const result = await persistNormalizedData(client, uid, local);
+          skippedIds = result?.skippedIds || [];
+          const writtenAt = result?.writtenAt || {};
+          if (Object.keys(writtenAt).length > 0) {
+            const stamped = {
+              groups: applyPersistResult(storedValueRef.current.groups, { writtenAt }),
+            };
+            storedValueRef.current = stamped;
+            setStoredValue(stamped);
+          }
         } catch (persistErr) {
+          const partial = persistErr?.persistPartial;
+          if (partial && Object.keys(partial.writtenAt || {}).length > 0) {
+            const stamped = {
+              groups: applyPersistResult(storedValueRef.current.groups, {
+                writtenAt: partial.writtenAt,
+              }),
+            };
+            storedValueRef.current = stamped;
+            setStoredValue(stamped);
+            writeCache(uid, stamped, { pendingPersist: true });
+          }
           console.error('Evenly cloud sync save failed:', persistErr);
           setSyncError(errorMessage(persistErr, 'Could not save to the cloud.'));
           return;
@@ -336,7 +409,7 @@ export function GroupsDataProvider({ children }) {
       purgeEvenlyDataFromLocalStorage();
       serverHydratedRef.current = true;
       dirtyRef.current = false;
-      setSyncError('');
+      setSyncError(conflictSyncMessage({ skippedIds, reloaded: true }));
       setDataReady(true);
     } catch (e) {
       console.error('Evenly pull-to-refresh reload failed:', e);
