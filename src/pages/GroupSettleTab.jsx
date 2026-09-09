@@ -44,6 +44,7 @@ import {
 import { transferStorageKey, normalizeStoredSettledKeys } from '../lib/settledTransfersKey.js';
 import { venmoUsdAmount, venmoNoteForTransfer } from '../lib/chatPayment.js';
 import { isValidVenmoUsername, openVenmoPayment, venmoWebPayUrl } from '../lib/venmoLinks.js';
+import { copyPlainText } from '../lib/copyPlainText.js';
 
 export default function GroupSettleTab({ groupId, groupData }) {
   const {
@@ -293,8 +294,14 @@ export default function GroupSettleTab({ groupId, groupData }) {
   );
 
   const copyVenmoLink = useCallback(
-    (t, fromPerson, toPerson) => {
+    async (t, fromPerson, toPerson) => {
       const handle = profilesByUser[toPerson.linkedUserId]?.venmo_username;
+      if (!isValidVenmoUsername(handle)) {
+        setPaySnack(
+          `${toPerson.name} hasn’t added a Venmo username (Profile → Check in Venmo).`,
+        );
+        return;
+      }
       const usd = venmoUsdAmount(t.amount, settleCode, usdRates);
       const url = venmoWebPayUrl({
         username: handle,
@@ -306,19 +313,14 @@ export default function GroupSettleTab({ groupId, groupData }) {
         }),
       });
       if (!url) {
-        setPaySnack(
-          `${toPerson.name} hasn’t added a Venmo username (Profile → Check in Venmo).`,
-        );
+        setPaySnack('Couldn’t build a Venmo link for this amount.');
         return;
       }
-      const clip = typeof navigator !== 'undefined' ? navigator.clipboard : null;
-      if (!clip?.writeText) {
-        setPaySnack(url);
-        return;
-      }
-      clip.writeText(url).then(
-        () => setPaySnack('Venmo link copied. Open it on your phone if the app didn’t launch.'),
-        () => setPaySnack(url),
+      const ok = await copyPlainText(url);
+      setPaySnack(
+        ok
+          ? 'Venmo link copied. Paste it in Safari or Messages if the app didn’t open.'
+          : url,
       );
     },
     [profilesByUser, settleCode, usdRates, group?.name],

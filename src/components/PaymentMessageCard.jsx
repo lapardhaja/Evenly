@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -6,6 +7,7 @@ import Stack from '@mui/material/Stack';
 import { parsePaymentPayload, venmoNoteForTransfer } from '../lib/chatPayment.js';
 import { formatMoneyWithCode } from '../lib/currencies.js';
 import { isValidVenmoUsername, openVenmoPayment, venmoWebPayUrl } from '../lib/venmoLinks.js';
+import { copyPlainText } from '../lib/copyPlainText.js';
 
 export default function PaymentMessageCard({
   message,
@@ -17,6 +19,8 @@ export default function PaymentMessageCard({
   onCancel,
   busy = false,
 }) {
+  const [copied, setCopied] = useState(false);
+  const [copyHint, setCopyHint] = useState('');
   const payload = parsePaymentPayload(message?.payload);
   if (!payload) {
     return (
@@ -51,12 +55,14 @@ export default function PaymentMessageCard({
       amount: payload.amount,
       note: venmoNoteForTransfer({ groupName, fromName, toName }),
     });
-    if (!url) return;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      /* ignore */
+    if (!url) {
+      setCopied(false);
+      setCopyHint('No Venmo link — they still need a username on Profile.');
+      return;
     }
+    const ok = await copyPlainText(url);
+    setCopied(ok);
+    setCopyHint(ok ? 'Copied. Paste in Safari or Messages if Venmo didn’t open.' : url);
   };
 
   return (
@@ -94,11 +100,17 @@ export default function PaymentMessageCard({
                 Pay on Venmo
               </Button>
               <Button size="small" variant="text" onClick={handleCopyVenmo} disabled={busy}>
-                Copy Venmo link
+                {copied ? 'Copied' : 'Copy Venmo link'}
               </Button>
-              <Typography variant="caption" color="text.secondary">
-                Opens Venmo with the amount. Send it there, then tap I paid.
-              </Typography>
+              {copyHint ? (
+                <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+                  {copyHint}
+                </Typography>
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  Opens Venmo with the amount. Send it there, then tap I paid.
+                </Typography>
+              )}
             </>
           ) : isDebtor && !isValidVenmoUsername(payload.venmo_username) ? (
             <Typography variant="caption" color="text.secondary">
