@@ -2,6 +2,7 @@ import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
 import { clientsClaim } from 'workbox-core';
 import {
   applyChatOpenMessage,
+  applyShowNotificationMessage,
   chatNotificationClickUrl,
   parsePushEventData,
   shouldShowChatPush,
@@ -16,6 +17,18 @@ let chatOpenState = { openConversationId: '' };
 
 self.addEventListener('message', (event) => {
   chatOpenState = applyChatOpenMessage(chatOpenState, event.data);
+  const local = applyShowNotificationMessage(event.data);
+  if (local) {
+    const shown = self.registration.showNotification(local.title, {
+      silent: false,
+      renotify: true,
+      vibrate: [80, 40, 80],
+      icon: '/brand/pwa-192.png',
+      badge: '/brand/pwa-192.png',
+      ...local.options,
+    });
+    if (typeof event.waitUntil === 'function') event.waitUntil(shown);
+  }
 });
 
 self.addEventListener('push', (event) => {
@@ -48,6 +61,7 @@ async function handlePush(event) {
     badge: '/brand/pwa-192.png',
     silent: false,
     renotify: true,
+    vibrate: [80, 40, 80],
     data: { path: data.path, conversationId: data.conversationId },
   });
 }
