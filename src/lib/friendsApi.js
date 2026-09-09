@@ -3,6 +3,7 @@
  */
 
 import { getSupabase } from './supabaseClient.js';
+import { isValidVenmoUsername, normalizeVenmoUsername } from './venmoLinks.js';
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
 
@@ -87,7 +88,7 @@ export async function fetchMyProfile() {
   return data;
 }
 
-export async function upsertMyProfile({ username, displayName, firstName, lastName }) {
+export async function upsertMyProfile({ username, displayName, firstName, lastName, venmoUsername }) {
   const sb = getSupabase();
   if (!sb) throw new Error('Not configured');
   const {
@@ -105,18 +106,27 @@ export async function upsertMyProfile({ username, displayName, firstName, lastNa
     fromParts ||
     un;
   const email = user.email ? user.email.toLowerCase().trim() : null;
-  const { error } = await sb.from('profiles').upsert(
-    {
-      user_id: user.id,
-      username: un,
-      display_name: display,
-      first_name: fn,
-      last_name: ln,
-      email_lookup: email,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id' },
-  );
+  const row = {
+    user_id: user.id,
+    username: un,
+    display_name: display,
+    first_name: fn,
+    last_name: ln,
+    email_lookup: email,
+    updated_at: new Date().toISOString(),
+  };
+  if (venmoUsername !== undefined) {
+    let venmo = null;
+    if (typeof venmoUsername === 'string' && venmoUsername.trim()) {
+      const v = normalizeVenmoUsername(venmoUsername);
+      if (!isValidVenmoUsername(v)) {
+        throw new Error('Venmo username: 3–30 letters, numbers, underscores, or hyphens.');
+      }
+      venmo = v;
+    }
+    row.venmo_username = venmo;
+  }
+  const { error } = await sb.from('profiles').upsert(row, { onConflict: 'user_id' });
   if (error) throw error;
 }
 
@@ -257,7 +267,7 @@ export async function listFriends() {
   if (friendIds.length === 0) return [];
   const { data: profs, error: pErr } = await sb
     .from('profiles')
-    .select('user_id, username, display_name, first_name, last_name')
+    .select('user_id, username, display_name, first_name, last_name, venmo_username')
     .in('user_id', friendIds);
   if (pErr) throw pErr;
   return profs || [];
@@ -276,7 +286,7 @@ export async function getProfilesByIds(ids) {
   if (!sb) return [];
   const { data, error } = await sb
     .from('profiles')
-    .select('user_id, username, display_name, first_name, last_name')
+    .select('user_id, username, display_name, first_name, last_name, venmo_username')
     .in('user_id', ids);
   if (error) throw error;
   return data || [];

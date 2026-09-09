@@ -8,12 +8,14 @@ import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
+import { isValidVenmoUsername, normalizeVenmoUsername } from '../lib/venmoLinks.js';
 
 export default function ProfilePage() {
   const { user, refreshProfile } = useAuth();
   const [usernameEdit, setUsernameEdit] = useState('');
   const [firstNameEdit, setFirstNameEdit] = useState('');
   const [lastNameEdit, setLastNameEdit] = useState('');
+  const [venmoEdit, setVenmoEdit] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -34,6 +36,7 @@ export default function ProfilePage() {
       setUsernameEdit(un);
       setFirstNameEdit(p?.first_name || '');
       setLastNameEdit(p?.last_name || '');
+      setVenmoEdit(p?.venmo_username || '');
     } catch {
       setError('Couldn’t load your profile. Try again in a moment.');
     } finally {
@@ -97,6 +100,11 @@ export default function ProfilePage() {
       setError('Enter your first and last name.');
       return;
     }
+    const venmo = normalizeVenmoUsername(venmoEdit);
+    if (venmo && !isValidVenmoUsername(venmo)) {
+      setError('Venmo username: 3–30 letters, numbers, underscores, or hyphens.');
+      return;
+    }
     if (
       usernameStatus === 'taken' ||
       usernameStatus === 'checking' ||
@@ -119,6 +127,7 @@ export default function ProfilePage() {
         username: usernameEdit.trim(),
         firstName: fn,
         lastName: ln,
+        venmoUsername: venmo,
       });
       setMessage('Profile saved.');
       const p = (await refreshProfile()) || (await fetchMyProfile());
@@ -127,6 +136,7 @@ export default function ProfilePage() {
       setUsernameEdit(un);
       setFirstNameEdit(p?.first_name || '');
       setLastNameEdit(p?.last_name || '');
+      setVenmoEdit(p?.venmo_username || '');
     } catch (e) {
       setError(e?.message?.includes('duplicate') ? 'That username is taken.' : 'Couldn’t save profile.');
     } finally {
@@ -213,6 +223,15 @@ export default function ProfilePage() {
                 sx={{ flex: 1, minWidth: 140 }}
               />
             </Box>
+            <TextField
+              size="small"
+              label="Venmo username"
+              value={venmoEdit}
+              onChange={(e) => setVenmoEdit(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+              placeholder="your-venmo"
+              helperText="Friends pay you in Venmo with this handle. Evenly never sends money."
+              fullWidth
+            />
             <Box>
               <Button
                 variant="outlined"

@@ -41,7 +41,10 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 - `src/router.jsx` — `createHashRouter` route tree (nested under `Layout` via `<Outlet />`)
 - `src/core/Layout.jsx` — AppBar, theme (auto light/dark), footer, `<Outlet />` for child routes
 - `src/pages/GroupsPage.jsx` — Groups list (home)
-- `src/pages/GroupDetailPage.jsx` — People / Receipts / Settle tabs; open group → Receipts by default; new group from list → `/people` once then Receipts on revisit
+- `src/pages/GroupDetailPage.jsx` — People / Receipts / Settle / Chat tabs (Chat when Supabase is configured)
+- `src/pages/GroupSettleTab.jsx` — Net balances + minimized transfers; Venmo pay + chat payment request
+- `src/pages/ChatInboxPage.jsx` / `ChatThreadPage.jsx` — DMs + group rooms
+- `src/lib/chatApi.js` / `chatPayment.js` / `venmoLinks.js` — Chat RPC client, payment cards, Venmo URLs
 - `src/pages/GroupReceiptsTab.jsx` — Receipt list within a group
 - `src/pages/GroupPeopleTab.jsx` — People management (group level)
 - `src/pages/GroupSettleTab.jsx` — Net balances + minimized transfers

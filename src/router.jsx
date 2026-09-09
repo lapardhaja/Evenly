@@ -15,6 +15,8 @@ import PublicGroupSharePage from './pages/PublicGroupSharePage.jsx';
 import FriendsPage from './pages/FriendsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import ProfileSetupPage from './pages/ProfileSetupPage.jsx';
+import ChatInboxPage from './pages/ChatInboxPage.jsx';
+import ChatThreadPage from './pages/ChatThreadPage.jsx';
 
 export const router = createHashRouter([
   {
@@ -48,6 +50,22 @@ export const router = createHashRouter([
         element: (
           <RequireAuth>
             <FriendsPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'chat',
+        element: (
+          <RequireAuth>
+            <ChatInboxPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'chat/:conversationId',
+        element: (
+          <RequireAuth>
+            <ChatThreadPage />
           </RequireAuth>
         ),
       },

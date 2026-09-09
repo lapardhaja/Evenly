@@ -18,6 +18,11 @@ test('groups and receipts routes keep pull-to-refresh enabled', () => {
   assert.equal(isPullToRefreshDisabledForRoute('/terms'), true);
 });
 
+test('chat thread disables pull-to-refresh so the composer stays usable', () => {
+  assert.equal(isPullToRefreshDisabledForRoute('/chat'), false);
+  assert.equal(isPullToRefreshDisabledForRoute('/chat/abc'), true);
+});
+
 test('public legal and auth routes skip profile gate and bootstrap', () => {
   assert.equal(isPublicExemptRoute('/login'), true);
   assert.equal(isPublicExemptRoute('/privacy'), true);

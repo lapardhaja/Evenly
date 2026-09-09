@@ -17,12 +17,15 @@ import { useGroup, useGroups } from '../hooks/useGroupData.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { canDeleteGroup } from '../lib/groupMembership.js';
 import { leaveGroup } from '../lib/groupMembersApi.js';
-import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import GroupReceiptsTab from './GroupReceiptsTab.jsx';
 import GroupPeopleTab from './GroupPeopleTab.jsx';
 import GroupSettleTab from './GroupSettleTab.jsx';
+import GroupChatTab from './GroupChatTab.jsx';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
-const TABS = ['people', 'receipts', 'settle'];
+const TABS = isSupabaseConfigured()
+  ? ['people', 'receipts', 'settle', 'chat']
+  : ['people', 'receipts', 'settle'];
 
 export default function GroupDetailPage() {
   const { groupId, tab } = useParams();
@@ -145,6 +148,9 @@ export default function GroupDetailPage() {
       {currentTab === 0 && <GroupPeopleTab groupData={groupData} />}
       {currentTab === 1 && <GroupReceiptsTab groupId={groupId} groupData={groupData} />}
       {currentTab === 2 && <GroupSettleTab groupId={groupId} groupData={groupData} />}
+      {TABS[currentTab] === 'chat' && (
+        <GroupChatTab groupId={groupId} groupData={groupData} />
+      )}
 
       {EditTextModal}
       {confirmDialog}

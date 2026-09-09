@@ -20,7 +20,7 @@ export default function TermsOfServicePage() {
       <Typography variant="body1" paragraph>
         Evenly helps people split receipts: groups, people, items, who paid, and settlement
         transfers. You may use a local-only mode (data in the browser) or a cloud mode (Supabase
-        account, sync, friends, attachments, public group share) when the operator has configured
+        account, sync, friends, attachments, public group share, group chat, and Venmo pay links) when the operator has configured
         it. The app is provided as-is; availability and features can change.
       </Typography>
 
@@ -60,7 +60,7 @@ export default function TermsOfServicePage() {
         Acceptable use
       </Typography>
       <Typography variant="body1" paragraph>
-        Do not abuse the scan API, Storage, or Auth (spam, scraping at scale, malware, attempts
+        Do not abuse the scan API, Storage, Auth, or chat (spam, scraping at scale, malware, attempts
         to access other users’ groups). Do not try to bypass membership or share-link checks.
         The operator may suspend access that harms the service or other users.
       </Typography>
@@ -70,7 +70,9 @@ export default function TermsOfServicePage() {
       </Typography>
       <Typography variant="body1" paragraph>
         Settlement amounts are calculations for convenience. Evenly is not a payment processor
-        and does not move money. You are responsible for how you settle outside the app.
+        and does not move money. Pay on Venmo opens Venmo’s app or website; you complete the
+        payment there. “I paid” only updates Evenly’s records. You are responsible for how you
+        settle outside the app.
       </Typography>
 
       <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
