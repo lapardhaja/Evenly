@@ -23,7 +23,7 @@ import GroupSettleTab from './GroupSettleTab.jsx';
 import GroupChatTab from './GroupChatTab.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { requestChatNotificationPermission } from '../lib/chatAlerts.js';
-import { chatThreadPageSx } from '../lib/appShell.js';
+import { chatThreadPageSx, CHAT_CONTAINER_MAX_WIDTH } from '../lib/appShell.js';
 
 const TABS = isSupabaseConfigured()
   ? ['people', 'receipts', 'settle', 'chat']
@@ -93,7 +93,7 @@ export default function GroupDetailPage() {
 
   return (
     <Container
-      maxWidth="md"
+      maxWidth={TABS[currentTab] === 'chat' ? CHAT_CONTAINER_MAX_WIDTH : 'md'}
       sx={
         TABS[currentTab] === 'chat'
           ? { ...chatThreadPageSx, py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 3 } }

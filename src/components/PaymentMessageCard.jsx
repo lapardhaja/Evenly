@@ -69,8 +69,8 @@ export default function PaymentMessageCard({
   return (
     <Box
       sx={{
-        minWidth: 220,
-        maxWidth: 320,
+        minWidth: { xs: 220, md: 280 },
+        maxWidth: { xs: 320, md: 420, lg: 480 },
         p: 1.25,
         borderRadius: 2,
         border: '1px solid',

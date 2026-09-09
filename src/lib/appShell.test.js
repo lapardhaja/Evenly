@@ -8,6 +8,8 @@ import {
   chatMessagesSx,
   chatThreadPageSx,
   chatThreadRootSx,
+  CHAT_CONTAINER_MAX_WIDTH,
+  chatBubbleMaxWidthSx,
   isChatComposerRoute,
   isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
@@ -68,6 +70,12 @@ test('legal footer is hidden on composer routes so the bar can sit on the layout
   assert.equal(shouldShowAppLegalFooter('/groups/g1/chat'), false);
   assert.equal(shouldShowAppLegalFooter('/chat'), true);
   assert.equal(shouldShowAppLegalFooter('/'), true);
+});
+
+test('chat column uses a desktop-width container, not the phone sm cap', () => {
+  assert.equal(CHAT_CONTAINER_MAX_WIDTH, 'lg');
+  assert.notEqual(CHAT_CONTAINER_MAX_WIDTH, 'sm');
+  assert.deepEqual(chatBubbleMaxWidthSx.maxWidth, { xs: '85%', md: 560, lg: 640 });
 });
 
 test('chat thread page is a bounded flex column; only the message pane scrolls', () => {
@@ -134,6 +142,20 @@ test('pinChatToLatestAfterLayout retries after layout frames so open lands on th
   el._h = 1200;
   frames[1]();
   assert.equal(el.scrollTop, 1200);
+});
+
+test('chat pages use the desktop container maxWidth', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const dir = join(dirname(fileURLToPath(import.meta.url)), '../pages');
+  const thread = readFileSync(join(dir, 'ChatThreadPage.jsx'), 'utf8');
+  const inbox = readFileSync(join(dir, 'ChatInboxPage.jsx'), 'utf8');
+  const group = readFileSync(join(dir, 'GroupDetailPage.jsx'), 'utf8');
+  assert.match(thread, /CHAT_CONTAINER_MAX_WIDTH/);
+  assert.match(inbox, /CHAT_CONTAINER_MAX_WIDTH/);
+  assert.match(group, /CHAT_CONTAINER_MAX_WIDTH/);
+  assert.equal(thread.includes('maxWidth="sm"'), false);
 });
 
 test('html/body/#root lock document scroll so chat cannot pan the page', async () => {

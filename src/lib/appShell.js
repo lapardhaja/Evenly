@@ -76,6 +76,13 @@ export const chatThreadPageSx = {
   boxSizing: 'border-box',
 };
 
+/** Inbox + thread: fill the phone, use a wide column on desktop (MUI sm is 600px). */
+export const CHAT_CONTAINER_MAX_WIDTH = 'lg';
+
+export const chatBubbleMaxWidthSx = {
+  maxWidth: { xs: '85%', md: 560, lg: 640 },
+};
+
 export const chatThreadRootSx = {
   display: 'flex',
   flexDirection: 'column',
@@ -90,8 +97,8 @@ export const chatMessagesSx = {
   overflow: 'auto',
   overscrollBehaviorY: 'contain',
   WebkitOverflowScrolling: 'touch',
-  px: 0.5,
-  py: 1,
+  px: { xs: 0.5, md: 1.5 },
+  py: { xs: 1, md: 1.5 },
 };
 
 export const chatComposerBarSx = {
