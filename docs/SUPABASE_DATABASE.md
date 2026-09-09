@@ -24,7 +24,7 @@ npx supabase migration repair --status applied 20260210120000
 npx supabase db push
 ```
 
-Then let CI own new files (including `20260423120000_group_members`, `20260423130000_receipt_attachments`, `20260424120000_group_public_shares`, `20260909120000_chat_and_venmo`).
+Then let CI own new files (including `20260423120000_group_members`, `20260423130000_receipt_attachments`, `20260424120000_group_public_shares`, `20260909120000_chat_and_venmo`, `20260909140000_friend_requests_realtime`).
 
 **Dashboard alternative:** Supabase → Project → Integrations → GitHub → deploy migrations on push to `main` (same `supabase/migrations` folder; skip the Action if you use this).
 
@@ -38,7 +38,8 @@ Run `20260422120000_email_availability_and_sign_in_resolve.sql` for **`is_email_
 Run `20260423120000_group_members.sql` for **`group_members`**, membership-based RLS on group data, and **`add_friend_to_group(uuid, uuid)`** (invite a friend into a shared group).  
 Run `20260423130000_receipt_attachments.sql` for **`receipt_attachments`** (receipt file metadata) and the private **`receipt-attachments`** Storage bucket.  
 Run `20260424120000_group_public_shares.sql` for **`group_public_shares`** and no-login share RPCs (`create_public_group_share`, `revoke_public_group_share`, `get_public_group_share`, `get_public_share_attachment_url`).  
-Run `20260909120000_chat_and_venmo.sql` for **`conversations`**, **`conversation_members`**, **`messages`**, optional **`profiles.venmo_username`**, and chat RPCs (`get_or_create_dm`, `list_my_conversations`, `mark_payment_paid`, etc.). Evenly does not process Venmo payments — handles are for pay-link deep links only.
+Run `20260909120000_chat_and_venmo.sql` for **`conversations`**, **`conversation_members`**, **`messages`**, optional **`profiles.venmo_username`**, and chat RPCs (`get_or_create_dm`, `list_my_conversations`, `mark_payment_paid`, etc.). Evenly does not process Venmo payments — handles are for pay-link deep links only.  
+Run `20260909140000_friend_requests_realtime.sql` to add **`friend_requests`** to `supabase_realtime` (app-bar badge + snackbar).
 
 | Table | Purpose |
 |--------|--------|
