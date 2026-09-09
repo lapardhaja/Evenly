@@ -15,7 +15,7 @@ import {
   shouldShowAppLegalFooter,
   shouldUsePullToRefreshLayout,
 } from './appShell.js';
-import { scrollChatToBottom } from './chatScroll.js';
+import { scrollChatToBottom, isChatNearBottom, pinChatToLatestAfterLayout } from './chatScroll.js';
 
 test('groups and receipts routes keep pull-to-refresh enabled', () => {
   assert.equal(isPullToRefreshDisabledForRoute('/'), false);
@@ -100,6 +100,40 @@ test('scrollChatToBottom moves the list, not the page via scrollIntoView', () =>
   scrollChatToBottom(el);
   assert.equal(el.scrollTop, 800);
   scrollChatToBottom(null);
+});
+
+test('isChatNearBottom is true at the latest messages', () => {
+  assert.equal(
+    isChatNearBottom({ scrollHeight: 1000, scrollTop: 920, clientHeight: 80 }),
+    true,
+  );
+  assert.equal(
+    isChatNearBottom({ scrollHeight: 1000, scrollTop: 0, clientHeight: 80 }),
+    false,
+  );
+  assert.equal(isChatNearBottom(null), true);
+});
+
+test('pinChatToLatestAfterLayout retries after layout frames so open lands on the latest', () => {
+  const frames = [];
+  const el = {
+    _h: 200,
+    get scrollHeight() {
+      return this._h;
+    },
+    scrollTop: 0,
+  };
+  pinChatToLatestAfterLayout(el, (fn) => {
+    frames.push(fn);
+    return frames.length;
+  });
+  assert.equal(el.scrollTop, 200);
+  el._h = 900;
+  frames[0]();
+  assert.equal(el.scrollTop, 900);
+  el._h = 1200;
+  frames[1]();
+  assert.equal(el.scrollTop, 1200);
 });
 
 test('html/body/#root lock document scroll so chat cannot pan the page', async () => {
