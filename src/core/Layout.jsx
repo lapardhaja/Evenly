@@ -28,6 +28,7 @@ import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useProfileGate } from '../hooks/useProfileGate.js';
 import { countIncomingFriendRequests, notifyPullToRefresh } from '../lib/friendsApi.js';
 import { countUnreadConversations, subscribeToAllMessages } from '../lib/chatApi.js';
+import { visualViewportBottomGap } from '../lib/visualViewportBottom.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 import CookieNotice from '../components/CookieNotice.jsx';
@@ -36,6 +37,7 @@ import {
   APP_SHELL_HEIGHT,
   isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
+  shouldShowAppLegalFooter,
   shouldUsePullToRefreshLayout,
 } from '../lib/appShell.js';
 
@@ -133,6 +135,29 @@ export default function Layout() {
     }
   }, [resolvedMode]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => {
+      const vv = window.visualViewport;
+      const gap = visualViewportBottomGap({
+        innerHeight: window.innerHeight,
+        height: vv?.height ?? window.innerHeight,
+        offsetTop: vv?.offsetTop ?? 0,
+      });
+      root.style.setProperty('--evenly-vv-bottom', `${gap}px`);
+    };
+    sync();
+    window.visualViewport?.addEventListener('resize', sync);
+    window.visualViewport?.addEventListener('scroll', sync);
+    window.addEventListener('resize', sync);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', sync);
+      window.visualViewport?.removeEventListener('scroll', sync);
+      window.removeEventListener('resize', sync);
+      root.style.removeProperty('--evenly-vv-bottom');
+    };
+  }, []);
+
   const skipDataWait =
     location.pathname === '/friends' ||
     location.pathname === '/profile' ||
@@ -216,6 +241,7 @@ export default function Layout() {
 
   const pullToRefreshDisabledForRoute = isPullToRefreshDisabledForRoute(location.pathname);
   const usesPullToRefreshLayout = shouldUsePullToRefreshLayout(onLoginRoute);
+  const showAppLegalFooter = shouldShowAppLegalFooter(location.pathname);
 
   const handleRetrySync = useCallback(() => {
     reloadFromServer();
@@ -448,17 +474,25 @@ export default function Layout() {
             <PullToRefreshLayout
               onRefresh={handlePullRefresh}
               disabled={pullToRefreshDisabledForRoute}
+              fill={!showAppLegalFooter}
             >
               <Outlet />
-              <AppLegalFooter />
+              {showAppLegalFooter ? <AppLegalFooter /> : null}
             </PullToRefreshLayout>
           ) : (
             <Box
               id="evenly-main-scroll"
-              sx={{ flex: 1, minHeight: 0, overflow: 'auto', WebkitOverflowScrolling: 'touch' }}
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                overflow: showAppLegalFooter ? 'auto' : 'hidden',
+                display: showAppLegalFooter ? undefined : 'flex',
+                flexDirection: showAppLegalFooter ? undefined : 'column',
+                WebkitOverflowScrolling: 'touch',
+              }}
             >
               <Outlet />
-              <AppLegalFooter />
+              {showAppLegalFooter ? <AppLegalFooter /> : null}
             </Box>
           )}
         </Box>

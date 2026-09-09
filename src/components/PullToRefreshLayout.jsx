@@ -1,11 +1,18 @@
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
+import { pullToRefreshFillSx } from '../lib/appShell.js';
 
 /**
  * Scrollable region with pull-down-to-refresh (touch). Keeps user on the same route.
+ * `fill` — chat threads: lock the page to the content box so the composer docks to the bottom.
  */
-export default function PullToRefreshLayout({ onRefresh, disabled = false, children }) {
+export default function PullToRefreshLayout({
+  onRefresh,
+  disabled = false,
+  fill = false,
+  children,
+}) {
   const { containerRef, refreshing, pullPx, pullProgress } = usePullToRefresh({
     onRefresh,
     disabled,
@@ -18,14 +25,18 @@ export default function PullToRefreshLayout({ onRefresh, disabled = false, child
     <Box
       id="evenly-main-scroll"
       ref={containerRef}
-      sx={{
-        flex: 1,
-        minHeight: 0,
-        overflow: 'auto',
-        overscrollBehaviorY: 'contain',
-        WebkitOverflowScrolling: 'touch',
-        position: 'relative',
-      }}
+      sx={
+        fill
+          ? pullToRefreshFillSx
+          : {
+              flex: 1,
+              minHeight: 0,
+              overflow: 'auto',
+              overscrollBehaviorY: 'contain',
+              WebkitOverflowScrolling: 'touch',
+              position: 'relative',
+            }
+      }
     >
       {showBar ? (
         <Box
@@ -48,7 +59,11 @@ export default function PullToRefreshLayout({ onRefresh, disabled = false, child
           />
         </Box>
       ) : null}
-      {children}
+      {fill ? (
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{children}</Box>
+      ) : (
+        children
+      )}
     </Box>
   );
 }
