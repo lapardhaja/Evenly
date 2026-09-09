@@ -89,14 +89,6 @@ export default function ChatThreadPage() {
     return map;
   }, [meta, data.groups]);
 
-  if (!isSupabaseConfigured()) {
-    return (
-      <Container maxWidth="sm" sx={chatThreadPageSx}>
-        <Typography color="text.secondary">Chat needs a signed-in cloud account.</Typography>
-      </Container>
-    );
-  }
-
   return (
     <Container maxWidth="sm" sx={chatThreadPageSx}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexShrink: 0 }}>
