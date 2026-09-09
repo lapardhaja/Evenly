@@ -30,6 +30,20 @@ updateSW = registerSW({
   },
 });
 
+if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type !== 'evenly-navigate' || typeof event.data.url !== 'string') return;
+    try {
+      const parsed = new URL(event.data.url, window.location.origin);
+      if (parsed.origin === window.location.origin && parsed.hash) {
+        window.location.hash = parsed.hash;
+      }
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AppErrorBoundary>

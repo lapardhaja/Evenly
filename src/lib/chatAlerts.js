@@ -1,8 +1,4 @@
-/**
- * Incoming chat alerts (vibrate + OS notification).
- * iOS has no navigator.vibrate; a granted Notification is what rings / haptics
- * according to the phone’s ringer. Skip when that thread is already on screen.
- */
+import { syncChatPushSubscription, postOpenChatToServiceWorker } from './chatPushClient.js';
 
 export const EVENLY_CHAT_OPEN_EVENT = 'evenly-chat-open';
 
@@ -58,18 +54,28 @@ export function emitOpenChatConversation(conversationId, env = globalThis) {
   } catch {
     /* ignore */
   }
+  postOpenChatToServiceWorker(conversationId || '', env);
+}
+
+export async function enableChatNotifications(env = globalThis) {
+  const N = env.Notification;
+  if (!N) return 'unsupported';
+  let perm = N.permission;
+  if (perm === 'default' && typeof N.requestPermission === 'function') {
+    try {
+      perm = await N.requestPermission();
+    } catch {
+      return N.permission || 'denied';
+    }
+  }
+  if (perm === 'granted') {
+    await syncChatPushSubscription(env).catch(() => {});
+  }
+  return perm;
 }
 
 export function requestChatNotificationPermission(env = globalThis) {
-  const N = env.Notification;
-  if (!N || typeof N.requestPermission !== 'function') return;
-  if (N.permission !== 'default') return;
-  try {
-    const p = N.requestPermission();
-    if (p && typeof p.catch === 'function') p.catch(() => {});
-  } catch {
-    /* ignore */
-  }
+  void enableChatNotifications(env);
 }
 
 export async function alertIncomingChat(

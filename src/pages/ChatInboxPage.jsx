@@ -28,6 +28,7 @@ import {
 import { formatFullName } from '../lib/friendsApi.js';
 import { paymentPreviewText, parsePaymentPayload } from '../lib/chatPayment.js';
 import { nameToInitials } from '../functions/utils.js';
+import { enableChatNotifications } from '../lib/chatAlerts.js';
 
 function convoTitle(row) {
   if (row.kind === 'group') return row.group_name || 'Group';
@@ -54,6 +55,9 @@ export default function ChatInboxPage() {
   const [candidates, setCandidates] = useState([]);
   const [filter, setFilter] = useState('');
   const [pickerBusy, setPickerBusy] = useState(false);
+  const [notifyBanner, setNotifyBanner] = useState(
+    typeof Notification !== 'undefined' && Notification.permission === 'default',
+  );
 
   const load = useCallback(async () => {
     if (!isSupabaseConfigured()) {
@@ -132,6 +136,26 @@ export default function ChatInboxPage() {
           New message
         </Button>
       </Box>
+      {notifyBanner ? (
+        <Alert
+          severity="info"
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={async () => {
+                const perm = await enableChatNotifications();
+                setNotifyBanner(perm === 'default');
+              }}
+            >
+              Enable
+            </Button>
+          }
+        >
+          Turn on alerts so you get a banner when someone texts and Evenly isn’t open.
+        </Alert>
+      ) : null}
       {error ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}

@@ -5,6 +5,7 @@ import {
   parseIncomingChatMessage,
   shouldAlertIncomingChat,
   alertIncomingChat,
+  emitOpenChatConversation,
 } from './chatAlerts.js';
 
 test('parseIncomingChatMessage reads INSERT new row', () => {
@@ -31,6 +32,23 @@ test('parseIncomingChatMessage reads INSERT via event as well as eventType', () 
     new: { conversation_id: 'c1', sender_id: 'u2', body: 'hey', type: 'text' },
   });
   assert.equal(msg.conversationId, 'c1');
+});
+
+test('emitOpenChatConversation tells the service worker which thread is open', () => {
+  const posted = [];
+  emitOpenChatConversation('c9', {
+    dispatchEvent() {},
+    navigator: {
+      serviceWorker: {
+        controller: {
+          postMessage(payload) {
+            posted.push(payload);
+          },
+        },
+      },
+    },
+  });
+  assert.deepEqual(posted, [{ type: 'evenly-chat-open', conversationId: 'c9' }]);
 });
 
 test('parseIncomingChatMessage ignores UPDATE and missing rows', () => {
