@@ -5,6 +5,13 @@ export function applyChatOpenMessage(state, data) {
   return { ...state, openConversationId: data.conversationId || '' };
 }
 
+export function applyShowNotificationMessage(data) {
+  if (!data || data.type !== 'evenly-show-notification') return null;
+  const title = typeof data.title === 'string' && data.title.trim() ? data.title.trim() : 'Evenly';
+  const options = data.options && typeof data.options === 'object' ? data.options : {};
+  return { title, options };
+}
+
 export function shouldShowChatPush(state, { conversationId, windowClients } = {}) {
   const clients = windowClients || [];
   if (!clients.length) return true;

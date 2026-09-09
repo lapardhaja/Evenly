@@ -188,6 +188,7 @@ export default function Layout() {
   const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
   const [unreadChats, setUnreadChats] = useState(0);
   const [friendSnack, setFriendSnack] = useState('');
+  const [chatSnack, setChatSnack] = useState(null);
   const locationPathRef = useRef(location.pathname);
   locationPathRef.current = location.pathname;
   const openChatIdRef = useRef('');
@@ -293,6 +294,10 @@ export default function Layout() {
         body: incomingChatPreview(message),
         tag: message.conversationId,
       }).catch(() => {});
+      setChatSnack({
+        text: incomingChatPreview(message),
+        to: `/chat/${message.conversationId}`,
+      });
     });
     const id = window.setInterval(refreshUnreadChats, 90_000);
     return () => {
@@ -613,6 +618,27 @@ export default function Layout() {
               }}
             >
               View
+            </Button>
+          }
+          sx={{ mt: 7 }}
+        />
+        <Snackbar
+          open={Boolean(chatSnack)}
+          autoHideDuration={5000}
+          onClose={() => setChatSnack(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          message={chatSnack?.text || ''}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => {
+                const to = chatSnack?.to;
+                setChatSnack(null);
+                if (to) navigate(to);
+              }}
+            >
+              Open
             </Button>
           }
           sx={{ mt: 7 }}

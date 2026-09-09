@@ -1,6 +1,7 @@
 import {
   syncChatPushSubscription,
   postOpenChatToServiceWorker,
+  postShowNotificationToServiceWorker,
   resolveOrTimeout,
 } from './chatPushClient.js';
 
@@ -83,29 +84,63 @@ export function requestChatNotificationPermission(env = globalThis) {
   void enableChatNotifications(env);
 }
 
+export function incomingChatSnackText(message) {
+  return incomingChatPreview(message);
+}
+
+export function chatNotificationOptions({ body, tag } = {}) {
+  const path = tag && tag !== 'evenly-chat' ? `#/chat/${tag}` : '#/chat';
+  return {
+    body,
+    tag: tag || 'evenly-chat',
+    silent: false,
+    renotify: true,
+    vibrate: [80, 40, 80],
+    icon: '/brand/pwa-192.png',
+    badge: '/brand/pwa-192.png',
+    data: { path },
+  };
+}
+
+export function playIncomingChatChime(env = globalThis) {
+  try {
+    const AC = env.AudioContext || env.webkitAudioContext;
+    if (!AC) return;
+    const ctx = typeof AC === 'function' ? new AC() : null;
+    if (!ctx?.createOscillator || !ctx.createGain) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.2);
+  } catch {
+    /* autoplay / iOS mute */
+  }
+}
+
 export async function alertIncomingChat(
   { title = 'Evenly', body = 'New message', tag = 'evenly-chat' } = {},
   env = globalThis,
   { readyTimeoutMs = 2500 } = {},
 ) {
   try {
-    env.navigator?.vibrate?.([40, 60, 40]);
+    env.navigator?.vibrate?.([80, 40, 80]);
   } catch {
     /* iOS has no vibrate */
   }
+  playIncomingChatChime(env);
 
   const N = env.Notification;
   if (!N || N.permission !== 'granted') return;
 
-  const opts = {
-    body,
-    tag: tag || 'evenly-chat',
-    silent: false,
-    renotify: true,
-    icon: '/brand/pwa-192.png',
-    badge: '/brand/pwa-192.png',
-    data: { path: tag && tag !== 'evenly-chat' ? `#/chat/${tag}` : '#/chat' },
-  };
+  const opts = chatNotificationOptions({ body, tag });
+
+  if (postShowNotificationToServiceWorker(title, opts, env)) return;
 
   try {
     const ready = env.navigator?.serviceWorker?.ready;

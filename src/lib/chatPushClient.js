@@ -112,6 +112,21 @@ export async function notifyChatPush(messageId, env = globalThis) {
   });
 }
 
+export function postShowNotificationToServiceWorker(title, options, env = globalThis) {
+  const controller = env.navigator?.serviceWorker?.controller;
+  if (!controller || typeof controller.postMessage !== 'function') return false;
+  try {
+    controller.postMessage({
+      type: 'evenly-show-notification',
+      title,
+      options,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function postOpenChatToServiceWorker(conversationId, env = globalThis) {
   try {
     env.navigator?.serviceWorker?.controller?.postMessage?.({

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applyChatOpenMessage,
+  applyShowNotificationMessage,
   parsePushEventData,
   shouldShowChatPush,
   chatNotificationClickUrl,
@@ -13,6 +14,16 @@ test('applyChatOpenMessage stores the open thread', () => {
     conversationId: 'c1',
   });
   assert.equal(next.openConversationId, 'c1');
+});
+
+test('applyShowNotificationMessage reads title and options', () => {
+  const payload = applyShowNotificationMessage({
+    type: 'evenly-show-notification',
+    title: 'Evenly',
+    options: { body: 'hey', tag: 'c1' },
+  });
+  assert.deepEqual(payload, { title: 'Evenly', options: { body: 'hey', tag: 'c1' } });
+  assert.equal(applyShowNotificationMessage({ type: 'evenly-chat-open' }), null);
 });
 
 test('applyChatOpenMessage ignores other messages', () => {

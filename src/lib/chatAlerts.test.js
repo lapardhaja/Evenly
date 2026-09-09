@@ -117,6 +117,42 @@ test('incomingChatPreview clips body', () => {
   assert.equal(incomingChatPreview({ type: 'text', body: 'a'.repeat(90) }).length <= 80, true);
 });
 
+test('alertIncomingChat asks the service worker to show so a focused tab cannot swallow it', async () => {
+  const posted = [];
+  const created = [];
+  function FakeNotification(title, opts) {
+    created.push({ title, opts });
+  }
+  FakeNotification.permission = 'granted';
+  await alertIncomingChat(
+    { title: 'Evenly', body: 'hey', tag: 'c1' },
+    {
+      navigator: {
+        vibrate() {},
+        serviceWorker: {
+          controller: {
+            postMessage(payload) {
+              posted.push(payload);
+            },
+          },
+          ready: Promise.resolve({
+            showNotification: async () => {
+              throw new Error('page showNotification should not run when SW can');
+            },
+          }),
+        },
+      },
+      Notification: FakeNotification,
+    },
+  );
+  assert.equal(created.length, 0);
+  assert.equal(posted.length, 1);
+  assert.equal(posted[0].type, 'evenly-show-notification');
+  assert.equal(posted[0].title, 'Evenly');
+  assert.equal(posted[0].options.body, 'hey');
+  assert.deepEqual(posted[0].options.vibrate, [80, 40, 80]);
+});
+
 test('alertIncomingChat vibrates and posts a notification when allowed', async () => {
   const vibrated = [];
   const created = [];
@@ -131,7 +167,7 @@ test('alertIncomingChat vibrates and posts a notification when allowed', async (
       Notification: FakeNotification,
     },
   );
-  assert.deepEqual(vibrated[0], [40, 60, 40]);
+  assert.deepEqual(vibrated[0], [80, 40, 80]);
   assert.equal(created.length, 1);
   assert.equal(created[0].title, 'Evenly');
   assert.equal(created[0].opts.body, 'hey');
@@ -168,6 +204,7 @@ test('alertIncomingChat prefers serviceWorker showNotification (iOS PWA)', async
   assert.equal(shown[0].opts.body, 'hey');
   assert.equal(shown[0].opts.silent, false);
   assert.equal(shown[0].opts.renotify, true);
+  assert.deepEqual(shown[0].opts.vibrate, [80, 40, 80]);
 });
 
 test('alertIncomingChat falls back if serviceWorker.ready never resolves', async () => {
