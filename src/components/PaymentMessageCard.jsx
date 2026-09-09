@@ -8,6 +8,7 @@ import { parsePaymentPayload, venmoNoteForTransfer } from '../lib/chatPayment.js
 import { formatMoneyWithCode } from '../lib/currencies.js';
 import { isValidVenmoUsername, openVenmoPayment, venmoWebPayUrl } from '../lib/venmoLinks.js';
 import { copyPlainText } from '../lib/copyPlainText.js';
+import { paymentCardActions } from '../lib/settleRowActions.js';
 
 export default function PaymentMessageCard({
   message,
@@ -37,8 +38,8 @@ export default function PaymentMessageCard({
     (currentUserId === payload.from_user_id || currentUserId === payload.to_user_id);
   const isDebtor = currentUserId && currentUserId === payload.from_user_id;
   const isSender = currentUserId && currentUserId === message.sender_id;
-  const canVenmo =
-    status === 'requested' && isDebtor && isValidVenmoUsername(payload.venmo_username);
+  const cardActions = paymentCardActions({ isParty, isDebtor, status });
+  const canVenmo = cardActions.pay && isValidVenmoUsername(payload.venmo_username);
   const usdOnly = payload.currency === 'USD';
 
   const handleVenmo = () => {
@@ -122,9 +123,11 @@ export default function PaymentMessageCard({
               Venmo is USD. Confirm the amount in Venmo.
             </Typography>
           ) : null}
-          <Button size="small" variant="outlined" onClick={() => onMarkPaid?.(message)} disabled={busy}>
-            I paid
-          </Button>
+          {cardActions.markPaid ? (
+            <Button size="small" variant="outlined" onClick={() => onMarkPaid?.(message)} disabled={busy}>
+              I paid
+            </Button>
+          ) : null}
           {isSender ? (
             <Button
               size="small"

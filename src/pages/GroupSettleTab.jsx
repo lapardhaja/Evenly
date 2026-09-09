@@ -45,6 +45,7 @@ import { transferStorageKey, normalizeStoredSettledKeys } from '../lib/settledTr
 import { venmoUsdAmount, venmoNoteForTransfer } from '../lib/chatPayment.js';
 import { isValidVenmoUsername, openVenmoPayment, venmoWebPayUrl } from '../lib/venmoLinks.js';
 import { copyPlainText } from '../lib/copyPlainText.js';
+import { settleRowActions } from '../lib/settleRowActions.js';
 
 export default function GroupSettleTab({ groupId, groupData }) {
   const {
@@ -369,6 +370,28 @@ export default function GroupSettleTab({ groupId, groupData }) {
     transfers.length > 0 &&
     transfers.every((t) => settledKeys.has(transferStorageKey(t)));
 
+  const canRequestAny = useMemo(() => {
+    if (!user?.id) return false;
+    return transfers.some((t) => {
+      const fromPerson = peopleMap[t.from];
+      const toPerson = peopleMap[t.to];
+      if (!fromPerson || !toPerson) return false;
+      const fromUid = fromPerson.linkedUserId;
+      const toUid = toPerson.linkedUserId;
+      const iAmParty = Boolean(
+        isSupabaseConfigured() &&
+          fromUid &&
+          toUid &&
+          (user.id === fromUid || user.id === toUid),
+      );
+      return settleRowActions({
+        iAmParty,
+        iAmDebtor: Boolean(fromUid && user.id === fromUid),
+        isSettled: settledKeys.has(transferStorageKey(t)),
+      }).request;
+    });
+  }, [transfers, peopleMap, user?.id, settledKeys]);
+
   if (people.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -502,7 +525,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         </Alert>
       ) : null}
 
-      {isSupabaseConfigured() ? (
+      {isSupabaseConfigured() && canRequestAny ? (
         <FormControlLabel
           sx={{ display: 'flex', mb: 1 }}
           control={
@@ -564,6 +587,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
                 toUid &&
                 (user.id === fromUid || user.id === toUid);
               const iAmDebtor = Boolean(user?.id && fromUid && user.id === fromUid);
+              const rowActions = settleRowActions({ iAmParty, iAmDebtor, isSettled });
               const creditorVenmo = profilesByUser[toUid]?.venmo_username;
               const usdAmt = venmoUsdAmount(t.amount, settleCode, usdRates);
               const rowKey = transferStorageKey(t);
@@ -669,9 +693,9 @@ export default function GroupSettleTab({ groupId, groupData }) {
                         Couldn’t convert to USD for Venmo. Copy the amount and pay them in the app.
                       </Typography>
                     ) : null}
-                    {iAmParty && !isSettled ? (
+                    {rowActions.pay || rowActions.request ? (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {iAmDebtor ? (
+                        {rowActions.pay ? (
                           <>
                             <Button
                               size="small"
@@ -696,14 +720,16 @@ export default function GroupSettleTab({ groupId, groupData }) {
                             </Button>
                           </>
                         ) : null}
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => requestPayment(t, fromPerson, toPerson)}
-                          disabled={payBusy === rowKey}
-                        >
-                          Request
-                        </Button>
+                        {rowActions.request ? (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => requestPayment(t, fromPerson, toPerson)}
+                            disabled={payBusy === rowKey}
+                          >
+                            Request
+                          </Button>
+                        ) : null}
                       </Box>
                     ) : null}
                     </Box>
