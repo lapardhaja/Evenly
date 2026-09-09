@@ -3,10 +3,9 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import { parsePaymentPayload } from '../lib/chatPayment.js';
+import { parsePaymentPayload, venmoNoteForTransfer } from '../lib/chatPayment.js';
 import { formatMoneyWithCode } from '../lib/currencies.js';
-import { isValidVenmoUsername, openVenmoPayment } from '../lib/venmoLinks.js';
-import { venmoNoteForTransfer } from '../lib/chatPayment.js';
+import { isValidVenmoUsername, openVenmoPayment, venmoWebPayUrl } from '../lib/venmoLinks.js';
 
 export default function PaymentMessageCard({
   message,
@@ -39,12 +38,25 @@ export default function PaymentMessageCard({
   const usdOnly = payload.currency === 'USD';
 
   const handleVenmo = () => {
-    const amount = usdOnly ? payload.amount : payload.amount;
     openVenmoPayment({
       username: payload.venmo_username,
-      amount,
+      amount: payload.amount,
       note: venmoNoteForTransfer({ groupName, fromName, toName }),
     });
+  };
+
+  const handleCopyVenmo = async () => {
+    const url = venmoWebPayUrl({
+      username: payload.venmo_username,
+      amount: payload.amount,
+      note: venmoNoteForTransfer({ groupName, fromName, toName }),
+    });
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      /* ignore */
+    }
   };
 
   return (
@@ -77,9 +89,17 @@ export default function PaymentMessageCard({
       {status === 'requested' && isParty ? (
         <Stack spacing={0.75}>
           {canVenmo ? (
-            <Button size="small" variant="contained" onClick={handleVenmo} disabled={busy}>
-              Pay on Venmo
-            </Button>
+            <>
+              <Button size="small" variant="contained" onClick={handleVenmo} disabled={busy}>
+                Pay on Venmo
+              </Button>
+              <Button size="small" variant="text" onClick={handleCopyVenmo} disabled={busy}>
+                Copy Venmo link
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                Opens Venmo with the amount. Send it there, then tap I paid.
+              </Typography>
+            </>
           ) : isDebtor && !isValidVenmoUsername(payload.venmo_username) ? (
             <Typography variant="caption" color="text.secondary">
               {toName} hasn’t added a Venmo username. Copy {money} and pay them another way.

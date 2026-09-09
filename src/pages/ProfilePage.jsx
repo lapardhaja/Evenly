@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
-import { isValidVenmoUsername, normalizeVenmoUsername } from '../lib/venmoLinks.js';
+import { isValidVenmoUsername, normalizeVenmoUsername, openVenmoProfile } from '../lib/venmoLinks.js';
 
 export default function ProfilePage() {
   const { user, refreshProfile } = useAuth();
@@ -223,16 +223,36 @@ export default function ProfilePage() {
                 sx={{ flex: 1, minWidth: 140 }}
               />
             </Box>
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
+              Evenly can’t log into Venmo (they don’t offer that for split apps). Add your Venmo
+              username, tap <strong>Check in Venmo</strong> to confirm it’s you, then Save. On Settle, whoever
+              owes you taps Pay on Venmo — that opens Venmo with the amount. They send it there, then
+              tap I paid here.
+            </Alert>
             <TextField
               size="small"
               label="Venmo username"
               value={venmoEdit}
               onChange={(e) => setVenmoEdit(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
               placeholder="your-venmo"
-              helperText="Friends pay you in Venmo with this handle. Evenly never sends money."
+              helperText="Venmo app → Me → the name under your photo, without @. Not your Evenly username."
               fullWidth
             />
-            <Box>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outlined"
+                disabled={!isValidVenmoUsername(venmoEdit)}
+                onClick={() => {
+                  const url = openVenmoProfile(venmoEdit);
+                  if (!url) {
+                    setError('Enter a Venmo username first.');
+                    return;
+                  }
+                  setMessage('If that’s your Venmo profile, tap Save. If not, fix the username.');
+                }}
+              >
+                Check in Venmo
+              </Button>
               <Button
                 variant="outlined"
                 onClick={handleSaveProfile}
