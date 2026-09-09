@@ -54,8 +54,12 @@ import CookieNotice from '../components/CookieNotice.jsx';
 import { FAB_OVERLAY_ROOT_ID } from './FabPortal.jsx';
 import {
   APP_SHELL_HEIGHT,
+  appLegalFooterSx,
+  appShellFooterPinMainSx,
+  appShellFooterPinSx,
   isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
+  pullToRefreshScrollSx,
   shouldShowAppLegalFooter,
   shouldUsePullToRefreshLayout,
 } from '../lib/appShell.js';
@@ -89,20 +93,7 @@ const darkTheme = createTheme({
 /** In-flow legal strip — not shell chrome, so FABs can sit above Safari/Chrome toolbars. */
 function AppLegalFooter() {
   return (
-    <Box
-      component="footer"
-      sx={{
-        py: 2,
-        px: 2,
-        pb: {
-          xs: 'calc(88px + env(safe-area-inset-bottom, 0px) + var(--evenly-cookie-banner-offset, 0px))',
-          sm: 3,
-        },
-        textAlign: 'center',
-        borderTop: '1px solid',
-        borderColor: 'divider',
-      }}
-    >
+    <Box component="footer" sx={appLegalFooterSx}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, alignItems: 'center' }}>
         <Typography variant="caption" color="text.secondary">
           &copy; {new Date().getFullYear()} Evenly
@@ -125,6 +116,18 @@ function AppLegalFooter() {
           </Link>
         </Box>
       </Box>
+    </Box>
+  );
+}
+
+function AppMainColumn({ showFooter }) {
+  if (!showFooter) return <Outlet />;
+  return (
+    <Box sx={appShellFooterPinSx}>
+      <Box sx={appShellFooterPinMainSx}>
+        <Outlet />
+      </Box>
+      <AppLegalFooter />
     </Box>
   );
 }
@@ -589,23 +592,24 @@ export default function Layout() {
               disabled={pullToRefreshDisabledForRoute}
               fill={!showAppLegalFooter}
             >
-              <Outlet />
-              {showAppLegalFooter ? <AppLegalFooter /> : null}
+              <AppMainColumn showFooter={showAppLegalFooter} />
             </PullToRefreshLayout>
           ) : (
             <Box
               id="evenly-main-scroll"
-              sx={{
-                flex: 1,
-                minHeight: 0,
-                overflow: showAppLegalFooter ? 'auto' : 'hidden',
-                display: showAppLegalFooter ? undefined : 'flex',
-                flexDirection: showAppLegalFooter ? undefined : 'column',
-                WebkitOverflowScrolling: showAppLegalFooter ? 'touch' : undefined,
-              }}
+              sx={
+                showAppLegalFooter
+                  ? pullToRefreshScrollSx
+                  : {
+                      flex: 1,
+                      minHeight: 0,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }
+              }
             >
-              <Outlet />
-              {showAppLegalFooter ? <AppLegalFooter /> : null}
+              <AppMainColumn showFooter={showAppLegalFooter} />
             </Box>
           )}
         </Box>
