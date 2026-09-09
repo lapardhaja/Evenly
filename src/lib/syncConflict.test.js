@@ -82,6 +82,21 @@ describe('applyPersistResult', () => {
     });
     assert.equal(next.stale.name, 'old');
   });
+
+  it('drops a skipped group that a successful reload no longer returns', () => {
+    const local = {
+      gone: { name: 'revoked' },
+      keep: { name: 'still-mine' },
+    };
+    const next = applyPersistResult(local, {
+      skippedIds: ['gone'],
+      writtenAt: {},
+      serverGroups: { keep: { name: 'still-mine' } },
+      dropMissingSkipped: true,
+    });
+    assert.equal(next.gone, undefined);
+    assert.equal(next.keep.name, 'still-mine');
+  });
 });
 
 describe('conflictSyncMessage', () => {

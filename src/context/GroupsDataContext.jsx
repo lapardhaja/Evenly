@@ -123,6 +123,7 @@ export function GroupsDataProvider({ children }) {
             skippedIds: reloaded ? skippedIds : [],
             writtenAt,
             serverGroups,
+            dropMissingSkipped: reloaded,
           }),
         };
         storedValueRef.current = merged;

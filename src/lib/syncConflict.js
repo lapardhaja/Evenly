@@ -29,12 +29,21 @@ export function planRemoteGroupRemovals({ localIds, remoteMemberships }) {
 
 /**
  * After persist: drop skipped groups in favor of the server copy; stamp
- * updatedAt on groups we actually wrote.
+ * updatedAt on groups we actually wrote. When `dropMissingSkipped` is set
+ * (successful reload), skipped IDs absent from the server snapshot are
+ * removed locally (deleted group or lost membership).
  */
-export function applyPersistResult(localGroups, { skippedIds = [], writtenAt = {}, serverGroups = {} } = {}) {
+export function applyPersistResult(
+  localGroups,
+  { skippedIds = [], writtenAt = {}, serverGroups = {}, dropMissingSkipped = false } = {},
+) {
   const next = { ...(localGroups || {}) };
   for (const id of skippedIds) {
-    if (serverGroups[id]) next[id] = serverGroups[id];
+    if (serverGroups[id]) {
+      next[id] = serverGroups[id];
+    } else if (dropMissingSkipped) {
+      delete next[id];
+    }
   }
   for (const [id, iso] of Object.entries(writtenAt)) {
     if (next[id]) next[id] = { ...next[id], updatedAt: iso };
