@@ -5,7 +5,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
-import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Snackbar from '@mui/material/Snackbar';
 import LinkIcon from '@mui/icons-material/Link';
@@ -16,7 +15,7 @@ import {
   settlementShareAbsoluteUrl,
 } from '../lib/settlementShareLink.js';
 
-import { copyPlainText } from '../lib/copyPlainText.js';
+import { copyFromInputElement, copyPlainText } from '../lib/copyPlainText.js';
 
 export default function SettlementShareDialog({
   open,
@@ -63,10 +62,20 @@ export default function SettlementShareDialog({
       setSnack({ open: true, message: 'Couldn’t build the link. Try again.' });
       return;
     }
-    const ok = await copyPlainText(shareUrl);
+    const input = document.getElementById('evenly-settlement-share-url');
+    let ok = copyFromInputElement(input);
+    if (!ok) ok = await copyPlainText(shareUrl);
+    if (!ok) {
+      try {
+        input?.focus?.();
+        input?.select?.();
+      } catch {
+        /* ignore */
+      }
+    }
     setSnack({
       open: true,
-      message: ok ? 'Link copied.' : 'Couldn’t copy. Select the link and copy it.',
+      message: ok ? 'Link copied.' : 'Couldn’t copy. The link is selected — long-press and Copy.',
     });
   };
 
@@ -116,26 +125,26 @@ export default function SettlementShareDialog({
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
             Link
           </Typography>
-          <Box
-            role="region"
-            aria-label="Shareable link"
+          <TextField
+            id="evenly-settlement-share-url"
+            hiddenLabel
+            fullWidth
+            size="small"
+            value={shareUrl || ''}
+            multiline
+            maxRows={4}
+            onFocus={(e) => e.target.select()}
+            inputProps={{ readOnly: true, 'aria-label': 'Shareable link' }}
             sx={{
-              maxHeight: 100,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              p: 1.5,
-              borderRadius: 1,
-              bgcolor: 'action.hover',
-              border: '1px solid',
-              borderColor: 'divider',
-              fontSize: '0.8rem',
-              lineHeight: 1.45,
-              wordBreak: 'break-all',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+              '& .MuiInputBase-input': {
+                fontSize: '0.8rem',
+                lineHeight: 1.45,
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                WebkitUserSelect: 'all',
+                userSelect: 'all',
+              },
             }}
-          >
-            {shareUrl || '—'}
-          </Box>
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
           <Button onClick={onClose}>Close</Button>

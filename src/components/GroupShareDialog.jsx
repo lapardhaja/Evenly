@@ -11,6 +11,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Snackbar from '@mui/material/Snackbar';
 import Switch from '@mui/material/Switch';
 import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
 import LinkIcon from '@mui/icons-material/Link';
 import {
   createPublicGroupShare,
@@ -20,7 +21,7 @@ import {
 } from '../lib/publicGroupShare.js';
 import { useConfirmDialog } from './useConfirmDialog.jsx';
 import SettlementShareDialog from './SettlementShareDialog.jsx';
-import { copyPlainText } from '../lib/copyPlainText.js';
+import { copyFromInputElement, copyPlainText } from '../lib/copyPlainText.js';
 
 export default function GroupShareDialog({
   open,
@@ -90,10 +91,28 @@ export default function GroupShareDialog({
       setSnack({ open: true, message: 'Couldn’t build the link. Try again.' });
       return;
     }
-    const ok = await copyPlainText(url);
+    const input = document.getElementById(`evenly-share-url-${shareId}`);
+    let ok = copyFromInputElement(input);
+    if (!ok) ok = await copyPlainText(url);
+    if (!ok) {
+      try {
+        if (navigator.share) {
+          await navigator.share({ url, title: 'Evenly' });
+          return;
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+      try {
+        input?.focus?.();
+        input?.select?.();
+      } catch {
+        /* ignore */
+      }
+    }
     setSnack({
       open: true,
-      message: ok ? 'Link copied.' : 'Couldn’t copy. Select the link and copy it.',
+      message: ok ? 'Link copied.' : 'Couldn’t copy. The link is selected — long-press and Copy.',
     });
   };
 
@@ -162,28 +181,28 @@ export default function GroupShareDialog({
                   <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                     {row.include_attachments ? 'Link (receipts + attachments)' : 'Link (receipts only)'}
                   </Typography>
-                  <Box
-                    role="region"
-                    aria-label="Shareable link"
+                  <TextField
+                    id={`evenly-share-url-${row.id}`}
+                    hiddenLabel
+                    fullWidth
+                    size="small"
+                    value={url || ''}
+                    multiline
+                    maxRows={4}
+                    onFocus={(e) => e.target.select()}
+                    inputProps={{ readOnly: true, 'aria-label': 'Shareable link' }}
                     sx={{
-                      maxHeight: 100,
-                      overflowY: 'auto',
-                      overflowX: 'hidden',
-                      p: 1.5,
                       mb: 1,
-                      borderRadius: 1,
-                      bgcolor: 'action.hover',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      fontSize: '0.8rem',
-                      lineHeight: 1.45,
-                      wordBreak: 'break-all',
-                      fontFamily:
-                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      '& .MuiInputBase-input': {
+                        fontSize: '0.8rem',
+                        lineHeight: 1.45,
+                        fontFamily:
+                          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                        WebkitUserSelect: 'all',
+                        userSelect: 'all',
+                      },
                     }}
-                  >
-                    {url || '—'}
-                  </Box>
+                  />
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     <Button
                       size="small"
