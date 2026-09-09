@@ -146,15 +146,15 @@ export default function ChatInboxPage() {
               color="inherit"
               size="small"
               onClick={async () => {
-                const perm = await enableChatNotifications();
-                setNotifyBanner(perm === 'default');
+                const { permission } = await enableChatNotifications();
+                setNotifyBanner(permission === 'default');
               }}
             >
               Enable
             </Button>
           }
         >
-          Turn on alerts so you get a banner when someone texts and Evenly isn’t open.
+          Turn on alerts so you get a banner when someone texts.
         </Alert>
       ) : null}
       {error ? (

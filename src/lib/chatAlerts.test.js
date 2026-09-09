@@ -6,6 +6,7 @@ import {
   shouldAlertIncomingChat,
   alertIncomingChat,
   emitOpenChatConversation,
+  enableChatNotifications,
 } from './chatAlerts.js';
 
 test('parseIncomingChatMessage reads INSERT new row', () => {
@@ -167,6 +168,39 @@ test('alertIncomingChat prefers serviceWorker showNotification (iOS PWA)', async
   assert.equal(shown[0].opts.body, 'hey');
   assert.equal(shown[0].opts.silent, false);
   assert.equal(shown[0].opts.renotify, true);
+});
+
+test('alertIncomingChat falls back if serviceWorker.ready never resolves', async () => {
+  const created = [];
+  function FakeNotification(title, opts) {
+    created.push({ title, opts });
+  }
+  FakeNotification.permission = 'granted';
+  await alertIncomingChat(
+    { title: 'Evenly', body: 'hey', tag: 'c1' },
+    {
+      navigator: {
+        vibrate() {},
+        serviceWorker: { ready: new Promise(() => {}) },
+      },
+      Notification: FakeNotification,
+    },
+    { readyTimeoutMs: 20 },
+  );
+  assert.equal(created.length, 1);
+  assert.equal(created[0].title, 'Evenly');
+});
+
+test('enableChatNotifications returns push:false when subscribe cannot run', async () => {
+  function FakeNotification() {}
+  FakeNotification.permission = 'granted';
+  FakeNotification.requestPermission = async () => 'granted';
+  const result = await enableChatNotifications({
+    Notification: FakeNotification,
+    navigator: {},
+  });
+  assert.equal(result.permission, 'granted');
+  assert.equal(result.push, false);
 });
 
 test('alertIncomingChat still vibrates when notification permission is denied', async () => {

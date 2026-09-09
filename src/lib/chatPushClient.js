@@ -21,16 +21,40 @@ export function subscriptionToRow(userId, json) {
   };
 }
 
+/** Must be `import.meta.env.VITE_*` (no `?.`) or Vite leaves an empty object in the client bundle. */
 function vapidPublicKey() {
-  return String(
-    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_VAPID_PUBLIC_KEY) || '',
-  ).trim();
+  try {
+    return String(import.meta.env.VITE_VAPID_PUBLIC_KEY || '').trim();
+  } catch {
+    return '';
+  }
 }
 
 function scanOrigin() {
-  return String(
-    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SCAN_RECEIPT_URL) || '',
-  ).replace(/\/$/, '');
+  try {
+    return String(import.meta.env.VITE_SCAN_RECEIPT_URL || '').replace(/\/$/, '');
+  } catch {
+    return '';
+  }
+}
+
+/** Don’t hang Enable / in-tab banners if `serviceWorker.ready` never settles. */
+export function resolveOrTimeout(promise, ms, fallback = null) {
+  if (!promise || typeof promise.then !== 'function') return Promise.resolve(fallback);
+  if (ms == null || ms < 0) return promise;
+  return new Promise((resolve) => {
+    const id = setTimeout(() => resolve(fallback), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(id);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(id);
+        resolve(fallback);
+      },
+    );
+  });
 }
 
 async function supabaseClient() {
@@ -51,7 +75,8 @@ export async function syncChatPushSubscription(env = globalThis) {
 
   const ready = env.navigator?.serviceWorker?.ready;
   if (!ready || typeof ready.then !== 'function') return false;
-  const reg = await ready;
+  const timeoutMs = Number.isFinite(env.chatPushReadyTimeoutMs) ? env.chatPushReadyTimeoutMs : 4000;
+  const reg = await resolveOrTimeout(ready, timeoutMs, null);
   if (!reg?.pushManager?.subscribe) return false;
 
   let sub = await reg.pushManager.getSubscription();

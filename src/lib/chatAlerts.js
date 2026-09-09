@@ -1,4 +1,8 @@
-import { syncChatPushSubscription, postOpenChatToServiceWorker } from './chatPushClient.js';
+import {
+  syncChatPushSubscription,
+  postOpenChatToServiceWorker,
+  resolveOrTimeout,
+} from './chatPushClient.js';
 
 export const EVENLY_CHAT_OPEN_EVENT = 'evenly-chat-open';
 
@@ -59,19 +63,20 @@ export function emitOpenChatConversation(conversationId, env = globalThis) {
 
 export async function enableChatNotifications(env = globalThis) {
   const N = env.Notification;
-  if (!N) return 'unsupported';
+  if (!N) return { permission: 'unsupported', push: false };
   let perm = N.permission;
   if (perm === 'default' && typeof N.requestPermission === 'function') {
     try {
       perm = await N.requestPermission();
     } catch {
-      return N.permission || 'denied';
+      perm = N.permission || 'denied';
     }
   }
+  let push = false;
   if (perm === 'granted') {
-    await syncChatPushSubscription(env).catch(() => {});
+    push = Boolean(await syncChatPushSubscription(env).catch(() => false));
   }
-  return perm;
+  return { permission: perm, push };
 }
 
 export function requestChatNotificationPermission(env = globalThis) {
@@ -81,6 +86,7 @@ export function requestChatNotificationPermission(env = globalThis) {
 export async function alertIncomingChat(
   { title = 'Evenly', body = 'New message', tag = 'evenly-chat' } = {},
   env = globalThis,
+  { readyTimeoutMs = 2500 } = {},
 ) {
   try {
     env.navigator?.vibrate?.([40, 60, 40]);
@@ -103,12 +109,10 @@ export async function alertIncomingChat(
 
   try {
     const ready = env.navigator?.serviceWorker?.ready;
-    if (ready && typeof ready.then === 'function') {
-      const reg = await ready;
-      if (typeof reg?.showNotification === 'function') {
-        await reg.showNotification(title, opts);
-        return;
-      }
+    const reg = await resolveOrTimeout(ready, readyTimeoutMs, null);
+    if (typeof reg?.showNotification === 'function') {
+      await reg.showNotification(title, opts);
+      return;
     }
   } catch {
     /* fall through to Notification constructor */
