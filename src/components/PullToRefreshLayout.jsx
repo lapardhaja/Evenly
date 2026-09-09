@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js';
-import { pullToRefreshFillSx } from '../lib/appShell.js';
+import { chatFillChildSx, pullToRefreshFillSx } from '../lib/appShell.js';
 
 /**
  * Scrollable region with pull-down-to-refresh (touch). Keeps user on the same route.
@@ -59,11 +59,7 @@ export default function PullToRefreshLayout({
           />
         </Box>
       ) : null}
-      {fill ? (
-        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{children}</Box>
-      ) : (
-        children
-      )}
+      {fill ? <Box sx={chatFillChildSx}>{children}</Box> : children}
     </Box>
   );
 }

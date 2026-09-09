@@ -4,21 +4,24 @@
   box-sizing: border-box;
 }
 
-html {
+html,
+body,
+#root {
   height: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html {
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  height: 100%;
   margin: 0;
   font-family: 'Roboto', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-#root {
-  height: 100%;
 }
 
 button,

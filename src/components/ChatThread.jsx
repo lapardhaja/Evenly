@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
@@ -21,7 +21,8 @@ import { clipMessageBody, MESSAGE_BODY_MAX, parsePaymentPayload } from '../lib/c
 import PaymentMessageCard from './PaymentMessageCard.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
-import { chatComposerBarSx, chatThreadRootSx } from '../lib/appShell.js';
+import { chatComposerBarSx, chatMessagesSx, chatThreadRootSx } from '../lib/appShell.js';
+import { isChatNearBottom, pinChatToLatestAfterLayout } from '../lib/chatScroll.js';
 
 function profileLabel(profile, fallback) {
   if (!profile) return fallback;
@@ -42,7 +43,9 @@ export default function ChatThread({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const bottomRef = useRef(null);
+  const listRef = useRef(null);
+  const nearBottomRef = useRef(true);
+  const pinnedForConversationRef = useRef(null);
 
   const load = useCallback(async () => {
     if (!conversationId) return;
@@ -76,6 +79,9 @@ export default function ChatThread({
 
   useEffect(() => {
     setLoading(true);
+    setMessages([]);
+    nearBottomRef.current = true;
+    pinnedForConversationRef.current = null;
     load();
   }, [load]);
 
@@ -96,9 +102,23 @@ export default function ChatThread({
     });
   }, [conversationId, onPaymentSettled]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  const lastMessageId = messages.length ? messages[messages.length - 1].id : '';
+
+  useLayoutEffect(() => {
+    if (loading) return undefined;
+    const el = listRef.current;
+    if (!el) return undefined;
+    const opening = pinnedForConversationRef.current !== conversationId;
+    const last = messages[messages.length - 1];
+    const mine = last?.sender_id === user?.id;
+    if (!opening && !mine && !nearBottomRef.current && !isChatNearBottom(el)) {
+      return undefined;
+    }
+    const cancel = pinChatToLatestAfterLayout(el);
+    pinnedForConversationRef.current = conversationId;
+    nearBottomRef.current = true;
+    return cancel;
+  }, [loading, conversationId, lastMessageId, user?.id]);
 
   const names = useMemo(() => {
     const map = { ...nameByUserId };
@@ -181,7 +201,14 @@ export default function ChatThread({
           {error}
         </Alert>
       ) : null}
-      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 0.5, py: 1 }}>
+      <Box
+        ref={listRef}
+        id="evenly-chat-scroller"
+        onScroll={() => {
+          nearBottomRef.current = isChatNearBottom(listRef.current);
+        }}
+        sx={chatMessagesSx}
+      >
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={28} />
@@ -247,7 +274,6 @@ export default function ChatThread({
             );
           })
         )}
-        <div ref={bottomRef} />
       </Box>
       <Box
         component="form"

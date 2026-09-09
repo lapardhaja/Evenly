@@ -54,15 +54,25 @@ export function shouldShowAppLegalFooter(pathname) {
   return !isChatComposerRoute(pathname);
 }
 
-/** Fill the shell content box (AppBar already subtracted). Do not use 100dvh − N. */
+/** Inner wrapper under `#evenly-main-scroll` on composer routes — must not become a scroller. */
+export const chatFillChildSx = {
+  flex: 1,
+  minHeight: 0,
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
+};
+
+/** Fill the shell content box. Flex-only — height 100% fails when the parent is a flex item. */
 export const chatThreadPageSx = {
   py: 1,
   display: 'flex',
   flexDirection: 'column',
   flex: 1,
   minHeight: 0,
-  height: '100%',
-  maxHeight: '100%',
+  overflow: 'hidden',
+  width: '100%',
   boxSizing: 'border-box',
 };
 
@@ -71,7 +81,17 @@ export const chatThreadRootSx = {
   flexDirection: 'column',
   flex: 1,
   minHeight: 0,
-  height: '100%',
+  overflow: 'hidden',
+};
+
+export const chatMessagesSx = {
+  flex: 1,
+  minHeight: 0,
+  overflow: 'auto',
+  overscrollBehaviorY: 'contain',
+  WebkitOverflowScrolling: 'touch',
+  px: 0.5,
+  py: 1,
 };
 
 export const chatComposerBarSx = {
@@ -89,7 +109,6 @@ export const pullToRefreshFillSx = {
   overflow: 'hidden',
   display: 'flex',
   flexDirection: 'column',
-  overscrollBehaviorY: 'contain',
-  WebkitOverflowScrolling: 'touch',
+  overscrollBehaviorY: 'none',
   position: 'relative',
 };

@@ -539,7 +539,7 @@ export default function Layout() {
                 overflow: showAppLegalFooter ? 'auto' : 'hidden',
                 display: showAppLegalFooter ? undefined : 'flex',
                 flexDirection: showAppLegalFooter ? undefined : 'column',
-                WebkitOverflowScrolling: 'touch',
+                WebkitOverflowScrolling: showAppLegalFooter ? 'touch' : undefined,
               }}
             >
               <Outlet />
