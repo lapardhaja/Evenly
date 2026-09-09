@@ -9,7 +9,7 @@ import Alert from '@mui/material/Alert';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
 import { isValidVenmoUsername, normalizeVenmoUsername, openVenmoProfile } from '../lib/venmoLinks.js';
-import { enableChatNotifications } from '../lib/chatAlerts.js';
+import { chatAlertsEnableHint, enableChatNotifications } from '../lib/chatAlerts.js';
 
 export default function ProfilePage() {
   const { user, refreshProfile } = useAuth();
@@ -244,23 +244,14 @@ export default function ProfilePage() {
               <Button
                 variant="outlined"
                 onClick={async () => {
-                  const { permission, push } = await enableChatNotifications();
-                  if (permission === 'granted' && push) {
-                    setNotifyHint('Message alerts on. Leave Evenly and you’ll still get a banner.');
-                    setError('');
-                  } else if (permission === 'granted') {
-                    setNotifyHint(
-                      'Alerts on while Evenly is open. Closed-app banners need Web Push keys on the server.',
-                    );
-                    setError('');
-                  } else if (permission === 'denied') {
-                    setError('Alerts are blocked. Enable notifications for Evenly in iOS Settings.');
-                    setNotifyHint('');
-                  } else if (permission === 'unsupported') {
-                    setError('This browser can’t show notifications.');
+                  const result = await enableChatNotifications();
+                  const hint = chatAlertsEnableHint(result);
+                  if (result.permission === 'denied' || result.permission === 'unsupported') {
+                    setError(hint);
                     setNotifyHint('');
                   } else {
-                    setNotifyHint('On iPhone, add Evenly to the Home Screen first, then tap this again.');
+                    setNotifyHint(hint);
+                    setError('');
                   }
                 }}
               >
@@ -303,7 +294,8 @@ export default function ProfilePage() {
               </Typography>
             ) : (
               <Typography variant="caption" color="text.secondary">
-                iPhone: Add to Home Screen, then Enable message alerts. Safari tabs can’t push.
+                iPhone: Share → Add to Home Screen, open from the icon, then Enable. A Safari tab
+                cannot send lock-screen banners.
               </Typography>
             )}
           </Box>

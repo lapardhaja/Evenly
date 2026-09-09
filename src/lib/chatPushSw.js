@@ -62,3 +62,10 @@ export function chatNotificationClickUrl(origin, path) {
   const hash = raw.startsWith('#') ? raw : `#${raw}`;
   return `${base}/${hash}`;
 }
+
+/** Realtime local show + Web Push often land within a second for the same message. */
+export function shouldDedupeChatNotification(prev, { tag, now, windowMs = 2500 } = {}) {
+  if (!prev?.tag || !tag) return false;
+  if (prev.tag !== tag) return false;
+  return now - prev.at < windowMs;
+}
