@@ -9,6 +9,7 @@ import {
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { applySupabaseAuthFromUrl } from '../lib/supabaseAuthCallback.js';
 import { fetchMyProfile } from '../lib/friendsApi.js';
+import { sessionAfterAuthEvent } from '../lib/authSession.js';
 
 const AuthContext = createContext(null);
 
@@ -26,6 +27,11 @@ export function AuthProvider({ children }) {
     }
 
     let cancelled = false;
+    const { data: sub } = client.auth.onAuthStateChange((event, incoming) => {
+      if (cancelled) return;
+      setSession((prev) => sessionAfterAuthEvent(event, incoming, prev));
+    });
+
     (async () => {
       try {
         await applySupabaseAuthFromUrl(client);
@@ -36,16 +42,12 @@ export function AuthProvider({ children }) {
         const {
           data: { session: s },
         } = await client.auth.getSession();
-        if (!cancelled) setSession(s);
+        if (!cancelled && s) setSession(s);
       } catch {
         /* ignore */
       }
       if (!cancelled) setLoading(false);
     })();
-
-    const { data: sub } = client.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-    });
 
     return () => {
       cancelled = true;

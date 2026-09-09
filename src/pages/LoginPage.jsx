@@ -10,6 +10,7 @@ import Alert from '@mui/material/Alert';
 import Link from '@mui/material/Link';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import CircularProgress from '@mui/material/CircularProgress';
 import { useAuth } from '../context/AuthContext.jsx';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
@@ -57,21 +58,6 @@ export default function LoginPage() {
   const [emailStatus, setEmailStatus] = useState('idle');
   const emailDebounceRef = useRef(null);
   const [rememberMe, setRememberMe] = useState(true);
-
-  if (!configured) {
-    return (
-      <Container maxWidth="sm" sx={{ py: 4 }}>
-        <Alert severity="info">Sign-in isn’t set up here.</Alert>
-        <Button sx={{ mt: 2 }} onClick={() => navigate('/')}>
-          Back to groups
-        </Button>
-      </Container>
-    );
-  }
-
-  if (!authLoading && user) {
-    return <Navigate to={from} replace />;
-  }
 
   useEffect(() => {
     if (location.state?.passwordResetOk) {
@@ -289,6 +275,29 @@ export default function LoginPage() {
       setBusy(false);
     }
   };
+
+  if (!configured) {
+    return (
+      <Container maxWidth="sm" sx={{ py: 4 }}>
+        <Alert severity="info">Sign-in isn’t set up here.</Alert>
+        <Button sx={{ mt: 2 }} onClick={() => navigate('/')}>
+          Back to groups
+        </Button>
+      </Container>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress aria-label="Checking sign-in" />
+      </Box>
+    );
+  }
+
+  if (user) {
+    return <Navigate to={from} replace />;
+  }
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
