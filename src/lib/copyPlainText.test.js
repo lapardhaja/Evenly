@@ -109,7 +109,10 @@ test('copyFromInputElement copies a visible field (iOS share link)', () => {
   let range = null;
   const { env } = mockDom({ execOk: true });
   const input = {
+    tagName: 'TEXTAREA',
     value: 'https://evenly.example/#/share/abc',
+    readOnly: true,
+    contentEditable: 'inherit',
     focus() {
       focused.push(true);
     },
@@ -124,6 +127,28 @@ test('copyFromInputElement copies a visible field (iOS share link)', () => {
   assert.equal(focused.length, 1);
   assert.equal(selected.length, 1);
   assert.deepEqual(range, [0, input.value.length]);
+  assert.equal(input.readOnly, true);
+});
+
+test('copyFromInputElement finds a nested textarea (MUI wrapper)', () => {
+  const { env } = mockDom({ execOk: true });
+  const inner = {
+    tagName: 'TEXTAREA',
+    value: 'https://evenly.example/#/share/xyz',
+    readOnly: true,
+    contentEditable: 'inherit',
+    focus() {},
+    select() {},
+    setSelectionRange() {},
+  };
+  const wrapper = {
+    tagName: 'DIV',
+    querySelector() {
+      return inner;
+    },
+  };
+  assert.equal(copyFromInputElement(wrapper, env), true);
+  assert.equal(inner.readOnly, true);
 });
 
 test('copyFromInputElement returns false without an input', () => {

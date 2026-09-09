@@ -23,23 +23,47 @@ export async function copyPlainText(text, env = globalThis) {
   return false;
 }
 
-/** Copy from a visible input/textarea already on screen — hidden nodes often copy blank on iOS. */
+function nativeTextControl(el) {
+  if (!el) return null;
+  const tag = typeof el.tagName === 'string' ? el.tagName.toUpperCase() : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return el;
+  return el.querySelector?.('textarea, input') || null;
+}
+
+/**
+ * Copy from a visible input/textarea already on screen.
+ * Hidden / readOnly nodes often report execCommand success but copy blank on iOS.
+ */
 export function copyFromInputElement(el, env = globalThis) {
-  if (!el || typeof el.value !== 'string' || !el.value) return false;
+  const node = nativeTextControl(el);
+  if (!node || typeof node.value !== 'string' || !node.value) return false;
   const doc = env.document;
   if (!doc || typeof doc.execCommand !== 'function') return false;
+
+  const prevReadOnly = node.readOnly;
+  const prevContentEditable = node.contentEditable;
   try {
-    el.focus?.();
-    el.select?.();
-    el.setSelectionRange?.(0, el.value.length);
+    node.readOnly = false;
+    node.contentEditable = 'true';
+    node.focus?.();
+    node.select?.();
+    node.setSelectionRange?.(0, node.value.length);
   } catch {
     /* still try execCommand */
   }
+  let ok = false;
   try {
-    return !!doc.execCommand('copy');
+    ok = !!doc.execCommand('copy');
   } catch {
-    return false;
+    ok = false;
   }
+  try {
+    node.readOnly = prevReadOnly;
+    if (prevContentEditable != null) node.contentEditable = prevContentEditable;
+  } catch {
+    /* ignore */
+  }
+  return ok;
 }
 
 function copyViaExecCommand(text, env) {
