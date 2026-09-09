@@ -12,7 +12,7 @@ import { formatFullName, getProfilesByIds } from '../lib/friendsApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
-import { chatThreadPageSx } from '../lib/appShell.js';
+import { chatThreadPageSx, CHAT_CONTAINER_MAX_WIDTH } from '../lib/appShell.js';
 
 export default function ChatThreadPage() {
   const { conversationId } = useParams();
@@ -90,7 +90,7 @@ export default function ChatThreadPage() {
   }, [meta, data.groups]);
 
   return (
-    <Container maxWidth="sm" sx={chatThreadPageSx}>
+    <Container maxWidth={CHAT_CONTAINER_MAX_WIDTH} sx={chatThreadPageSx}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexShrink: 0 }}>
         <IconButton onClick={() => navigate('/chat')} size="small" aria-label="Back to chats">
           <ArrowBackIcon />

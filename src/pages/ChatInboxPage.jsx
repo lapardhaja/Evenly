@@ -29,6 +29,7 @@ import { formatFullName } from '../lib/friendsApi.js';
 import { paymentPreviewText, parsePaymentPayload } from '../lib/chatPayment.js';
 import { nameToInitials } from '../functions/utils.js';
 import { enableChatNotifications } from '../lib/chatAlerts.js';
+import { CHAT_CONTAINER_MAX_WIDTH } from '../lib/appShell.js';
 
 function convoTitle(row) {
   if (row.kind === 'group') return row.group_name || 'Group';
@@ -120,14 +121,14 @@ export default function ChatInboxPage() {
 
   if (!isSupabaseConfigured()) {
     return (
-      <Container maxWidth="sm" sx={{ py: 4 }}>
+      <Container maxWidth={CHAT_CONTAINER_MAX_WIDTH} sx={{ py: 4 }}>
         <Typography color="text.secondary">Chat needs a signed-in cloud account.</Typography>
       </Container>
     );
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 3 } }}>
+    <Container maxWidth={CHAT_CONTAINER_MAX_WIDTH} sx={{ py: { xs: 2, sm: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h5" fontWeight={700}>
           Chat
@@ -176,7 +177,11 @@ export default function ChatInboxPage() {
               </Box>
             ) : (
               rows.map((row) => (
-                <ListItemButton key={row.id} onClick={() => navigate(`/chat/${row.id}`)}>
+                <ListItemButton
+                  key={row.id}
+                  onClick={() => navigate(`/chat/${row.id}`)}
+                  sx={{ py: { xs: 1.5, md: 2 } }}
+                >
                   <ListItemAvatar>
                     <Badge
                       color="primary"
@@ -208,7 +213,7 @@ export default function ChatInboxPage() {
         </Paper>
       )}
 
-      <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} fullWidth maxWidth="xs">
+      <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>New message</DialogTitle>
         <DialogContent>
           <TextField
