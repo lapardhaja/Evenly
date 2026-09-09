@@ -48,6 +48,19 @@ Also add **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** if you want **
 
 Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm run dev`.
 
+**Chat Web Push** (banner when Evenly is closed — phone lock screen / PC with the tab gone):
+
+1. `npx web-push generate-vapid-keys`
+2. Vercel → Environment Variables (Production **and** Preview, available to **Build** so Vite can inline the public key):
+   - `VITE_VAPID_PUBLIC_KEY` — public key from step 1
+   - `VAPID_PRIVATE_KEY` — private key (server only)
+   - `VAPID_SUBJECT` — e.g. `mailto:you@example.com`
+   - `SUPABASE_SERVICE_ROLE_KEY` — Supabase **service role** (server only; never `VITE_`)
+   - `SUPABASE_URL` — same as `VITE_SUPABASE_URL` if that isn’t already a Vercel runtime env
+3. Redeploy so the client bundle contains the public key. Then Profile → **Enable message alerts** (iPhone: Home Screen PWA first).
+
+`POST /api/chat-push` returns **503** `{ error: "Push is not configured" }` until those server keys are set. In-tab banners still work after the OS permission prompt, with Evenly open in the background.
+
 ## PWA (install on phone / desktop)
 
 The build is a **Progressive Web App**: **Web App Manifest** + **service worker** (via `vite-plugin-pwa`).
@@ -58,7 +71,7 @@ The build is a **Progressive Web App**: **Web App Manifest** + **service worker*
 - **Works offline for the UI** — with Supabase, cached shell loads offline but **edits need network** (data is server-only). Local-only builds keep data in **localStorage**.
 
 **Limits**
-- Not a native App Store app (no push unless you add more work; iOS PWA limits apply).
+- Not a native App Store app. Chat **Web Push** (banner when Evenly is closed) needs the Vercel keys above. iPhone: Add to Home Screen first, then Profile → Enable message alerts.
 - **iOS home screen** uses **`public/brand/apple-touch-icon.png`** (180×180) — Safari often ignores SVG for the icon. After icon changes, **remove** the old home-screen shortcut and **Add to Home Screen** again.
 
 ## Tech Stack

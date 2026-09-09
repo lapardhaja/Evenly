@@ -39,7 +39,8 @@ Run `20260423120000_group_members.sql` for **`group_members`**, membership-based
 Run `20260423130000_receipt_attachments.sql` for **`receipt_attachments`** (receipt file metadata) and the private **`receipt-attachments`** Storage bucket.  
 Run `20260424120000_group_public_shares.sql` for **`group_public_shares`** and no-login share RPCs (`create_public_group_share`, `revoke_public_group_share`, `get_public_group_share`, `get_public_share_attachment_url`).  
 Run `20260909120000_chat_and_venmo.sql` for **`conversations`**, **`conversation_members`**, **`messages`**, optional **`profiles.venmo_username`**, and chat RPCs (`get_or_create_dm`, `list_my_conversations`, `mark_payment_paid`, etc.). Evenly does not process Venmo payments — handles are for pay-link deep links only.  
-Run `20260909140000_friend_requests_realtime.sql` to add **`friend_requests`** to `supabase_realtime` (app-bar badge + snackbar).
+Run `20260909140000_friend_requests_realtime.sql` to add **`friend_requests`** to `supabase_realtime` (app-bar badge + snackbar).  
+Run `20260909160000_push_subscriptions.sql` for **`push_subscriptions`** (Web Push endpoints per user; RLS = own rows). Server fan-out uses the service role from `POST /api/chat-push`.
 
 | Table | Purpose |
 |--------|--------|
@@ -57,6 +58,7 @@ Run `20260909140000_friend_requests_realtime.sql` to add **`friend_requests`** t
 | **`conversations`** | Chat rooms: `kind` `group` (one per group) or `dm` (unique user pair). |
 | **`conversation_members`** | Who can read/write a conversation; `last_read_at` for unread. Group membership is mirrored from `group_members`. |
 | **`messages`** | Text or `payment` cards (`payload` JSON). Client insert only; paid/cancel via RPCs. |
+| **`push_subscriptions`** | Web Push `endpoint` + keys per user. PK `(user_id, endpoint)`. Client upserts own rows; `POST /api/chat-push` reads targets via service role. |
 
 Group data access is **membership-based** via **`group_members`**, not `groups.user_id` alone. **`is_group_member(uuid)`** and **`is_group_owner(uuid)`** (security definer) power RLS on `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations`, `receipt_attachments`, and **`group_public_shares`**. Clients cannot insert/update `group_members` directly; owners are created on group insert, and friends are added via **`add_friend_to_group(p_group_id, p_friend_user_id)`** (caller must be a member; friend must be in `friendships`; creates a `member` row and a linked `group_people` row if missing).
 

@@ -244,14 +244,19 @@ export default function ProfilePage() {
               <Button
                 variant="outlined"
                 onClick={async () => {
-                  const perm = await enableChatNotifications();
-                  if (perm === 'granted') {
+                  const { permission, push } = await enableChatNotifications();
+                  if (permission === 'granted' && push) {
                     setNotifyHint('Message alerts on. Leave Evenly and you’ll still get a banner.');
                     setError('');
-                  } else if (perm === 'denied') {
+                  } else if (permission === 'granted') {
+                    setNotifyHint(
+                      'Alerts on while Evenly is open. Closed-app banners need Web Push keys on the server.',
+                    );
+                    setError('');
+                  } else if (permission === 'denied') {
                     setError('Alerts are blocked. Enable notifications for Evenly in iOS Settings.');
                     setNotifyHint('');
-                  } else if (perm === 'unsupported') {
+                  } else if (permission === 'unsupported') {
                     setError('This browser can’t show notifications.');
                     setNotifyHint('');
                   } else {
