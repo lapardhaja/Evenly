@@ -25,6 +25,14 @@ test('parseIncomingChatMessage reads INSERT new row', () => {
   });
 });
 
+test('parseIncomingChatMessage reads INSERT via event as well as eventType', () => {
+  const msg = parseIncomingChatMessage({
+    event: 'INSERT',
+    new: { conversation_id: 'c1', sender_id: 'u2', body: 'hey', type: 'text' },
+  });
+  assert.equal(msg.conversationId, 'c1');
+});
+
 test('parseIncomingChatMessage ignores UPDATE and missing rows', () => {
   assert.equal(
     parseIncomingChatMessage({
@@ -90,14 +98,14 @@ test('incomingChatPreview clips body', () => {
   assert.equal(incomingChatPreview({ type: 'text', body: 'a'.repeat(90) }).length <= 80, true);
 });
 
-test('alertIncomingChat vibrates and posts a notification when allowed', () => {
+test('alertIncomingChat vibrates and posts a notification when allowed', async () => {
   const vibrated = [];
   const created = [];
   function FakeNotification(title, opts) {
     created.push({ title, opts });
   }
   FakeNotification.permission = 'granted';
-  alertIncomingChat(
+  await alertIncomingChat(
     { title: 'Evenly', body: 'hey', tag: 'c1' },
     {
       navigator: { vibrate: (p) => vibrated.push(p) },
@@ -109,15 +117,47 @@ test('alertIncomingChat vibrates and posts a notification when allowed', () => {
   assert.equal(created[0].title, 'Evenly');
   assert.equal(created[0].opts.body, 'hey');
   assert.equal(created[0].opts.silent, false);
+  assert.equal(created[0].opts.renotify, true);
 });
 
-test('alertIncomingChat still vibrates when notification permission is denied', () => {
+test('alertIncomingChat prefers serviceWorker showNotification (iOS PWA)', async () => {
+  const shown = [];
+  const created = [];
+  function FakeNotification(title, opts) {
+    created.push({ title, opts });
+  }
+  FakeNotification.permission = 'granted';
+  await alertIncomingChat(
+    { title: 'Evenly', body: 'hey', tag: 'c1' },
+    {
+      navigator: {
+        vibrate() {},
+        serviceWorker: {
+          ready: Promise.resolve({
+            showNotification: async (title, opts) => {
+              shown.push({ title, opts });
+            },
+          }),
+        },
+      },
+      Notification: FakeNotification,
+    },
+  );
+  assert.equal(created.length, 0);
+  assert.equal(shown.length, 1);
+  assert.equal(shown[0].title, 'Evenly');
+  assert.equal(shown[0].opts.body, 'hey');
+  assert.equal(shown[0].opts.silent, false);
+  assert.equal(shown[0].opts.renotify, true);
+});
+
+test('alertIncomingChat still vibrates when notification permission is denied', async () => {
   const vibrated = [];
   function FakeNotification() {
     throw new Error('should not construct');
   }
   FakeNotification.permission = 'denied';
-  alertIncomingChat(
+  await alertIncomingChat(
     { title: 'Evenly', body: 'hey', tag: 'c1' },
     {
       navigator: { vibrate: (p) => vibrated.push(p) },

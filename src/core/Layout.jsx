@@ -287,11 +287,11 @@ export default function Layout() {
       ) {
         return;
       }
-      alertIncomingChat({
+      void alertIncomingChat({
         title: 'Evenly',
         body: incomingChatPreview(message),
         tag: message.conversationId,
-      });
+      }).catch(() => {});
     });
     const id = window.setInterval(refreshUnreadChats, 90_000);
     return () => {

@@ -7,7 +7,8 @@
 export const EVENLY_CHAT_OPEN_EVENT = 'evenly-chat-open';
 
 export function parseIncomingChatMessage(payload) {
-  if (!payload || payload.eventType !== 'INSERT') return null;
+  const event = payload?.eventType || payload?.event;
+  if (!payload || event !== 'INSERT') return null;
   const row = payload.new;
   if (!row || typeof row !== 'object') return null;
   const conversationId = typeof row.conversation_id === 'string' ? row.conversation_id : '';
@@ -71,7 +72,10 @@ export function requestChatNotificationPermission(env = globalThis) {
   }
 }
 
-export function alertIncomingChat({ title = 'Evenly', body = 'New message', tag = 'evenly-chat' } = {}, env = globalThis) {
+export async function alertIncomingChat(
+  { title = 'Evenly', body = 'New message', tag = 'evenly-chat' } = {},
+  env = globalThis,
+) {
   try {
     env.navigator?.vibrate?.([40, 60, 40]);
   } catch {
@@ -80,23 +84,32 @@ export function alertIncomingChat({ title = 'Evenly', body = 'New message', tag 
 
   const N = env.Notification;
   if (!N || N.permission !== 'granted') return;
+
+  const opts = {
+    body,
+    tag: tag || 'evenly-chat',
+    silent: false,
+    renotify: true,
+    icon: '/brand/pwa-192.png',
+    badge: '/brand/pwa-192.png',
+    data: { path: tag && tag !== 'evenly-chat' ? `#/chat/${tag}` : '#/chat' },
+  };
+
   try {
-    const opts = {
-      body,
-      tag: tag || 'evenly-chat',
-      silent: false,
-      icon: '/brand/pwa-192.png',
-    };
-    const n = new N(title, opts);
-    if (n && typeof n.close === 'function' && env.setTimeout) {
-      env.setTimeout(() => {
-        try {
-          n.close();
-        } catch {
-          /* ignore */
-        }
-      }, 5000);
+    const ready = env.navigator?.serviceWorker?.ready;
+    if (ready && typeof ready.then === 'function') {
+      const reg = await ready;
+      if (typeof reg?.showNotification === 'function') {
+        await reg.showNotification(title, opts);
+        return;
+      }
     }
+  } catch {
+    /* fall through to Notification constructor */
+  }
+
+  try {
+    new N(title, opts);
   } catch {
     /* permission revoked mid-flight */
   }
