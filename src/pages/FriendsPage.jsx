@@ -8,11 +8,14 @@ import Button from '@mui/material/Button';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import InputAdornment from '@mui/material/InputAdornment';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import {
   searchPeople,
   sendFriendRequest,
@@ -27,10 +30,17 @@ import {
   notifyFriendRequestsChanged,
   formatFullName,
 } from '../lib/friendsApi.js';
+import { friendSearchAction } from '../lib/friendInvite.js';
+import { nameToInitials } from '../functions/utils.js';
+
+function personLabel(row) {
+  return formatFullName(row) || row?.username || row?.display_name || 'Someone';
+}
 
 export default function FriendsPage() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -38,6 +48,7 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [busyId, setBusyId] = useState('');
 
   const loadAll = useCallback(async (opts = {}) => {
     const silent = !!opts.silent;
@@ -94,13 +105,17 @@ export default function FriendsPage() {
       const q = search.trim();
       if (q.length < 2) {
         setSearchResults([]);
+        setSearching(false);
         return;
       }
+      setSearching(true);
       try {
         const rows = await searchPeople(q);
         setSearchResults(rows);
       } catch {
         setSearchResults([]);
+      } finally {
+        setSearching(false);
       }
     }, 350);
     return () => clearTimeout(t);
@@ -108,8 +123,29 @@ export default function FriendsPage() {
 
   const friendIds = useMemo(() => new Set(friends.map((f) => f.user_id)), [friends]);
   const outgoingTo = useMemo(() => new Set(outgoing.map((o) => o.to_user_id)), [outgoing]);
+  const incomingFrom = useMemo(() => {
+    const m = new Map();
+    incoming.forEach((r) => m.set(r.from_user_id, r.id));
+    return m;
+  }, [incoming]);
 
   const displayName = (userId) => nameById[userId] || userId;
+
+  const run = async (id, fn, ok) => {
+    setBusyId(id);
+    setError('');
+    try {
+      await fn();
+      if (ok) setMessage(ok);
+      await loadAll();
+    } catch (e) {
+      setError(e?.message || 'Couldn’t do that.');
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const q = search.trim();
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
@@ -117,7 +153,8 @@ export default function FriendsPage() {
         Friends
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Search by name or email. After they accept, add them from People in a group.
+        Find people by name, username, or email. After they accept, invite them into a group from
+        People.
       </Typography>
 
       {message ? (
@@ -134,10 +171,10 @@ export default function FriendsPage() {
       <TextField
         fullWidth
         size="small"
-        placeholder="Search by name or email"
+        placeholder="Name, @username, or email"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 2 }}
+        sx={{ mb: 1 }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
@@ -145,57 +182,77 @@ export default function FriendsPage() {
             </InputAdornment>
           ),
         }}
+        helperText={
+          q.length === 1
+            ? 'Type at least 2 characters.'
+            : q.length >= 2 && !searching && searchResults.length === 0
+              ? 'No account matches that. Try their Evenly username or the email they signed up with.'
+              : 'They need an Evenly account. Guest names on a receipt are not friends.'
+        }
       />
 
-      {search.trim().length >= 2 && searchResults.length > 0 ? (
+      {q.length >= 2 && searchResults.length > 0 ? (
         <Paper variant="outlined" sx={{ mb: 2, borderRadius: 2 }}>
-          <List dense>
-            {searchResults.map((row) => (
-              <ListItem
-                key={row.user_id}
-                secondaryAction={
-                  friendIds.has(row.user_id) ? (
-                    <Typography variant="caption" color="success.main">
-                      Friends
-                    </Typography>
-                  ) : outgoingTo.has(row.user_id) ? (
-                    <Typography variant="caption" color="text.secondary">
-                      Pending
-                    </Typography>
-                  ) : (
-                    <Button
-                      size="small"
-                      onClick={async () => {
-                        try {
-                          await sendFriendRequest(row.user_id);
-                          setMessage('Request sent.');
-                          loadAll();
-                        } catch (e) {
-                          setError(e?.message || 'Could not send request.');
-                        }
-                      }}
-                    >
-                      Request
-                    </Button>
-                  )
-                }
-              >
-                <ListItemText
-                  primary={
-                    row.username
-                      ? `@${row.username}`
-                      : row.display_name || 'User'
-                  }
-                  secondary={(() => {
-                    const full = formatFullName(row);
-                    if (!full) return null;
-                    const un = row.username?.trim().toLowerCase();
-                    if (un && full.trim().toLowerCase() === un) return null;
-                    return full;
-                  })()}
-                />
-              </ListItem>
-            ))}
+          <List disablePadding>
+            {searchResults.map((row, i) => {
+              const label = personLabel(row);
+              const action = friendSearchAction({
+                userId: row.user_id,
+                friendIds,
+                outgoingTo,
+                incomingFrom,
+              });
+              return (
+                <Box key={row.user_id}>
+                  {i > 0 ? <Divider /> : null}
+                  <ListItem
+                    sx={{ py: 1.25, pr: 16 }}
+                    secondaryAction={
+                      action.kind === 'friends' ? (
+                        <Typography variant="caption" color="success.main">
+                          Friends
+                        </Typography>
+                      ) : action.kind === 'pending' ? (
+                        <Typography variant="caption" color="text.secondary">
+                          Pending
+                        </Typography>
+                      ) : action.kind === 'accept' ? (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          disabled={busyId === row.user_id}
+                          onClick={() =>
+                            run(row.user_id, () => acceptFriendRequest(action.requestId), 'You’re now friends.')
+                          }
+                        >
+                          Accept
+                        </Button>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<PersonAddIcon />}
+                          disabled={busyId === row.user_id}
+                          onClick={() =>
+                            run(row.user_id, () => sendFriendRequest(row.user_id), 'Request sent.')
+                          }
+                        >
+                          Add friend
+                        </Button>
+                      )
+                    }
+                  >
+                    <ListItemAvatar>
+                      <Avatar sx={{ bgcolor: 'primary.main' }}>{nameToInitials(label)}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={label}
+                      secondary={row.username ? `@${row.username}` : null}
+                    />
+                  </ListItem>
+                </Box>
+              );
+            })}
           </List>
         </Paper>
       ) : null}
@@ -210,32 +267,35 @@ export default function FriendsPage() {
               {incoming.map((r) => (
                 <ListItem
                   key={r.id}
+                  sx={{ pr: 22 }}
                   secondaryAction={
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <Button
                         size="small"
                         color="error"
-                        onClick={async () => {
-                          await declineFriendRequest(r.id);
-                          loadAll();
-                        }}
+                        disabled={busyId === r.id}
+                        onClick={() => run(r.id, () => declineFriendRequest(r.id))}
                       >
                         Decline
                       </Button>
                       <Button
                         size="small"
                         variant="contained"
-                        onClick={async () => {
-                          await acceptFriendRequest(r.id);
-                          setMessage('You’re now friends.');
-                          loadAll();
-                        }}
+                        disabled={busyId === r.id}
+                        onClick={() =>
+                          run(r.id, () => acceptFriendRequest(r.id), 'You’re now friends.')
+                        }
                       >
                         Accept
                       </Button>
                     </Box>
                   }
                 >
+                  <ListItemAvatar>
+                    <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36 }}>
+                      {nameToInitials(displayName(r.from_user_id))}
+                    </Avatar>
+                  </ListItemAvatar>
                   <ListItemText primary={displayName(r.from_user_id)} />
                 </ListItem>
               ))}
@@ -255,7 +315,11 @@ export default function FriendsPage() {
                 <ListItem
                   key={r.id}
                   secondaryAction={
-                    <Button size="small" onClick={() => cancelFriendRequest(r.id).then(loadAll)}>
+                    <Button
+                      size="small"
+                      disabled={busyId === r.id}
+                      onClick={() => run(r.id, () => cancelFriendRequest(r.id))}
+                    >
                       Cancel
                     </Button>
                   }
@@ -278,35 +342,37 @@ export default function FriendsPage() {
           </Box>
         ) : friends.length === 0 ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography color="text.secondary">No friends yet. Search above to send a request.</Typography>
+            <Typography color="text.secondary">
+              Nobody yet. Search above, tap Add friend, and wait for them to accept.
+            </Typography>
           </Box>
         ) : (
-          <List dense>
+          <List disablePadding>
             {friends.map((f, i) => {
-              const full = formatFullName(f);
+              const full = personLabel(f);
               return (
                 <Box key={f.user_id}>
                   {i > 0 && <Divider />}
                   <ListItem
+                    sx={{ py: 1.25, pr: 14 }}
                     secondaryAction={
                       <Button
                         size="small"
                         color="inherit"
                         startIcon={<PersonRemoveIcon />}
-                        onClick={async () => {
-                          await removeFriend(f.user_id);
-                          loadAll();
-                        }}
+                        disabled={busyId === f.user_id}
+                        onClick={() => run(f.user_id, () => removeFriend(f.user_id))}
                       >
                         Remove
                       </Button>
                     }
                   >
+                    <ListItemAvatar>
+                      <Avatar sx={{ bgcolor: 'primary.main' }}>{nameToInitials(full)}</Avatar>
+                    </ListItemAvatar>
                     <ListItemText
-                      primary={full || f.username || f.display_name || 'Friend'}
-                      secondary={
-                        f.username && full && full !== f.username ? `@${f.username}` : null
-                      }
+                      primary={full}
+                      secondary={f.username && full !== f.username ? `@${f.username}` : null}
                     />
                   </ListItem>
                 </Box>
