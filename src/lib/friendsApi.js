@@ -3,6 +3,7 @@
  */
 
 import { getSupabase } from './supabaseClient.js';
+import { friendlyFriendRequestError } from './friendInvite.js';
 import { subscribeToFriendRequests as subscribeFriendRequestRows } from './friendRequestEvents.js';
 import { isValidVenmoUsername, normalizeVenmoUsername } from './venmoLinks.js';
 
@@ -168,7 +169,7 @@ export async function sendFriendRequest(toUserId) {
     to_user_id: toUserId,
     status: 'pending',
   });
-  if (error) throw error;
+  if (error) throw new Error(friendlyFriendRequestError(error));
 }
 
 export async function listIncomingRequests() {

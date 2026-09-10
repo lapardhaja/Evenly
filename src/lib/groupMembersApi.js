@@ -1,4 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from './supabaseClient.js';
+import { friendlyFriendInviteError } from './friendInvite.js';
 
 function clientOrThrow() {
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
@@ -13,7 +14,7 @@ export async function addFriendToGroup(groupId, friendUserId) {
     p_group_id: groupId,
     p_friend_user_id: friendUserId,
   });
-  if (error) throw error;
+  if (error) throw new Error(friendlyFriendInviteError(error));
 }
 
 export async function leaveGroup(groupId) {

@@ -19,7 +19,7 @@ export function parseIncomingChatMessage(payload) {
     conversationId,
     senderId,
     body: typeof row.body === 'string' ? row.body : '',
-    type: row.type === 'payment' ? 'payment' : 'text',
+    type: row.type === 'payment' ? 'payment' : row.type === 'image' ? 'image' : 'text',
   };
 }
 
@@ -44,6 +44,7 @@ export function shouldAlertIncomingChat({
 export function incomingChatPreview(message) {
   if (!message) return 'New message';
   if (message.type === 'payment') return 'Payment request';
+  if (message.type === 'image') return 'Sent a photo';
   const body = typeof message.body === 'string' ? message.body.trim() : '';
   if (!body) return 'New message';
   return body.length > 80 ? `${body.slice(0, 79)}…` : body;

@@ -4,6 +4,7 @@ export function recipientUserIds(memberIds, senderId) {
 
 function preview(message) {
   if (message?.type === 'payment') return 'Payment request';
+  if (message?.type === 'image') return 'Sent a photo';
   const body = typeof message?.body === 'string' ? message.body.trim() : '';
   if (!body) return 'New message';
   return body.length > 80 ? `${body.slice(0, 79)}…` : body;
