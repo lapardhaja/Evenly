@@ -39,6 +39,7 @@ function convoTitle(row) {
 
 function convoPreview(row) {
   if (!row.last_at) return 'No messages yet';
+  if (row.last_type === 'image') return 'Sent a photo';
   if (row.last_type === 'payment') {
     const p = parsePaymentPayload(row.last_payload);
     return paymentPreviewText(p || row.last_payload);

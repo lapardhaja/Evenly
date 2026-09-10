@@ -6,11 +6,20 @@ import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import SendIcon from '@mui/icons-material/Send';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatFullName, getProfilesByIds } from '../lib/friendsApi.js';
 import {
   listMessages,
   sendTextMessage,
+  sendImageMessage,
+  signedChatImageUrl,
+  listMessageLikes,
+  likeMessage,
+  unlikeMessage,
+  subscribeToMessageLikes,
   markConversationRead,
   markPaymentPaid,
   cancelPaymentRequest,
@@ -18,8 +27,16 @@ import {
   notifyChatUnreadChanged,
 } from '../lib/chatApi.js';
 import { clipMessageBody, MESSAGE_BODY_MAX, parsePaymentPayload } from '../lib/chatPayment.js';
+import {
+  applyLikeRealtime,
+  isImageMessage,
+  parseImagePayload,
+  summarizeLikes,
+  toggleLikeState,
+} from '../lib/chatMedia.js';
 import { emitOpenChatConversation, requestChatNotificationPermission } from '../lib/chatAlerts.js';
 import PaymentMessageCard from './PaymentMessageCard.jsx';
+import AttachmentLightbox from './AttachmentLightbox.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -27,9 +44,22 @@ import { useTheme } from '@mui/material/styles';
 import { chatComposerBarSx, chatMessagesSx, chatThreadRootSx, chatBubbleMaxWidthSx } from '../lib/appShell.js';
 import { isChatNearBottom, pinChatToLatestAfterLayout } from '../lib/chatScroll.js';
 
+const DOUBLE_TAP_MS = 300;
+
 function profileLabel(profile, fallback) {
   if (!profile) return fallback;
   return formatFullName(profile) || profile.username || profile.display_name || fallback;
+}
+
+function senderIdsFromMessages(rows) {
+  const ids = [];
+  for (const row of rows) {
+    if (row.sender_id) ids.push(row.sender_id);
+    const p = parsePaymentPayload(row.payload);
+    if (p?.from_user_id) ids.push(p.from_user_id);
+    if (p?.to_user_id) ids.push(p.to_user_id);
+  }
+  return [...new Set(ids)];
 }
 
 export default function ChatThread({
@@ -48,9 +78,38 @@ export default function ChatThread({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [likes, setLikes] = useState(() => new Map());
+  const [imageUrls, setImageUrls] = useState({});
+  const [lightbox, setLightbox] = useState(null);
+  const [heartBurstId, setHeartBurstId] = useState('');
   const listRef = useRef(null);
   const nearBottomRef = useRef(true);
   const pinnedForConversationRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const urlCacheRef = useRef(new Map());
+  const lastTapRef = useRef({ id: '', t: 0 });
+  const messageIdsRef = useRef(new Set());
+  const burstTimerRef = useRef(0);
+
+  const ensureImageUrls = useCallback(async (rows) => {
+    const updates = {};
+    for (const row of rows || []) {
+      if (!isImageMessage(row)) continue;
+      const path = parseImagePayload(row.payload)?.storage_path;
+      if (!path || urlCacheRef.current.has(path)) continue;
+      try {
+        const url = await signedChatImageUrl(path);
+        if (!url) continue;
+        urlCacheRef.current.set(path, url);
+        updates[path] = url;
+      } catch {
+        /* signed URL can fail if the object is gone; bubble stays empty */
+      }
+    }
+    if (Object.keys(updates).length) {
+      setImageUrls((prev) => ({ ...prev, ...updates }));
+    }
+  }, []);
 
   const load = useCallback(async () => {
     if (!conversationId) return;
@@ -58,13 +117,8 @@ export default function ChatThread({
     try {
       const rows = await listMessages(conversationId);
       setMessages(rows);
-      const ids = [...new Set(rows.map((m) => m.sender_id).filter(Boolean))];
-      for (const row of rows) {
-        const p = parsePaymentPayload(row.payload);
-        if (p?.from_user_id) ids.push(p.from_user_id);
-        if (p?.to_user_id) ids.push(p.to_user_id);
-      }
-      const uniq = [...new Set(ids)];
+      messageIdsRef.current = new Set(rows.map((m) => m.id));
+      const uniq = senderIdsFromMessages(rows);
       if (uniq.length) {
         const profs = await getProfilesByIds(uniq);
         const map = {};
@@ -72,7 +126,12 @@ export default function ChatThread({
           map[pr.user_id] = pr;
         });
         setProfiles(map);
+      } else {
+        setProfiles({});
       }
+      const likeRows = await listMessageLikes(rows.map((m) => m.id));
+      setLikes(summarizeLikes(likeRows, user?.id));
+      await ensureImageUrls(rows);
       await markConversationRead(conversationId);
       notifyChatUnreadChanged();
     } catch (e) {
@@ -80,11 +139,17 @@ export default function ChatThread({
     } finally {
       setLoading(false);
     }
-  }, [conversationId]);
+  }, [conversationId, ensureImageUrls, user?.id]);
 
   useEffect(() => {
     setLoading(true);
     setMessages([]);
+    setLikes(new Map());
+    setImageUrls({});
+    setLightbox(null);
+    setHeartBurstId('');
+    urlCacheRef.current = new Map();
+    messageIdsRef.current = new Set();
     nearBottomRef.current = true;
     pinnedForConversationRef.current = null;
     load();
@@ -96,11 +161,17 @@ export default function ChatThread({
   }, [conversationId]);
 
   useEffect(() => {
+    messageIdsRef.current = new Set(messages.map((m) => m.id));
+  }, [messages]);
+
+  useEffect(() => {
     if (!conversationId) return undefined;
     return subscribeToConversationMessages(conversationId, (payload) => {
       const row = payload.new;
       if (payload.eventType === 'INSERT' && row?.id) {
         setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
+        messageIdsRef.current.add(row.id);
+        if (isImageMessage(row)) void ensureImageUrls([row]);
       } else if (payload.eventType === 'UPDATE' && row?.id) {
         setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...row } : m)));
         const p = parsePaymentPayload(row.payload);
@@ -110,7 +181,18 @@ export default function ChatThread({
       }
       markConversationRead(conversationId).then(() => notifyChatUnreadChanged()).catch(() => {});
     });
-  }, [conversationId, onPaymentSettled]);
+  }, [conversationId, onPaymentSettled, ensureImageUrls]);
+
+  useEffect(() => {
+    if (!conversationId) return undefined;
+    return subscribeToMessageLikes((payload) => {
+      setLikes((prev) => applyLikeRealtime(prev, payload, user?.id, messageIdsRef.current));
+    }, `evenly-message-likes:${conversationId}`);
+  }, [conversationId, user?.id]);
+
+  useEffect(() => () => {
+    if (burstTimerRef.current) window.clearTimeout(burstTimerRef.current);
+  }, []);
 
   const lastMessageId = messages.length ? messages[messages.length - 1].id : '';
 
@@ -138,6 +220,49 @@ export default function ChatThread({
     return map;
   }, [nameByUserId, profiles]);
 
+  const showHeartBurst = (messageId) => {
+    setHeartBurstId(messageId);
+    if (burstTimerRef.current) window.clearTimeout(burstTimerRef.current);
+    burstTimerRef.current = window.setTimeout(() => setHeartBurstId(''), 700);
+  };
+
+  const setLiked = async (messageId, liked) => {
+    if (!user?.id) return;
+    setLikes((prev) => toggleLikeState(prev, messageId, user.id, liked));
+    try {
+      if (liked) await likeMessage(messageId);
+      else await unlikeMessage(messageId);
+    } catch (err) {
+      setLikes((prev) => toggleLikeState(prev, messageId, user.id, !liked));
+      setError(err?.message || 'Couldn’t update like.');
+    }
+  };
+
+  const likeFromDoubleTap = (messageId) => {
+    showHeartBurst(messageId);
+    if (likes.get(messageId)?.mine) return;
+    void setLiked(messageId, true);
+  };
+
+  const handleBubblePointer = (message, onSingle) => (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const now = Date.now();
+    const last = lastTapRef.current;
+    if (last.id === message.id && now - last.t < DOUBLE_TAP_MS) {
+      lastTapRef.current = { id: '', t: 0 };
+      e.preventDefault();
+      likeFromDoubleTap(message.id);
+      return;
+    }
+    lastTapRef.current = { id: message.id, t: now };
+    if (!onSingle) return;
+    window.setTimeout(() => {
+      if (lastTapRef.current.id === message.id && lastTapRef.current.t === now) {
+        onSingle();
+      }
+    }, DOUBLE_TAP_MS);
+  };
+
   const handleSend = async (e) => {
     e?.preventDefault?.();
     const body = clipMessageBody(draft);
@@ -150,6 +275,23 @@ export default function ChatThread({
       setDraft('');
     } catch (err) {
       setError(err?.message || 'Couldn’t send.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handlePickImage = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const row = await sendImageMessage(conversationId, file);
+      setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
+      await ensureImageUrls([row]);
+    } catch (err) {
+      setError(err?.message || 'Couldn’t send photo.');
     } finally {
       setSending(false);
     }
@@ -225,12 +367,20 @@ export default function ChatThread({
           </Box>
         ) : messages.length === 0 ? (
           <Typography color="text.secondary" variant="body2" sx={{ py: 3, textAlign: 'center' }}>
-            No messages yet. Say hi or send a Venmo request from Settle.
+            No messages yet. Say hi, send a photo, or send a Venmo request from Settle.
           </Typography>
         ) : (
           messages.map((m) => {
             const mine = m.sender_id === user?.id;
             const label = names[m.sender_id] || 'Someone';
+            const like = likes.get(m.id) || { count: 0, mine: false };
+            const image = isImageMessage(m) ? parseImagePayload(m.payload) : null;
+            const imageUrl = image
+              ? imageUrls[image.storage_path] || urlCacheRef.current.get(image.storage_path) || ''
+              : '';
+            const openPhoto = imageUrl
+              ? () => setLightbox({ url: imageUrl, mimeType: image.mime_type, fileName: 'Photo' })
+              : null;
             return (
               <Box
                 key={m.id}
@@ -260,40 +410,125 @@ export default function ChatThread({
                       {label}
                     </Typography>
                   ) : null}
-                  {m.type === 'payment' ? (
-                    <PaymentMessageCard
-                      message={m}
-                      currentUserId={user?.id}
-                      fromName={names[parsePaymentPayload(m.payload)?.from_user_id] || 'Someone'}
-                      toName={names[parsePaymentPayload(m.payload)?.to_user_id] || 'someone'}
-                      groupName={groupName}
-                      onMarkPaid={handlePaid}
-                      onCancel={handleCancel}
-                      busy={sending}
-                    />
-                  ) : (
-                    <Box
-                      sx={{
-                        px: { xs: 1.5, md: 2 },
-                        py: { xs: 1, md: 1.25 },
-                        borderRadius: 2,
-                        bgcolor: mine ? 'primary.main' : 'action.hover',
-                        color: mine ? 'primary.contrastText' : 'text.primary',
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      '@keyframes evenlyHeartPop': {
+                        '0%': { transform: 'translate(-50%, -50%) scale(0.35)', opacity: 0 },
+                        '35%': { transform: 'translate(-50%, -50%) scale(1.2)', opacity: 1 },
+                        '100%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 0 },
+                      },
+                    }}
+                  >
+                    {m.type === 'payment' ? (
+                      <PaymentMessageCard
+                        message={m}
+                        currentUserId={user?.id}
+                        fromName={names[parsePaymentPayload(m.payload)?.from_user_id] || 'Someone'}
+                        toName={names[parsePaymentPayload(m.payload)?.to_user_id] || 'someone'}
+                        groupName={groupName}
+                        onMarkPaid={handlePaid}
+                        onCancel={handleCancel}
+                        busy={sending}
+                      />
+                    ) : image ? (
+                      <Box
+                        onPointerUp={handleBubblePointer(m, openPhoto)}
                         sx={{
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                          fontSize: { xs: '0.875rem', md: '1rem' },
-                          lineHeight: 1.45,
+                          borderRadius: 2,
+                          overflow: 'hidden',
+                          bgcolor: mine ? 'primary.main' : 'action.hover',
+                          cursor: imageUrl ? 'pointer' : 'default',
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none',
                         }}
                       >
-                        {m.body}
+                        {imageUrl ? (
+                          <Box
+                            component="img"
+                            src={imageUrl}
+                            alt="Photo"
+                            draggable={false}
+                            sx={{
+                              display: 'block',
+                              width: '100%',
+                              maxHeight: { xs: 280, md: 400 },
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+                            <CircularProgress size={22} />
+                          </Box>
+                        )}
+                      </Box>
+                    ) : (
+                      <Box
+                        onPointerUp={handleBubblePointer(m)}
+                        sx={{
+                          px: { xs: 1.5, md: 2 },
+                          py: { xs: 1, md: 1.25 },
+                          borderRadius: 2,
+                          bgcolor: mine ? 'primary.main' : 'action.hover',
+                          color: mine ? 'primary.contrastText' : 'text.primary',
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none',
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            fontSize: { xs: '0.875rem', md: '1rem' },
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          {m.body}
+                        </Typography>
+                      </Box>
+                    )}
+                    {heartBurstId === m.id ? (
+                      <FavoriteIcon
+                        sx={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          fontSize: 56,
+                          color: 'error.main',
+                          pointerEvents: 'none',
+                          animation: 'evenlyHeartPop 0.7s ease forwards',
+                          filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.35))',
+                        }}
+                      />
+                    ) : null}
+                  </Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: mine ? 'flex-end' : 'flex-start',
+                      mt: 0.15,
+                    }}
+                  >
+                    <IconButton
+                      size="small"
+                      aria-label={like.mine ? 'Unlike' : 'Like'}
+                      onClick={() => setLiked(m.id, !like.mine)}
+                      sx={{ p: 0.5 }}
+                    >
+                      {like.mine ? (
+                        <FavoriteIcon fontSize="small" sx={{ color: 'error.main' }} />
+                      ) : (
+                        <FavoriteBorderIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                    {like.count > 0 ? (
+                      <Typography variant="caption" color="text.secondary">
+                        {like.count}
                       </Typography>
-                    </Box>
-                  )}
+                    ) : null}
+                  </Box>
                 </Box>
               </Box>
             );
@@ -308,6 +543,22 @@ export default function ChatThread({
           pb: 'max(8px, env(safe-area-inset-bottom, 0px), var(--evenly-vv-bottom, 0px), var(--evenly-cookie-banner-offset, 0px))',
         }}
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          hidden
+          onChange={handlePickImage}
+        />
+        <IconButton
+          type="button"
+          color="primary"
+          disabled={sending}
+          aria-label="Send photo"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <ImageOutlinedIcon />
+        </IconButton>
         <TextField
           value={draft}
           onChange={(e) => setDraft(e.target.value.slice(0, MESSAGE_BODY_MAX))}
@@ -327,6 +578,13 @@ export default function ChatThread({
           <SendIcon />
         </IconButton>
       </Box>
+      <AttachmentLightbox
+        open={Boolean(lightbox)}
+        onClose={() => setLightbox(null)}
+        url={lightbox?.url || ''}
+        mimeType={lightbox?.mimeType || ''}
+        fileName={lightbox?.fileName || 'Photo'}
+      />
     </Box>
   );
 }

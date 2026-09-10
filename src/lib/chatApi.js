@@ -1,6 +1,14 @@
 import { getSupabase, isSupabaseConfigured } from './supabaseClient.js';
 import { clipMessageBody, buildPaymentPayload, parsePaymentPayload } from './chatPayment.js';
 import { notifyChatPush } from './chatPushClient.js';
+import { v4 as uuidv4 } from 'uuid';
+import {
+  assertChatImageFile,
+  buildChatImageStoragePath,
+  CHAT_IMAGE_BUCKET,
+  CHAT_SIGNED_URL_TTL_SECONDS,
+  fileToChatImageBlob,
+} from './chatMedia.js';
 
 function clientOrThrow() {
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
@@ -111,6 +119,114 @@ export async function sendTextMessage(conversationId, body) {
   if (error) throw error;
   void notifyChatPush(data.id).catch(() => {});
   return data;
+}
+
+export async function sendImageMessage(conversationId, file) {
+  assertChatImageFile(file);
+  const supabase = clientOrThrow();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in');
+  const { blob, mime } = await fileToChatImageBlob(file);
+  const id = uuidv4();
+  const storagePath = buildChatImageStoragePath(conversationId, id, mime);
+  const up = await supabase.storage.from(CHAT_IMAGE_BUCKET).upload(storagePath, blob, {
+    contentType: mime,
+    upsert: false,
+  });
+  if (up.error) throw up.error;
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      id,
+      conversation_id: conversationId,
+      sender_id: user.id,
+      type: 'image',
+      body: '',
+      payload: {
+        storage_path: storagePath,
+        mime_type: mime,
+        byte_size: blob.size,
+      },
+    })
+    .select('id, conversation_id, sender_id, type, body, payload, created_at')
+    .single();
+  if (error) {
+    await supabase.storage.from(CHAT_IMAGE_BUCKET).remove([storagePath]).catch(() => {});
+    throw error;
+  }
+  void notifyChatPush(data.id).catch(() => {});
+  return data;
+}
+
+export async function signedChatImageUrl(storagePath) {
+  if (!storagePath) return '';
+  const supabase = clientOrThrow();
+  const { data, error } = await supabase.storage
+    .from(CHAT_IMAGE_BUCKET)
+    .createSignedUrl(storagePath, CHAT_SIGNED_URL_TTL_SECONDS);
+  if (error) throw error;
+  return data?.signedUrl || '';
+}
+
+export async function listMessageLikes(messageIds) {
+  if (!messageIds?.length) return [];
+  const supabase = clientOrThrow();
+  const out = [];
+  for (let i = 0; i < messageIds.length; i += 80) {
+    const chunk = messageIds.slice(i, i + 80);
+    const { data, error } = await supabase
+      .from('message_likes')
+      .select('message_id, user_id')
+      .in('message_id', chunk);
+    if (error) throw error;
+    out.push(...(data || []));
+  }
+  return out;
+}
+
+export async function likeMessage(messageId) {
+  const supabase = clientOrThrow();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in');
+  const { error } = await supabase.from('message_likes').insert({
+    message_id: messageId,
+    user_id: user.id,
+  });
+  if (error && error.code !== '23505') throw error;
+}
+
+export async function unlikeMessage(messageId) {
+  const supabase = clientOrThrow();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in');
+  const { error } = await supabase
+    .from('message_likes')
+    .delete()
+    .eq('message_id', messageId)
+    .eq('user_id', user.id);
+  if (error) throw error;
+}
+
+export function subscribeToMessageLikes(onChange, channelName = 'evenly-message-likes') {
+  const supabase = getSupabase();
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel(channelName)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'message_likes' },
+      (payload) => onChange(payload),
+    )
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function sendPaymentMessage(conversationId, paymentFields) {

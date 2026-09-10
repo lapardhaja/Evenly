@@ -115,6 +115,7 @@ test('shouldAlertIncomingChat fires when the open thread is backgrounded', () =>
 
 test('incomingChatPreview clips body', () => {
   assert.equal(incomingChatPreview({ type: 'payment', body: '' }), 'Payment request');
+  assert.equal(incomingChatPreview({ type: 'image', body: '' }), 'Sent a photo');
   assert.equal(incomingChatPreview({ type: 'text', body: '  yo  ' }), 'yo');
   assert.equal(incomingChatPreview({ type: 'text', body: 'a'.repeat(90) }).length <= 80, true);
 });
