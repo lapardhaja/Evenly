@@ -2,9 +2,13 @@
 # Vercel only hosts the SPA + /api/scan — it does not run these.
 #
 # Repo secrets:
-#   SUPABASE_ACCESS_TOKEN  — Account → Access Tokens (CI)
-#   SUPABASE_PROJECT_ID    — Project Settings → General → Reference ID
-#   SUPABASE_DB_PASSWORD   — database password (Settings → Database)
+#   SUPABASE_PROJECT_ID    — Project Settings → General → Reference ID (20-char, NOT "evenly")
+#   SUPABASE_DB_PASSWORD   — Settings → Database
+#   SUPABASE_ACCESS_TOKEN  — Account → Access Tokens (used to look up region; optional if SUPABASE_DB_URL is set)
+#   SUPABASE_DB_URL        — optional. Session-mode URI; skips Management API entirely
+#
+# Do not use `supabase link`. CLI 2.117+ calls GET .../api-keys which 403s even for
+# full-permission PATs (token + project pair). `db push --db-url` only needs Postgres.
 #
 # First run against a project that was migrated by hand: see docs/SUPABASE_DATABASE.md
 # ("Baselining") so history matches files already applied.
@@ -31,17 +35,91 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Link and push migrations
+      - name: Push migrations
         run: |
           set -euo pipefail
-          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_PROJECT_ID:-}" ] || [ -z "${SUPABASE_DB_PASSWORD:-}" ]; then
-            echo "Missing SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_ID, or SUPABASE_DB_PASSWORD"
+          if [ -z "${SUPABASE_PROJECT_ID:-}" ] || [ -z "${SUPABASE_DB_PASSWORD:-}" ]; then
+            echo "Missing SUPABASE_PROJECT_ID or SUPABASE_DB_PASSWORD"
             exit 1
           fi
-          supabase link --project-ref "$SUPABASE_PROJECT_ID"
-          supabase db push --yes
+          echo "SUPABASE_PROJECT_ID length=${#SUPABASE_PROJECT_ID}"
+          if [ "$SUPABASE_PROJECT_ID" = "evenly" ] || [ "${#SUPABASE_PROJECT_ID}" -lt 15 ]; then
+            echo "SUPABASE_PROJECT_ID must be the 20-char Reference ID from Project Settings → General."
+            echo "It is not the config.toml project_id (evenly)."
+            exit 1
+          fi
+
+          python3 <<'PY'
+          import json, os, ssl, subprocess, sys, urllib.error, urllib.parse, urllib.request
+
+          ref = os.environ["SUPABASE_PROJECT_ID"]
+          pw = urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe="")
+          token = os.environ.get("SUPABASE_ACCESS_TOKEN") or ""
+          explicit = os.environ.get("SUPABASE_DB_URL") or ""
+
+          def push(url: str, label: str) -> bool:
+              parsed = urllib.parse.urlparse(url)
+              print(f"db push via {label} host={parsed.hostname} port={parsed.port} user={parsed.username}")
+              r = subprocess.run(["supabase", "db", "push", "--yes", "--db-url", url])
+              return r.returncode == 0
+
+          if explicit:
+              if not push(explicit, "SUPABASE_DB_URL"):
+                  sys.exit(1)
+              sys.exit(0)
+
+          region = ""
+          if token:
+              req = urllib.request.Request(
+                  f"https://api.supabase.com/v1/projects/{ref}",
+                  headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+              )
+              try:
+                  with urllib.request.urlopen(req, context=ssl.create_default_context(), timeout=30) as resp:
+                      body = json.load(resp)
+                  region = str(body.get("region") or "")
+                  print(f"GET /v1/projects/{ref} -> 200 region={region or '(none)'}")
+              except urllib.error.HTTPError as e:
+                  print(f"GET /v1/projects/{ref} -> {e.code} (region lookup skipped)")
+              except Exception as e:
+                  print(f"GET /v1/projects/{ref} failed: {e}")
+
+          candidates = []
+          if region:
+              for prefix in ("aws-0", "aws-1"):
+                  host = f"{prefix}-{region}.pooler.supabase.com"
+                  candidates.append(
+                      (
+                          f"session pooler {host}",
+                          f"postgresql://postgres.{ref}:{pw}@{host}:5432/postgres?sslmode=require",
+                      )
+                  )
+          candidates.append(
+              (
+                  "direct db host",
+                  f"postgresql://postgres:{pw}@db.{ref}.supabase.co:5432/postgres?sslmode=require",
+              )
+          )
+
+          last_err = None
+          for label, url in candidates:
+              try:
+                  if push(url, label):
+                      sys.exit(0)
+              except Exception as e:
+                  last_err = e
+                  print(f"{label} error: {e}")
+              print(f"{label} failed, trying next")
+
+          print("All connection attempts failed.")
+          if last_err:
+              print(last_err)
+          print("Set repo secret SUPABASE_DB_URL to the Session pooler URI from Database settings.")
+          sys.exit(1)
+          PY

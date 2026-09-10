@@ -7,7 +7,7 @@
 
 ## Application data (`public` schema)
 
-**Automatic (production):** GitHub Action `.github/workflows/supabase-migrate.yml` runs `supabase db push` on push to `main` (and `workflow_dispatch`). Add repo secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_DB_PASSWORD`. Do **not** run migrations from the Vercel build — Vercel is the SPA + `POST /api/scan` only.
+**Automatic (production):** GitHub Action `.github/workflows/supabase-migrate.yml` runs `supabase db push --db-url` on push to `main` (and `workflow_dispatch`). It does **not** call `supabase link` (CLI `link` hits `GET /v1/projects/{ref}/api-keys` and 403s even for full-permission PATs). Secrets: `SUPABASE_PROJECT_ID` (20-char Reference ID, not `evenly`), `SUPABASE_DB_PASSWORD`, `SUPABASE_ACCESS_TOKEN` (region lookup), optional `SUPABASE_DB_URL` (session-mode URI). Do **not** run migrations from the Vercel build — Vercel is the SPA + `POST /api/scan` only.
 
 **Manual (SQL editor):** run files in `supabase/migrations/` in timestamp order (idempotent).
 
