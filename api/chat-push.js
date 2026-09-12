@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { resolveCorsAllowOrigin, getRequestOrigin } from './scanGuard.js';
+import { applyApiSecurityHeaders } from './httpSecurity.js';
+import { chatPushLimiter, clientIp } from './rateLimit.js';
 import {
   bearerToken,
   buildChatPushPayload,
@@ -42,6 +44,7 @@ function readMessageId(req) {
 
 export default async function handler(req, res) {
   const env = chatPushEnv();
+  applyApiSecurityHeaders(res);
 
   if (req.method === 'OPTIONS') {
     const allowOrigin = resolveCorsAllowOrigin(req, env);
@@ -55,6 +58,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     applyCors(req, res, env);
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const limited = chatPushLimiter.check(clientIp(req));
+  if (!limited.ok) {
+    applyCors(req, res, env);
+    res.setHeader('Retry-After', String(limited.retryAfterSec));
+    return res.status(429).json({ error: 'Too many requests' });
   }
 
   const allowed = parseAllowedOriginsSafe(env);

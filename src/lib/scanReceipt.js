@@ -5,9 +5,16 @@ export function userMessageForScanFailure(status, data) {
   if (status === 413) {
     return 'That photo is too large. Try a smaller image.';
   }
+  if (status === 429) {
+    return 'Too many scan attempts. Wait a few minutes and try again.';
+  }
   const apiMsg = typeof data?.error === 'string' ? data.error : '';
   if (status >= 500) {
-    if (/no longer available|GEMINI_API_KEY is not set|Server misconfiguration/i.test(apiMsg)) {
+    if (
+      /no longer available|GEMINI_API_KEY is not set|Server misconfiguration|Receipt scan is unavailable/i.test(
+        apiMsg,
+      )
+    ) {
       return 'Receipt scan is unavailable. Please try again later.';
     }
     return 'Something went wrong. Please try again in a moment.';

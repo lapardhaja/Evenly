@@ -10,6 +10,12 @@ test('5xx model-gone is not "try another photo"', () => {
   assert.ok(!/another photo/i.test(msg));
 });
 
+test('429 is a wait message, not another photo', () => {
+  const msg = userMessageForScanFailure(429, { error: 'Too many requests' });
+  assert.match(msg, /too many scan attempts/i);
+  assert.ok(!/another photo/i.test(msg));
+});
+
 test('4xx readable API errors pass through when they are not secrets', () => {
   assert.equal(
     userMessageForScanFailure(400, { error: 'Only image uploads are supported (e.g. JPEG, PNG), not PDF.' }),
