@@ -244,9 +244,11 @@ export default function ChatThread({
     };
     window.visualViewport?.addEventListener('resize', onViewport);
     window.visualViewport?.addEventListener('scroll', onViewport);
+    window.addEventListener('resize', onViewport);
     return () => {
       window.visualViewport?.removeEventListener('resize', onViewport);
       window.visualViewport?.removeEventListener('scroll', onViewport);
+      window.removeEventListener('resize', onViewport);
     };
   }, []);
 
