@@ -136,9 +136,11 @@ export default function TermsOfServicePage() {
 
       <LegalSection id="termination" title="10. Termination">
         <LegalP>
-          You may stop using {SITE_NAME} at any time and may request deletion of cloud data as
-          described in the Privacy Policy. We may suspend or stop the service or your access, with
-          or without notice, if we discontinue the product or if you breach these Terms.
+          You may stop using {SITE_NAME} at any time. Signed-in users can delete their account in
+          Profile (type DELETE to confirm). That removes your login, profile, chats, and groups
+          you own. You may also request deletion by email as described in the Privacy Policy. We
+          may suspend or stop the service or your access, with or without notice, if we
+          discontinue the product or if you breach these Terms.
         </LegalP>
       </LegalSection>
 

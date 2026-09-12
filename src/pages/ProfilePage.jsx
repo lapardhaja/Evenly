@@ -6,13 +6,23 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
 import { isValidVenmoUsername, normalizeVenmoUsername, openVenmoProfile } from '../lib/venmoLinks.js';
 import { chatAlertsEnableHint, enableChatNotifications } from '../lib/chatAlerts.js';
+import {
+  DELETE_ACCOUNT_CONFIRM,
+  canSubmitAccountDeletion,
+  requestAccountDeletion,
+} from '../lib/deleteAccount.js';
+import { purgeCloudUserBrowserState } from '../lib/evenlyStorageKey.js';
 
 export default function ProfilePage() {
-  const { user, refreshProfile } = useAuth();
+  const { user, session, refreshProfile, configured } = useAuth();
   const [usernameEdit, setUsernameEdit] = useState('');
   const [firstNameEdit, setFirstNameEdit] = useState('');
   const [lastNameEdit, setLastNameEdit] = useState('');
@@ -26,6 +36,9 @@ export default function ProfilePage() {
   const usernameDebounceRef = useRef(null);
   const savedUsernameRef = useRef('');
   const [notifyHint, setNotifyHint] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTyped, setDeleteTyped] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const loadProfile = useCallback(async (opts = {}) => {
     const silent = !!opts.silent;
@@ -301,6 +314,85 @@ export default function ProfilePage() {
           </Box>
         )}
       </Paper>
+
+      {configured ? (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mt: 2, borderColor: 'error.light' }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
+            Delete account
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Permanently deletes your login, profile, chats, and groups you own. Groups you only
+            joined keep your display name as a guest. This cannot be undone.
+          </Typography>
+          <Button
+            color="error"
+            variant="outlined"
+            onClick={() => {
+              setDeleteTyped('');
+              setDeleteOpen(true);
+            }}
+          >
+            Delete my account
+          </Button>
+        </Paper>
+      ) : null}
+
+      <Dialog
+        open={deleteOpen}
+        onClose={() => !deleteBusy && setDeleteOpen(false)}
+        aria-labelledby="delete-account-title"
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle id="delete-account-title">Delete your Evenly account?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" paragraph>
+            Signed in as {user?.email || '…'}. Type <strong>{DELETE_ACCOUNT_CONFIRM}</strong> to
+            confirm. Groups you own (and their receipts/attachments) are removed. Chat photos you
+            sent are removed.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            label={`Type ${DELETE_ACCOUNT_CONFIRM}`}
+            value={deleteTyped}
+            onChange={(e) => setDeleteTyped(e.target.value)}
+            disabled={deleteBusy}
+            autoComplete="off"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteOpen(false)} disabled={deleteBusy}>
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={deleteBusy || !canSubmitAccountDeletion(deleteTyped)}
+            onClick={async () => {
+              setDeleteBusy(true);
+              setError('');
+              try {
+                await requestAccountDeletion({
+                  accessToken: session?.access_token,
+                  confirm: deleteTyped,
+                });
+                purgeCloudUserBrowserState(user?.id);
+                window.location.replace(
+                  `${window.location.pathname}${window.location.search}#/login`,
+                );
+              } catch (e) {
+                setError(e?.message || 'Could not delete account.');
+                setDeleteBusy(false);
+                setDeleteOpen(false);
+              }
+            }}
+          >
+            {deleteBusy ? 'Deleting…' : 'Delete account'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

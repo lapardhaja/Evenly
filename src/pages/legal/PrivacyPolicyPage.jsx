@@ -193,8 +193,10 @@ export default function PrivacyPolicyPage() {
       <LegalSection id="retention" title="10. Retention and your rights">
         <LegalP>
           Local data lasts until you clear site data. Cloud account, group, chat, and attachment
-          data last until you delete them in the product or we delete the project. You may request
-          access to or deletion of cloud data we control by emailing{' '}
+          data last until you delete them in the product or we delete the project. Signed-in users
+          can delete their account from Profile (type DELETE). That removes your Auth user (cascading
+          profile, chats, and groups you own) and then removes orphaned private files. Groups you
+          only joined keep a guest name. You may also request access or deletion by emailing{' '}
           <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. We may retain limited
           records as required by law or to resolve disputes. Clearing the browser does not delete
           a cloud account.

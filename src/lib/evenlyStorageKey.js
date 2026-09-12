@@ -159,6 +159,22 @@ export function clearLastCloudCacheUserId() {
   }
 }
 
+export function purgeCloudUserBrowserState(userId) {
+  purgeEvenlyDataFromLocalStorage();
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const key = cloudCacheKey(userId);
+    if (key) localStorage.removeItem(key);
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(EVENLY_CLOUD_CACHE_PREFIX)) localStorage.removeItem(k);
+    }
+    localStorage.removeItem(EVENLY_CLOUD_CACHE_LAST_USER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * Keep last-known groups on a transient auth/network failure.
  * Prefer in-memory when it already has groups; otherwise use the user cache.

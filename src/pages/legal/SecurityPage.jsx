@@ -77,8 +77,9 @@ export default function SecurityPage() {
         <LegalP>
           Responses include <code>X-Content-Type-Options: nosniff</code>,{' '}
           <code>X-Frame-Options: DENY</code>, a Content-Security-Policy that defaults to{' '}
-          <code>'self'</code> (with limited exceptions for Google Fonts, inline boot script, MUI
-          styles, and Supabase), <code>Referrer-Policy: strict-origin-when-cross-origin</code>, and
+          <code>'self'</code> (Google Fonts, MUI styles, and Supabase; scripts are same-origin
+          only — no <code>'unsafe-inline'</code> scripts),{' '}
+          <code>Referrer-Policy: strict-origin-when-cross-origin</code>, and
           a Permissions-Policy that disables camera, microphone, geolocation, Payment Request, USB,
           and Topics. Cross-Origin-Opener-Policy is <code>same-origin-allow-popups</code> so Venmo
           pay popups still work. We do not set COEP, which would break fonts and signed images.
@@ -88,12 +89,16 @@ export default function SecurityPage() {
 
       <LegalSection id="apis" title="7. APIs">
         <LegalP>
-          <code>POST /api/scan</code> and <code>POST /api/chat-push</code> apply CORS allowlisting
+          <code>POST /api/scan</code>, <code>POST /api/chat-push</code>, and{' '}
+          <code>POST /api/delete-account</code> apply CORS allowlisting
           (never <code>Access-Control-Allow-Origin: *</code>), optional scan secret, JSON
-          <code>Cache-Control: no-store</code>, and best-effort per-IP rate limits. Scan errors
+          <code>Cache-Control: no-store</code>, and per-IP rate limits shared across serverless
+          isolates when Upstash Redis or the Supabase service role is configured (otherwise
+          in-memory). Scan errors
           returned to the browser are generic; model and key details stay in server logs. Chat
           push requires a valid user access token and only notifies members of that conversation
-          other than the sender.
+          other than the sender. Account deletion requires your access token and typing DELETE;
+          the Auth user is removed (cascading Postgres) and then owned private files are deleted.
         </LegalP>
       </LegalSection>
 
@@ -101,7 +106,8 @@ export default function SecurityPage() {
         <LegalP>
           Usernames and emails are enumerable through in-app search by design (friend find). Anyone
           with an active public share URL can view that group’s receipts (and attachments if
-          included). In-memory API rate limits reset on serverless cold start. See also{' '}
+          included). Rate limits use Upstash or Postgres when those env vars are set; otherwise
+          they are in-memory and reset on serverless cold start. See also{' '}
           <Link component={RouterLink} to="/privacy">
             Privacy
           </Link>{' '}

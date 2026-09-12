@@ -24,13 +24,14 @@ test('legal nav includes security and cookie notice key stays v1', () => {
   assert.equal(SITE_ORIGIN, 'https://evenly.lapardhaja.com');
 });
 
-test('privacy covers chat photos, likes, push, and do-not-sell', () => {
+test('privacy covers chat photos, likes, push, do-not-sell, and in-app delete', () => {
   const src = read('PrivacyPolicyPage.jsx');
   assert.match(src, /photos/i);
   assert.match(src, /likes/i);
   assert.match(src, /Web Push/i);
   assert.match(src, /does not sell personal information/i);
   assert.match(src, /under 13/i);
+  assert.match(src, /from Profile \(type DELETE\)/);
 });
 
 test('terms use NY courts and do not force arbitration', () => {
@@ -76,4 +77,18 @@ test('router registers #/security as a public page', () => {
   const src = readFileSync(join(root, 'src/router.jsx'), 'utf8');
   assert.match(src, /path: 'security'/);
   assert.match(src, /SecurityPage/);
+});
+
+test('profile has delete-account confirm and migration is durable rate + FK fix', () => {
+  const profile = readFileSync(join(root, 'src/pages/ProfilePage.jsx'), 'utf8');
+  assert.match(profile, /Delete my account/);
+  assert.match(profile, /DELETE_ACCOUNT_CONFIRM/);
+  const mig = readFileSync(
+    join(root, 'supabase/migrations/20260912180000_account_delete_and_rate_limit.sql'),
+    'utf8',
+  );
+  assert.match(mig, /consume_rate_limit/);
+  assert.match(mig, /on delete set null/);
+  assert.match(mig, /api_rate_events/);
+  assert.match(mig, /grant execute on function public.consume_rate_limit/);
 });
