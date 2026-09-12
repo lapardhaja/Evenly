@@ -17,6 +17,7 @@ import DialogActions from '@mui/material/DialogActions';
 import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
 import ListItemText from '@mui/material/ListItemText';
+import Chip from '@mui/material/Chip';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -236,32 +237,36 @@ export default function GroupPeopleTab({ groupData }) {
                 return (
                   <Box key={f.user_id}>
                     {i > 0 ? <Divider /> : null}
-                    <ListItem
-                      secondaryAction={
-                        inGroup ? (
-                          <Typography variant="caption" color="text.secondary">
-                            Already in group
-                          </Typography>
-                        ) : (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<PersonAddIcon />}
-                            disabled={addingId === f.user_id}
-                            onClick={() => handleInvite(f)}
-                          >
-                            Add
-                          </Button>
-                        )
-                      }
-                    >
-                      <ListItemAvatar>
+                    <ListItem sx={{ gap: 1, py: 1.25, pr: 1 }}>
+                      <ListItemAvatar sx={{ minWidth: 48 }}>
                         <Avatar sx={{ bgcolor: 'primary.main' }}>{nameToInitials(label)}</Avatar>
                       </ListItemAvatar>
                       <ListItemText
+                        sx={{ minWidth: 0, flex: '1 1 auto' }}
                         primary={label}
+                        primaryTypographyProps={{ noWrap: true }}
                         secondary={f.username ? `@${f.username}` : null}
+                        secondaryTypographyProps={{ noWrap: true }}
                       />
+                      {inGroup ? (
+                        <Chip
+                          size="small"
+                          label="In group"
+                          variant="outlined"
+                          sx={{ flex: '0 0 auto' }}
+                        />
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<PersonAddIcon />}
+                          disabled={addingId === f.user_id}
+                          onClick={() => handleInvite(f)}
+                          sx={{ flex: '0 0 auto' }}
+                        >
+                          Add
+                        </Button>
+                      )}
                     </ListItem>
                   </Box>
                 );

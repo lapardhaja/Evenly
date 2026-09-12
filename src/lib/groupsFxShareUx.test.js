@@ -51,6 +51,13 @@ test('scan overlay still rotates loading quips', () => {
   assert.match(quips, /just a bite/);
 });
 
+test('invite-friend row does not overlay In group on the username', () => {
+  const people = read('src/pages/GroupPeopleTab.jsx');
+  assert.doesNotMatch(people, /Already in group/);
+  assert.match(people, /label="In group"/);
+  assert.match(people, /minWidth: 0/);
+});
+
 test('subprocessors list dated FX hosts', () => {
   const src = read('src/lib/subprocessors.js');
   assert.match(src, /frankfurter\.dev/);
