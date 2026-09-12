@@ -47,7 +47,7 @@ export default function CookiePolicyPage() {
           no optional tracking category to switch off.
         </LegalP>
         <TableContainer sx={{ mb: 2, maxWidth: '100%', overflowX: 'auto' }}>
-          <Table size="small" aria-label="Cookie and storage inventory">
+          <Table size="small" sx={{ minWidth: 720 }} aria-label="Cookie and storage inventory">
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>

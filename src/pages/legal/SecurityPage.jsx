@@ -23,7 +23,7 @@ export default function SecurityPage() {
         This page summarizes how {SITE_NAME} is built to protect accounts and group data. It is
         not a guarantee. Production: {SITE_ORIGIN}. To report a vulnerability, email{' '}
         <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link> (also listed in{' '}
-        <Link href="/.well-known/security.txt">/.well-known/security.txt</Link>
+        <Link href="/.well-known/security.txt">security.txt</Link>
         ).
       </LegalP>
       <LegalToc items={TOC} />

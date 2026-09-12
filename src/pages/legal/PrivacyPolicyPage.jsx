@@ -156,7 +156,7 @@ export default function PrivacyPolicyPage() {
           processes on our behalf.
         </LegalP>
         <TableContainer sx={{ mb: 2, maxWidth: '100%', overflowX: 'auto' }}>
-          <Table size="small" aria-label="Processors">
+          <Table size="small" sx={{ minWidth: 640 }} aria-label="Processors">
             <TableHead>
               <TableRow>
                 <TableCell>Provider</TableCell>
