@@ -1,7 +1,7 @@
 import currency from 'currency.js';
 import { idMapToList } from '../functions/utils.js';
 import { receiptGrandTotal } from '../functions/receiptTotals.js';
-import { conversionFactorFromUsdRates, fxDateKey, normalizeCurrencyCode } from './currencies.js';
+import { conversionFactorFromUsdRates, fxDateKey, getUsdRatesTablesForDates, normalizeCurrencyCode } from './currencies.js';
 
 export function usdRatesForReceipt(ratesOrByYmd, receipt) {
   if (!ratesOrByYmd) return null;
@@ -45,4 +45,16 @@ export function sumGroupReceiptsInDisplayCurrency(group, ratesOrByYmd, displayCu
     sum = currency(sum).add(currency(total).multiply(f)).value;
   }
   return sum;
+}
+
+/** Dated FX totals for every group in a `groups` map. Null entry = that group could not convert. */
+export async function convertGroupTotals(groupsMap) {
+  const raw = groupsMap || {};
+  const tables = await getUsdRatesTablesForDates(collectReceiptDatesFromGroups(raw));
+  const ratesByYmd = Object.fromEntries(tables);
+  const next = {};
+  for (const [id, g] of Object.entries(raw)) {
+    next[id] = sumGroupReceiptsInDisplayCurrency(g, ratesByYmd, g.displayCurrency || 'USD');
+  }
+  return next;
 }

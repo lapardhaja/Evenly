@@ -20,25 +20,35 @@ test('receipt detail has no People tab; /people redirects to the receipt', () =>
   assert.match(page, /ReceiptInfoItemsTab/);
 });
 
-test('groups list explains dated FX and never uses a mystery * total', () => {
+test('groups list has no mystery * total and no FX lecture caption', () => {
   const page = read('src/pages/GroupsPage.jsx');
-  assert.match(page, /GROUP_TOTAL_FX_DATE_COPY/);
   assert.match(page, /GROUP_TOTAL_FX_FAILED_COPY/);
-  assert.match(page, /getUsdRatesTablesForDates/);
+  assert.match(page, /convertGroupTotals/);
+  assert.doesNotMatch(page, /GROUP_TOTAL_FX_DATE_COPY/);
   assert.doesNotMatch(page, /} \*`/);
   assert.doesNotMatch(page, /formatMoneyWithCode\([^)]+\)\} \*/);
 });
 
-test('settle uses receipt-date FX copy and Share settlement', () => {
+test('settle share label matches the dialog it opens', () => {
   const settle = read('src/pages/GroupSettleTab.jsx');
   const share = read('src/components/SettlementShareDialog.jsx');
-  assert.match(settle, /SETTLE_FX_DATE_COPY/);
   assert.match(settle, /loadReceiptFxFactors/);
-  assert.match(settle, /Share settlement/);
+  assert.match(settle, /isSupabaseConfigured\(\) \? 'Share group' : 'Share settlement'/);
   assert.match(share, /Share settlement/);
   assert.doesNotMatch(settle, /Share Cost Evenly/);
   assert.doesNotMatch(share, /Share Cost Evenly/);
-  assert.match(settle, /I paid only marks it in Evenly/);
+  assert.doesNotMatch(settle, /SETTLE_FX_DATE_COPY/);
+  assert.doesNotMatch(settle, /I paid only marks it in Evenly/);
+});
+
+test('scan overlay still rotates loading quips', () => {
+  assert.equal(existsSync(join(root, 'src/data/scanLoadingQuips.js')), true);
+  const overlay = read('src/components/ReceiptScanLoadingOverlay.jsx');
+  const quips = read('src/data/scanLoadingQuips.js');
+  assert.match(overlay, /setInterval/);
+  assert.match(overlay, /Crunching numbers/);
+  assert.match(overlay, /SCAN_LOADING_QUIPS_EXTRA/);
+  assert.match(quips, /just a bite/);
 });
 
 test('subprocessors list dated FX hosts', () => {

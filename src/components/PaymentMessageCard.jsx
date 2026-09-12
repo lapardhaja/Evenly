@@ -107,11 +107,7 @@ export default function PaymentMessageCard({
                 <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
                   {copyHint}
                 </Typography>
-              ) : (
-                <Typography variant="caption" color="text.secondary">
-                  Opens Venmo with the amount. Send it there, then tap I paid.
-                </Typography>
-              )}
+              ) : null}
             </>
           ) : isDebtor && !isValidVenmoUsername(payload.venmo_username) ? (
             <Typography variant="caption" color="text.secondary">

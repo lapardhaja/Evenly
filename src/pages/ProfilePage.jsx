@@ -239,10 +239,7 @@ export default function ProfilePage() {
               />
             </Box>
             <Alert severity="info" sx={{ borderRadius: 2 }}>
-              Evenly can’t log into Venmo (they don’t offer that for split apps). Add your Venmo
-              username, tap <strong>Check in Venmo</strong> to confirm it’s you, then Save. On Settle, whoever
-              owes you taps Pay on Venmo — that opens Venmo with the amount. They send it there, then
-              tap I paid here.
+              Evenly can’t send Venmo payments. Save a username so people can pay you from Settle.
             </Alert>
             <TextField
               size="small"

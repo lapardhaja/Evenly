@@ -367,7 +367,7 @@ export default function ChatThread({
           </Box>
         ) : messages.length === 0 ? (
           <Typography color="text.secondary" variant="body2" sx={{ py: 3, textAlign: 'center' }}>
-            No messages yet. Say hi, send a photo, or send a Venmo request from Settle.
+            No messages yet.
           </Typography>
         ) : (
           messages.map((m) => {

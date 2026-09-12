@@ -17,6 +17,7 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import AddIcon from '@mui/icons-material/Add';
@@ -28,15 +29,10 @@ import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 import { getDefaultPeopleMapForNewGroup } from '../lib/defaultGroupPeople.js';
-import { getUsdRatesTablesForDates } from '../lib/currencies.js';
+import { convertGroupTotals } from '../lib/groupSpendConvert.js';
 import {
-  collectReceiptDatesFromGroups,
-  sumGroupReceiptsInDisplayCurrency,
-} from '../lib/groupSpendConvert.js';
-import {
-  GROUP_TOTAL_FX_DATE_COPY,
   GROUP_TOTAL_FX_FAILED_COPY,
-  groupListFxBanner,
+  groupListFxFailed,
   groupListTotalDisplay,
 } from '../lib/groupListTotals.js';
 import { canDeleteGroup, groupListBadge } from '../lib/groupMembership.js';
@@ -62,22 +58,10 @@ export default function GroupsPage() {
     let cancelled = false;
     setTotalsLoading(true);
     (async () => {
-      const raw = data.groups || {};
-      const tables = await getUsdRatesTablesForDates(collectReceiptDatesFromGroups(raw));
+      const next = await convertGroupTotals(data.groups || {});
       if (cancelled) return;
-      const ratesByYmd = Object.fromEntries(tables);
-      const next = {};
-      for (const [id, g] of Object.entries(raw)) {
-        next[id] = sumGroupReceiptsInDisplayCurrency(
-          g,
-          ratesByYmd,
-          g.displayCurrency || 'USD',
-        );
-      }
-      if (!cancelled) {
-        setConvertedTotals(next);
-        setTotalsLoading(false);
-      }
+      setConvertedTotals(next);
+      setTotalsLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -98,9 +82,9 @@ export default function GroupsPage() {
     return sorted.filter((g) => g.name.toLowerCase().includes(q));
   }, [sorted, searchQuery]);
 
-  const fxBanner = useMemo(
+  const fxFailed = useMemo(
     () =>
-      groupListFxBanner({
+      groupListFxFailed({
         fxReady: !totalsLoading,
         groups: sorted,
         convertedTotals,
@@ -168,9 +152,9 @@ export default function GroupsPage() {
       </ListItemIcon>
       <ListItemText
         primary={<Typography fontWeight={600}>{g.name}</Typography>}
+        secondaryTypographyProps={{ component: 'div' }}
         secondary={
           <Box
-            component="span"
             sx={{
               display: 'flex',
               gap: 1,
@@ -204,15 +188,17 @@ export default function GroupsPage() {
         variant="body2"
         fontWeight={600}
         color="text.secondary"
-        sx={{ ml: 2, whiteSpace: 'nowrap' }}
+        sx={{ ml: 2, whiteSpace: 'nowrap', minWidth: 72, textAlign: 'right' }}
       >
-        {totalsLoading
-          ? '…'
-          : groupListTotalDisplay({
-              convertedTotal: convertedTotals[g.id],
-              totalSpent: g.totalSpent,
-              displayCurrency: g.displayCurrency || 'USD',
-            })}
+        {totalsLoading ? (
+          <CircularProgress size={16} />
+        ) : (
+          groupListTotalDisplay({
+            convertedTotal: convertedTotals[g.id],
+            totalSpent: g.totalSpent,
+            displayCurrency: g.displayCurrency || 'USD',
+          })
+        )}
       </Typography>
     </ListItemButton>
     );
@@ -220,23 +206,14 @@ export default function GroupsPage() {
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 0.5 }}>
+      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>
         Groups
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Create a group for a trip, dinner, or any shared expense. Add
-        receipts inside and settle up at the end.
-      </Typography>
 
-      {fxBanner.failed ? (
+      {fxFailed ? (
         <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
           {GROUP_TOTAL_FX_FAILED_COPY}
         </Alert>
-      ) : null}
-      {fxBanner.dated ? (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          {GROUP_TOTAL_FX_DATE_COPY}
-        </Typography>
       ) : null}
 
       {sorted.length === 0 ? (
@@ -320,7 +297,7 @@ export default function GroupsPage() {
             showEditTextModal({
               value: '',
               setValue: handleCreate,
-              title: 'Create New Group',
+              title: 'New group',
             })
           }
           sx={fabFixedPlacementSx}
