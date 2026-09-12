@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
-import { resolveCorsAllowOrigin, getRequestOrigin } from './scanGuard.js';
-import { applyApiSecurityHeaders } from './httpSecurity.js';
-import { clientIp } from './rateLimit.js';
-import { consumeRateLimit } from './durableRateLimit.js';
-import { bearerToken } from './chatPushCore.js';
-import { assertDeleteAccountRequest, deleteAccountWithAdmin } from './deleteAccountCore.js';
+import { resolveCorsAllowOrigin, getRequestOrigin } from './_lib/scanGuard.js';
+import { applyApiSecurityHeaders } from './_lib/httpSecurity.js';
+import { clientIp } from './_lib/rateLimit.js';
+import { consumeRateLimit } from './_lib/durableRateLimit.js';
+import { bearerToken } from './_lib/chatPushCore.js';
+import { assertDeleteAccountRequest, deleteAccountWithAdmin } from './_lib/deleteAccountCore.js';
 
 export const DELETE_ACCOUNT_RATE = { windowMs: 60 * 60 * 1000, max: 5 };
 

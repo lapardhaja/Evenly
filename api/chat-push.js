@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
-import { resolveCorsAllowOrigin, getRequestOrigin } from './scanGuard.js';
-import { applyApiSecurityHeaders } from './httpSecurity.js';
-import { clientIp, CHAT_PUSH_RATE } from './rateLimit.js';
-import { consumeRateLimit } from './durableRateLimit.js';
+import { resolveCorsAllowOrigin, getRequestOrigin } from './_lib/scanGuard.js';
+import { applyApiSecurityHeaders } from './_lib/httpSecurity.js';
+import { clientIp, CHAT_PUSH_RATE } from './_lib/rateLimit.js';
+import { consumeRateLimit } from './_lib/durableRateLimit.js';
 import {
   bearerToken,
   buildChatPushPayload,
@@ -11,7 +11,7 @@ import {
   isGonePushStatus,
   recipientUserIds,
   vapidReady,
-} from './chatPushCore.js';
+} from './_lib/chatPushCore.js';
 
 function applyCors(req, res, env) {
   const allowOrigin = resolveCorsAllowOrigin(req, env);

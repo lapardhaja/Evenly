@@ -28,6 +28,8 @@ How Evenly is hardened in production. Public copy lives at `#/security`. Contact
 
 JSON responses also set `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`.
 
+Only those three files sit in `api/` as Vercel functions. Helpers and `node --test` files live in `api/_lib/` (underscore directory is not deployed as functions — Hobby is capped at 12).
+
 ### Rate-limit stores (first that is configured)
 
 1. **Upstash Redis** — `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (fixed window, shared across isolates).

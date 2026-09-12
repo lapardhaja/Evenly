@@ -1,4 +1,4 @@
-import { parseImagePayload } from '../src/lib/chatMedia.js';
+import { parseImagePayload } from '../../src/lib/chatMedia.js';
 
 export const DELETE_ACCOUNT_CONFIRM = 'DELETE';
 

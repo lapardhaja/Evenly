@@ -13,11 +13,11 @@ import {
   assertScanRequestAllowed,
   getRequestOrigin,
   resolveCorsAllowOrigin,
-} from './scanGuard.js';
-import { applyApiSecurityHeaders } from './httpSecurity.js';
-import { clientIp, SCAN_RATE } from './rateLimit.js';
-import { consumeRateLimit } from './durableRateLimit.js';
-import { SCAN_FAILED, SCAN_RATE_LIMITED, SCAN_UNAVAILABLE } from './scanPublicErrors.js';
+} from './_lib/scanGuard.js';
+import { applyApiSecurityHeaders } from './_lib/httpSecurity.js';
+import { clientIp, SCAN_RATE } from './_lib/rateLimit.js';
+import { consumeRateLimit } from './_lib/durableRateLimit.js';
+import { SCAN_FAILED, SCAN_RATE_LIMITED, SCAN_UNAVAILABLE } from './_lib/scanPublicErrors.js';
 
 function scanEnv() {
   return {
