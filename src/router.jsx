@@ -10,6 +10,7 @@ import PrivacyPolicyPage from './pages/legal/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/legal/TermsOfServicePage.jsx';
 import CookiePolicyPage from './pages/legal/CookiePolicyPage.jsx';
 import CopyrightPage from './pages/legal/CopyrightPage.jsx';
+import SecurityPage from './pages/legal/SecurityPage.jsx';
 import SharedSettlementPage from './pages/SharedSettlementPage.jsx';
 import PublicGroupSharePage from './pages/PublicGroupSharePage.jsx';
 import FriendsPage from './pages/FriendsPage.jsx';
@@ -28,6 +29,7 @@ export const router = createHashRouter([
       { path: 'terms', element: <TermsOfServicePage /> },
       { path: 'cookies', element: <CookiePolicyPage /> },
       { path: 'copyright', element: <CopyrightPage /> },
+      { path: 'security', element: <SecurityPage /> },
       { path: 'update-password', element: <UpdatePasswordPage /> },
       {
         path: 'profile-setup',

@@ -1,77 +1,108 @@
-import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableContainer from '@mui/material/TableContainer';
 import { Link as RouterLink } from 'react-router-dom';
 import LegalPageLayout from './LegalPageLayout.jsx';
-import { OPERATOR_EMAIL, OPERATOR_PLACE } from './operatorInfo.js';
+import { LegalP, LegalSection, LegalToc } from './LegalSection.jsx';
+import { OPERATOR_EMAIL, OPERATOR_PLACE, SITE_NAME } from './operatorInfo.js';
+import { COOKIE_INVENTORY, COOKIE_POLICY_SCOPE } from '../../lib/cookieInventory.js';
+
+const TOC = [
+  { id: 'meaning', label: 'What we mean by cookies' },
+  { id: 'inventory', label: 'Cookie and storage inventory' },
+  { id: 'choices', label: 'Your choices' },
+  { id: 'third', label: 'Third parties' },
+  { id: 'clear', label: 'How to clear' },
+];
 
 export default function CookiePolicyPage() {
   return (
     <LegalPageLayout title="Cookie Policy">
-      <Typography variant="body1" paragraph>
-        Evenly is a client-side web app. It uses essential browser storage so the product can
-        run. It does not currently set marketing, advertising, or analytics cookies. Operator:{' '}
-        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. Place: {OPERATOR_PLACE}.
-      </Typography>
+      <LegalP>
+        This Cookie Policy describes how {SITE_NAME} uses cookies and similar technologies.
+        Operator contact:{' '}
+        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. Place of operation:{' '}
+        {OPERATOR_PLACE}. {COOKIE_POLICY_SCOPE}
+      </LegalP>
+      <LegalToc items={TOC} />
 
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        What we mean by “cookies”
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Browsers may also keep localStorage, sessionStorage, and similar keys. This policy covers
-        those essential stores Evenly uses, even when they are not HTTP cookies.
-      </Typography>
+      <LegalSection id="meaning" title="1. What we mean by “cookies”">
+        <LegalP>
+          A cookie is a small file a site stores on your device. {SITE_NAME} is a client-side web
+          app and also uses localStorage, sessionStorage, Cache Storage (PWA), and — if you enable
+          message alerts — the Push API. This policy covers those stores even when they are not
+          HTTP cookies. We currently set <strong>strictly necessary</strong> technologies only. We
+          do not set advertising, marketing, or analytics cookies, and we do not use third-party
+          ad pixels.
+        </LegalP>
+      </LegalSection>
 
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Essential storage (always on for the app to work)
-      </Typography>
-      <Typography component="ul" sx={{ pl: 3, mb: 2 }}>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          Local group/receipt JSON in local-only mode (<code>evenly:data:v2</code> and related
-          keys).
-        </Typography>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          Theme mode so light/dark preference survives a reload.
-        </Typography>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          Optional remembered login identifier.
-        </Typography>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          Auth session material from Supabase in the browser when you are signed in (needed to
-          stay logged in).
-        </Typography>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          A local flag that you dismissed the essential-storage notice, when that banner is
-          shown.
-        </Typography>
-      </Typography>
-      <Typography variant="body1" paragraph>
-        There is no separate “reject non-essential cookies” control because Evenly does not
-        offer optional tracking cookies today. If analytics are added later, this page and
-        the banner should be updated before they run.
-      </Typography>
+      <LegalSection id="inventory" title="2. Cookie and storage inventory">
+        <LegalP>
+          All of the following are first-party and required for the feature they support. There is
+          no optional tracking category to switch off.
+        </LegalP>
+        <TableContainer sx={{ mb: 2, maxWidth: '100%', overflowX: 'auto' }}>
+          <Table size="small" aria-label="Cookie and storage inventory">
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Store</TableCell>
+                <TableCell>Purpose</TableCell>
+                <TableCell>Duration</TableCell>
+                <TableCell>Type</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {COOKIE_INVENTORY.map((row) => (
+                <TableRow key={row.name}>
+                  <TableCell sx={{ verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                    <code>{row.name}</code>
+                  </TableCell>
+                  <TableCell sx={{ verticalAlign: 'top' }}>{row.store}</TableCell>
+                  <TableCell sx={{ verticalAlign: 'top' }}>{row.purpose}</TableCell>
+                  <TableCell sx={{ verticalAlign: 'top' }}>{row.duration}</TableCell>
+                  <TableCell sx={{ verticalAlign: 'top' }}>{row.type}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </LegalSection>
 
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Third parties
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Sign-in, sync, Storage, and OCR go to Supabase and (for scans) Google via Evenly’s
-        server. Those services may set their own cookies on their domains. Hosting (for example
-        Vercel) may log requests. See the{' '}
-        <Link component={RouterLink} to="/privacy">
-          Privacy Policy
-        </Link>{' '}
-        for data categories.
-      </Typography>
+      <LegalSection id="choices" title="3. Your choices">
+        <LegalP>
+          Because {SITE_NAME} does not offer non-essential cookies, the banner asks you to
+          acknowledge essential storage rather than to opt into advertising. You can open Cookie
+          settings from the banner (or read this page) at any time. Blocking all storage in the
+          browser will sign you out, reset appearance, and — in local-only mode — delete groups
+          stored only on that device.
+        </LegalP>
+      </LegalSection>
 
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        How to clear
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Use your browser’s site-data or cookie controls for this origin. Clearing storage signs
-        you out of this browser and, in local-only mode, deletes groups stored only on the
-        device. Questions:{' '}
-        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>.
-      </Typography>
+      <LegalSection id="third" title="4. Third parties">
+        <LegalP>
+          Sign-in, sync, Storage, Realtime, OCR, and Web Push go to the processors listed in the{' '}
+          <Link component={RouterLink} to="/privacy">
+            Privacy Policy
+          </Link>
+          . Those services may set their own cookies on their own domains (for example
+          supabase.co). Hosting may log requests. Google Fonts are loaded from Google’s domains to
+          render the UI; that request is not used by {SITE_NAME} as an analytics cookie.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="clear" title="5. How to clear">
+        <LegalP>
+          Use your browser’s site-data or cookie controls for this origin (often Settings → Privacy
+          → Cookies and site data). That signs you out of this browser. Questions:{' '}
+          <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>.
+        </LegalP>
+      </LegalSection>
     </LegalPageLayout>
   );
 }

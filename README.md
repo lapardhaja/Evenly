@@ -82,6 +82,12 @@ The build is a **Progressive Web App**: **Web App Manifest** + **service worker*
 - currency.js
 - localStorage persistence; optional Supabase Auth + Postgres sync (`@supabase/supabase-js`)
 
+## Legal and security
+
+In-app (hash routes): [Privacy](https://evenly.lapardhaja.com/#/privacy), [Terms](https://evenly.lapardhaja.com/#/terms), [Cookies](https://evenly.lapardhaja.com/#/cookies), [Copyright](https://evenly.lapardhaja.com/#/copyright), [Security](https://evenly.lapardhaja.com/#/security).
+
+Vulnerability reports: `servetlap29@gmail.com` · [security.txt](https://evenly.lapardhaja.com/.well-known/security.txt) · [`SECURITY.md`](SECURITY.md) · operator notes in [`docs/SECURITY.md`](docs/SECURITY.md).
+
 ## License
 
 Copyright © 2026 Evenly  

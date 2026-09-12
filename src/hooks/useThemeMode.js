@@ -1,9 +1,10 @@
 import useMediaQuery from '@mui/material/useMediaQuery';
 import useLocalStorage from './useLocalStorage.js';
+import { THEME_MODE_STORAGE_KEY } from '../lib/themeModeKey.js';
 
 /** @typedef {'system' | 'light' | 'dark'} ThemeMode */
 
-const STORAGE_KEY = 'evenly:themeMode';
+const STORAGE_KEY = THEME_MODE_STORAGE_KEY;
 
 /**
  * Theme appearance: follow system, or force light/dark.

@@ -51,6 +51,7 @@ import { visualViewportBottomGap } from '../lib/visualViewportBottom.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 import CookieNotice from '../components/CookieNotice.jsx';
+import { LEGAL_NAV } from '../pages/legal/legalNav.js';
 import { FAB_OVERLAY_ROOT_ID } from './FabPortal.jsx';
 import {
   APP_SHELL_HEIGHT,
@@ -102,18 +103,11 @@ function AppLegalFooter() {
           Designed by Servet Lapardhaja
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
-          <Link component={RouterLink} to="/privacy" variant="caption">
-            Privacy
-          </Link>
-          <Link component={RouterLink} to="/terms" variant="caption">
-            Terms
-          </Link>
-          <Link component={RouterLink} to="/cookies" variant="caption">
-            Cookies
-          </Link>
-          <Link component={RouterLink} to="/copyright" variant="caption">
-            Copyright
-          </Link>
+          {LEGAL_NAV.map((item) => (
+            <Link key={item.to} component={RouterLink} to={item.to} variant="caption">
+              {item.label}
+            </Link>
+          ))}
         </Box>
       </Box>
     </Box>

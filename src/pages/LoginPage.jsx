@@ -574,6 +574,14 @@ export default function LoginPage() {
           <Link component={RouterLink} to="/privacy" underline="hover">
             Privacy Policy
           </Link>
+          . Related:{' '}
+          <Link component={RouterLink} to="/cookies" underline="hover">
+            Cookies
+          </Link>
+          ,{' '}
+          <Link component={RouterLink} to="/security" underline="hover">
+            Security
+          </Link>
           .
         </Typography>
       </Paper>

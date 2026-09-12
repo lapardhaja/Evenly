@@ -4,26 +4,28 @@ import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import { Link as RouterLink } from 'react-router-dom';
-
-const LEGAL_NAV = [
-  { to: '/privacy', label: 'Privacy' },
-  { to: '/terms', label: 'Terms' },
-  { to: '/cookies', label: 'Cookies' },
-  { to: '/copyright', label: 'Copyright' },
-];
+import { LEGAL_NAV } from './legalNav.js';
+import {
+  LEGAL_EFFECTIVE_DATE,
+  LEGAL_VERSION,
+  SITE_NAME,
+} from './operatorInfo.js';
 
 export default function LegalPageLayout({ title, children }) {
   return (
     <Container maxWidth="md" sx={{ py: 4, pb: 8 }}>
       <Link component={RouterLink} to="/" underline="hover" variant="body2">
-        Back to Evenly
+        Back to {SITE_NAME}
       </Link>
       <Typography variant="h4" component="h1" fontWeight={700} sx={{ mt: 2, mb: 1 }}>
         {title}
       </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+        Effective date: {LEGAL_EFFECTIVE_DATE} · Version {LEGAL_VERSION}
+      </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Last updated: 8 September 2026. These pages describe how Evenly works. They are not legal
-        advice.
+        These documents describe how {SITE_NAME} works. They are not legal advice. If you need
+        advice about your situation, consult a lawyer licensed in your jurisdiction.
       </Typography>
       <Box
         component="article"
@@ -37,6 +39,7 @@ export default function LegalPageLayout({ title, children }) {
             bgcolor: 'action.hover',
             color: 'text.primary',
           },
+          '& table': { width: '100%' },
         }}
       >
         {children}
