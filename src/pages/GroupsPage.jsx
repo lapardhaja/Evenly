@@ -16,6 +16,7 @@ import Fab from '@mui/material/Fab';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import AddIcon from '@mui/icons-material/Add';
@@ -27,8 +28,17 @@ import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 import { getDefaultPeopleMapForNewGroup } from '../lib/defaultGroupPeople.js';
-import { getUsdRatesTable, formatMoneyWithCode } from '../lib/currencies.js';
-import { sumGroupReceiptsInDisplayCurrency } from '../lib/groupSpendConvert.js';
+import { getUsdRatesTablesForDates } from '../lib/currencies.js';
+import {
+  collectReceiptDatesFromGroups,
+  sumGroupReceiptsInDisplayCurrency,
+} from '../lib/groupSpendConvert.js';
+import {
+  GROUP_TOTAL_FX_DATE_COPY,
+  GROUP_TOTAL_FX_FAILED_COPY,
+  groupListFxBanner,
+  groupListTotalDisplay,
+} from '../lib/groupListTotals.js';
 import { canDeleteGroup, groupListBadge } from '../lib/groupMembership.js';
 import { leaveGroup } from '../lib/groupMembersApi.js';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
@@ -52,19 +62,17 @@ export default function GroupsPage() {
     let cancelled = false;
     setTotalsLoading(true);
     (async () => {
-      const rates = await getUsdRatesTable();
-      if (cancelled) return;
       const raw = data.groups || {};
+      const tables = await getUsdRatesTablesForDates(collectReceiptDatesFromGroups(raw));
+      if (cancelled) return;
+      const ratesByYmd = Object.fromEntries(tables);
       const next = {};
-      const ids = Object.keys(raw);
-      if (rates) {
-        for (const [id, g] of Object.entries(raw)) {
-          next[id] = sumGroupReceiptsInDisplayCurrency(g, rates, g.displayCurrency || 'USD');
-        }
-      } else {
-        ids.forEach((id) => {
-          next[id] = null;
-        });
+      for (const [id, g] of Object.entries(raw)) {
+        next[id] = sumGroupReceiptsInDisplayCurrency(
+          g,
+          ratesByYmd,
+          g.displayCurrency || 'USD',
+        );
       }
       if (!cancelled) {
         setConvertedTotals(next);
@@ -89,6 +97,16 @@ export default function GroupsPage() {
     if (!q) return sorted;
     return sorted.filter((g) => g.name.toLowerCase().includes(q));
   }, [sorted, searchQuery]);
+
+  const fxBanner = useMemo(
+    () =>
+      groupListFxBanner({
+        fxReady: !totalsLoading,
+        groups: sorted,
+        convertedTotals,
+      }),
+    [totalsLoading, sorted, convertedTotals],
+  );
 
   const handleCreate = (name) => {
     if (!name.trim()) return;
@@ -187,17 +205,14 @@ export default function GroupsPage() {
         fontWeight={600}
         color="text.secondary"
         sx={{ ml: 2, whiteSpace: 'nowrap' }}
-        title={
-          convertedTotals[g.id] != null
-            ? `Total in ${g.displayCurrency || 'USD'} (converted from each receipt’s currency)`
-            : undefined
-        }
       >
         {totalsLoading
           ? '…'
-          : convertedTotals[g.id] != null
-            ? formatMoneyWithCode(convertedTotals[g.id], g.displayCurrency || 'USD')
-            : `${formatMoneyWithCode(g.totalSpent, g.displayCurrency || 'USD')} *`}
+          : groupListTotalDisplay({
+              convertedTotal: convertedTotals[g.id],
+              totalSpent: g.totalSpent,
+              displayCurrency: g.displayCurrency || 'USD',
+            })}
       </Typography>
     </ListItemButton>
     );
@@ -212,6 +227,17 @@ export default function GroupsPage() {
         Create a group for a trip, dinner, or any shared expense. Add
         receipts inside and settle up at the end.
       </Typography>
+
+      {fxBanner.failed ? (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+          {GROUP_TOTAL_FX_FAILED_COPY}
+        </Alert>
+      ) : null}
+      {fxBanner.dated ? (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+          {GROUP_TOTAL_FX_DATE_COPY}
+        </Typography>
+      ) : null}
 
       {sorted.length === 0 ? (
         <Paper
