@@ -104,7 +104,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
           failed.push(row.id);
         }
         setReceiptFactors(factors);
-        setFxError('Couldn’t load exchange rates. Check your connection.');
+        setFxError('Couldn’t load exchange rates. Totals may mix currencies.');
         setFxLoading(false);
         return;
       }

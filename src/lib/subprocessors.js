@@ -23,4 +23,14 @@ export const SUBPROCESSORS = [
     role: 'Web Push delivery (for example FCM, Mozilla, or Apple) when you enable message alerts',
     region: 'Varies by browser vendor',
   },
+  {
+    name: 'ExchangeRate-API (open.er-api.com)',
+    role: 'Public USD FX table for mixed-currency group totals and Settle. No account data is sent',
+    region: 'Varies (third-party CDN / API)',
+  },
+  {
+    name: 'jsDelivr / Fawaz Ahmed currency-api',
+    role: 'Fallback public FX table if ExchangeRate-API is unavailable. No account data is sent',
+    region: 'Varies (jsDelivr CDN)',
+  },
 ];
