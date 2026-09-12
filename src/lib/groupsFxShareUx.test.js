@@ -41,12 +41,14 @@ test('settle share label matches the dialog it opens', () => {
   assert.doesNotMatch(settle, /I paid only marks it in Evenly/);
 });
 
-test('scan overlay has no rotating quip timer', () => {
-  assert.equal(existsSync(join(root, 'src/data/scanLoadingQuips.js')), false);
+test('scan overlay still rotates loading quips', () => {
+  assert.equal(existsSync(join(root, 'src/data/scanLoadingQuips.js')), true);
   const overlay = read('src/components/ReceiptScanLoadingOverlay.jsx');
-  assert.doesNotMatch(overlay, /setInterval/);
-  assert.doesNotMatch(overlay, /Crunching numbers/);
-  assert.match(overlay, /Reading receipt/);
+  const quips = read('src/data/scanLoadingQuips.js');
+  assert.match(overlay, /setInterval/);
+  assert.match(overlay, /Crunching numbers/);
+  assert.match(overlay, /SCAN_LOADING_QUIPS_EXTRA/);
+  assert.match(quips, /just a bite/);
 });
 
 test('subprocessors list dated FX hosts', () => {
