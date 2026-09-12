@@ -129,6 +129,8 @@ test('chat thread page is a bounded flex column; only the message pane scrolls',
   assert.equal(chatComposerBarSx.flexShrink, 0);
   assert.equal(chatComposerBarSx.mt, 'auto');
   assert.deepEqual(chatComposerBarSx.position, { xs: 'fixed', md: 'relative' });
+  assert.match(String(chatComposerBarSx.bottom.xs), /evenly-vv-bottom/);
+  assert.match(String(chatComposerBarSx.pb.xs), /evenly-vv-bottom/);
   assert.equal(chatFillChildSx.overflow, 'hidden');
   assert.equal(chatFillChildSx.minHeight, 0);
   assert.equal(pullToRefreshFillSx.overflow, 'hidden');
@@ -200,8 +202,11 @@ test('html/body/#root lock document scroll so chat cannot pan the page', async (
   const { readFileSync } = await import('node:fs');
   const { dirname, join } = await import('node:path');
   const { fileURLToPath } = await import('node:url');
-  const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../index.css'), 'utf8');
+  const dir = dirname(fileURLToPath(import.meta.url));
+  const css = readFileSync(join(dir, '../index.css'), 'utf8');
+  const html = readFileSync(join(dir, '../../index.html'), 'utf8');
   assert.match(css, /html,\s*body,\s*#root\s*\{[^}]*overflow:\s*hidden/s);
+  assert.match(html, /interactive-widget=resizes-content/);
 });
 
 test('chat thread is Instagram-style with voice notes and a pill composer', async () => {
@@ -223,11 +228,15 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   assert.match(thread, /showName/);
   assert.match(thread, /alignItems: 'flex-end'/);
   assert.doesNotMatch(thread, /incomingText/);
+  assert.match(thread, /visualViewport/);
   assert.match(composer, /Message\.\.\./);
   assert.match(composer, /Voice message/);
   assert.match(composer, /Take photo/);
   assert.match(composer, /Photo library/);
   assert.match(composer, /Attach file/);
+  assert.match(composer, /fontSize: '16px'/);
+  assert.match(composer, /tabIndex=\{-1\}/);
+  assert.doesNotMatch(composer, /0\.95rem/);
   assert.match(sql, /'audio'/);
   assert.match(sql, /audio\/webm/);
   assert.match(page, /subtitle/);

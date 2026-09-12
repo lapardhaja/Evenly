@@ -151,6 +151,32 @@ export default function ChatComposer({
   };
 
   return (
+    <>
+      <input
+        ref={cameraRef}
+        type="file"
+        accept={CHAT_CAMERA_ACCEPT}
+        capture="environment"
+        hidden
+        tabIndex={-1}
+        onChange={onPickFile}
+      />
+      <input
+        ref={galleryRef}
+        type="file"
+        accept={CHAT_IMAGE_GALLERY_ACCEPT}
+        hidden
+        tabIndex={-1}
+        onChange={onPickFile}
+      />
+      <input
+        ref={fileRef}
+        type="file"
+        accept={CHAT_ATTACHMENT_ACCEPT}
+        hidden
+        tabIndex={-1}
+        onChange={onPickFile}
+      />
     <Box
       component="form"
       onSubmit={handleSubmit}
@@ -160,31 +186,8 @@ export default function ChatComposer({
         alignItems: 'center',
         borderTop: 0,
         bgcolor: 'background.default',
-        pb: 'max(10px, env(safe-area-inset-bottom, 0px), var(--evenly-vv-bottom, 0px))',
       }}
     >
-      <input
-        ref={cameraRef}
-        type="file"
-        accept={CHAT_CAMERA_ACCEPT}
-        capture="environment"
-        hidden
-        onChange={onPickFile}
-      />
-      <input
-        ref={galleryRef}
-        type="file"
-        accept={CHAT_IMAGE_GALLERY_ACCEPT}
-        hidden
-        onChange={onPickFile}
-      />
-      <input
-        ref={fileRef}
-        type="file"
-        accept={CHAT_ATTACHMENT_ACCEPT}
-        hidden
-        onChange={onPickFile}
-      />
       {recording ? (
         <IconButton
           type="button"
@@ -261,10 +264,14 @@ export default function ChatComposer({
               multiline
               maxRows={4}
               InputProps={{ disableUnderline: true }}
-              inputProps={{ 'aria-label': 'Message' }}
+              inputProps={{
+                'aria-label': 'Message',
+                enterKeyHint: 'send',
+                autoComplete: 'off',
+              }}
               sx={{
                 '& .MuiInputBase-input': {
-                  fontSize: '0.95rem',
+                  fontSize: '16px',
                   py: 0.75,
                 },
               }}
@@ -319,5 +326,6 @@ export default function ChatComposer({
         )}
       </Box>
     </Box>
+    </>
   );
 }

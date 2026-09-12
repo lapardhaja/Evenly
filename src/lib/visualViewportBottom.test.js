@@ -13,3 +13,7 @@ test('visualViewportBottomGap is the Safari toolbar band when the visual viewpor
 test('visualViewportBottomGap never goes negative', () => {
   assert.equal(visualViewportBottomGap({ innerHeight: 700, height: 800, offsetTop: 0 }), 0);
 });
+
+test('visualViewportBottomGap includes offsetTop so a zoomed iOS viewport still docks the composer', () => {
+  assert.equal(visualViewportBottomGap({ innerHeight: 844, height: 400, offsetTop: 200 }), 244);
+});

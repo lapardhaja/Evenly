@@ -236,6 +236,22 @@ export default function ChatThread({
     return cancel;
   }, [loading, conversationId, lastMessageId, myUserId]);
 
+  useEffect(() => {
+    const onViewport = () => {
+      const el = listRef.current;
+      if (!el || !nearBottomRef.current) return;
+      pinChatToLatestAfterLayout(el);
+    };
+    window.visualViewport?.addEventListener('resize', onViewport);
+    window.visualViewport?.addEventListener('scroll', onViewport);
+    window.addEventListener('resize', onViewport);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', onViewport);
+      window.visualViewport?.removeEventListener('scroll', onViewport);
+      window.removeEventListener('resize', onViewport);
+    };
+  }, []);
+
   const names = useMemo(() => {
     const map = { ...(preview?.names || {}), ...nameByUserId };
     Object.entries(profiles).forEach(([id, pr]) => {
