@@ -65,9 +65,9 @@ export default function SecurityPage() {
 
       <LegalSection id="storage" title="5. File storage">
         <LegalP>
-          Receipt attachments and chat photos live in private Storage buckets (MIME and size
+          Receipt attachments and chat photos/files live in private Storage buckets (MIME and size
           limits; UUID paths; no public object URLs). Clients mint short-lived signed URLs after
-          authorization — receipt attachments about two minutes, chat photos {CHAT_SIGNED_URL_TTL_SECONDS}{' '}
+          authorization — receipt attachments about two minutes, chat attachments {CHAT_SIGNED_URL_TTL_SECONDS}{' '}
           seconds. Public share viewers only receive paths when the share is active and attachments
           are included.
         </LegalP>

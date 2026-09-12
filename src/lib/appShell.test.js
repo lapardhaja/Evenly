@@ -124,6 +124,8 @@ test('chat thread page is a bounded flex column; only the message pane scrolls',
   assert.equal(chatMessagesSx.flex, 1);
   assert.equal(chatMessagesSx.overscrollBehaviorY, 'contain');
   assert.equal(chatComposerBarSx.flexShrink, 0);
+  assert.equal(chatComposerBarSx.mt, 'auto');
+  assert.deepEqual(chatComposerBarSx.position, { xs: 'fixed', md: 'relative' });
   assert.equal(chatFillChildSx.overflow, 'hidden');
   assert.equal(chatFillChildSx.minHeight, 0);
   assert.equal(pullToRefreshFillSx.overflow, 'hidden');
@@ -197,4 +199,26 @@ test('html/body/#root lock document scroll so chat cannot pan the page', async (
   const { fileURLToPath } = await import('node:url');
   const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../index.css'), 'utf8');
   assert.match(css, /html,\s*body,\s*#root\s*\{[^}]*overflow:\s*hidden/s);
+});
+
+test('chat thread pins the composer on phones and attaches documents', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const src = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '../components/ChatThread.jsx'),
+    'utf8',
+  );
+  const sql = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '../../supabase/migrations/20260912220000_chat_file_attachments.sql'),
+    'utf8',
+  );
+  assert.match(src, /AttachFileIcon/);
+  assert.match(src, /CHAT_ATTACHMENT_ACCEPT/);
+  assert.match(src, /sendChatAttachment/);
+  assert.match(src, /alignItems: 'flex-start'/);
+  assert.match(src, /incomingText/);
+  assert.doesNotMatch(src, /ImageOutlinedIcon/);
+  assert.match(sql, /'file'/);
+  assert.match(sql, /application\/pdf/);
 });

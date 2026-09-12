@@ -72,6 +72,7 @@ export const chatThreadPageSx = {
   flexDirection: 'column',
   flex: 1,
   minHeight: 0,
+  height: '100%',
   overflow: 'hidden',
   width: '100%',
   boxSizing: 'border-box',
@@ -89,8 +90,12 @@ export const chatThreadRootSx = {
   flexDirection: 'column',
   flex: 1,
   minHeight: 0,
+  height: '100%',
   overflow: 'hidden',
 };
+
+export const CHAT_COMPOSER_MOBILE_CLEARANCE =
+  'calc(80px + env(safe-area-inset-bottom, 0px) + var(--evenly-vv-bottom, 0px) + var(--evenly-cookie-banner-offset, 0px))';
 
 export const chatMessagesSx = {
   flex: 1,
@@ -99,7 +104,8 @@ export const chatMessagesSx = {
   overscrollBehaviorY: 'contain',
   WebkitOverflowScrolling: 'touch',
   px: { xs: 0.5, md: 1.5 },
-  py: { xs: 1, md: 1.5 },
+  pt: { xs: 1, md: 1.5 },
+  pb: { xs: CHAT_COMPOSER_MOBILE_CLEARANCE, md: 1.5 },
 };
 
 export const chatComposerBarSx = {
@@ -107,8 +113,18 @@ export const chatComposerBarSx = {
   gap: 1,
   alignItems: 'flex-end',
   flexShrink: 0,
+  mt: 'auto',
+  position: { xs: 'fixed', md: 'relative' },
+  left: { xs: 0, md: 'auto' },
+  right: { xs: 0, md: 'auto' },
+  bottom: { xs: 'var(--evenly-cookie-banner-offset, 0px)', md: 'auto' },
+  zIndex: { xs: 8, md: 1 },
+  bgcolor: 'background.default',
+  px: { xs: 1, md: 0 },
   pt: 1,
   pb: 1,
+  borderTop: { xs: '1px solid', md: 0 },
+  borderColor: 'divider',
 };
 
 export const pullToRefreshFillSx = {
