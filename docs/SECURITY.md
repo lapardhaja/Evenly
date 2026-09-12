@@ -8,7 +8,7 @@ How Evenly is hardened in production. Public copy lives at `#/security`. Contact
 
 | Header | Intent |
 | --- | --- |
-| `Content-Security-Policy` | Default `'self'`. Scripts are same-origin only (`/auth-capture.js` for password-reset capture — **no** script `'unsafe-inline'`). Inline styles are required for MUI/Emotion. Fonts: Google Fonts. Images/connect: this origin + `*.supabase.co` (HTTPS + WSS). |
+| `Content-Security-Policy` | Default `'self'`. Scripts are same-origin only (`/auth-capture.js` for password-reset capture — **no** script `'unsafe-inline'`). Inline styles are required for MUI/Emotion. Fonts: Google Fonts. Images: this origin + `*.supabase.co`. Connect: this origin + `*.supabase.co` (HTTPS + WSS) + FX (`open.er-api.com`, `cdn.jsdelivr.net`). |
 | `Strict-Transport-Security` | Two years, `includeSubDomains`. **No `preload`.** |
 | `X-Frame-Options` / `frame-ancestors` | Deny clickjacking. |
 | `X-Content-Type-Options` | `nosniff`. |

@@ -77,7 +77,8 @@ export default function SecurityPage() {
         <LegalP>
           Responses include <code>X-Content-Type-Options: nosniff</code>,{' '}
           <code>X-Frame-Options: DENY</code>, a Content-Security-Policy that defaults to{' '}
-          <code>'self'</code> (Google Fonts, MUI styles, and Supabase; scripts are same-origin
+          <code>'self'</code> (Google Fonts, MUI styles, Supabase, and public FX rate APIs
+          used to convert mixed-currency receipts; scripts are same-origin
           only — no <code>'unsafe-inline'</code> scripts),{' '}
           <code>Referrer-Policy: strict-origin-when-cross-origin</code>, and
           a Permissions-Policy that disables camera, microphone, geolocation, Payment Request, USB,

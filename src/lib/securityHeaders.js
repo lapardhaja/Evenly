@@ -7,6 +7,7 @@
  * CSP notes:
  * - Scripts: `'self'` only. Auth capture lives in `/auth-capture.js` (not inline).
  * - `'unsafe-inline'` styles: MUI / Emotion runtime style tags + Google Fonts CSS.
+ * - `connect-src` also allows FX: `open.er-api.com` + `cdn.jsdelivr.net` (`currencies.js`).
  * - `Cross-Origin-Opener-Policy: same-origin-allow-popups` so Venmo `window.open` still works.
  * - No COEP: would break Google Fonts and Supabase signed image URLs.
  */
@@ -22,7 +23,7 @@ export const CONTENT_SECURITY_POLICY = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https://*.supabase.co",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://open.er-api.com https://cdn.jsdelivr.net",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   'upgrade-insecure-requests',

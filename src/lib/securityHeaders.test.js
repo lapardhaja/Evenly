@@ -19,7 +19,7 @@ test('CSP allows self, fonts, supabase, MUI styles, and Venmo-safe COOP — no s
   assert.equal(CONTENT_SECURITY_POLICY.includes("'unsafe-inline'") && /script-src [^;]*unsafe-inline/.test(CONTENT_SECURITY_POLICY), false);
   assert.equal(/script-src 'self'/.test(CONTENT_SECURITY_POLICY) && !/script-src 'self' 'unsafe-inline'/.test(CONTENT_SECURITY_POLICY), true);
   assert.match(CONTENT_SECURITY_POLICY, /style-src 'self' 'unsafe-inline' https:\/\/fonts\.googleapis\.com/);
-  assert.match(CONTENT_SECURITY_POLICY, /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co/);
+  assert.match(CONTENT_SECURITY_POLICY, /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co https:\/\/open\.er-api\.com https:\/\/cdn\.jsdelivr\.net/);
   assert.match(CONTENT_SECURITY_POLICY, /img-src 'self' data: blob: https:\/\/\*\.supabase\.co/);
   assert.equal(CONTENT_SECURITY_POLICY.includes('unsafe-eval'), false);
   assert.equal(
@@ -54,4 +54,21 @@ test('index.html has no inline scripts; auth capture is a same-origin file', () 
   const capture = readFileSync(join(root, 'public/auth-capture.js'), 'utf8');
   assert.match(capture, /evenly:auth:pending/);
   assert.equal(capture.includes('import '), false);
+});
+
+test('CSP connect-src allows every HTTPS origin currencies.js fetches', () => {
+  const src = readFileSync(join(root, 'src/lib/currencies.js'), 'utf8');
+  const origins = [
+    ...new Set(
+      [...src.matchAll(/https:\/\/[^\s'"]+/g)].map((m) => new URL(m[0]).origin),
+    ),
+  ];
+  assert.ok(origins.length > 0);
+  for (const origin of origins) {
+    assert.equal(
+      CONTENT_SECURITY_POLICY.includes(origin),
+      true,
+      `connect-src missing ${origin}`,
+    );
+  }
 });
