@@ -58,6 +58,7 @@ import {
   appLegalFooterSx,
   appShellFooterPinMainSx,
   appShellFooterPinSx,
+  isChatComposerRoute,
   isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
   pullToRefreshScrollSx,
@@ -330,6 +331,7 @@ export default function Layout() {
   const pullToRefreshDisabledForRoute = isPullToRefreshDisabledForRoute(location.pathname);
   const usesPullToRefreshLayout = shouldUsePullToRefreshLayout(onLoginRoute);
   const showAppLegalFooter = shouldShowAppLegalFooter(location.pathname);
+  const hideAppBar = isChatComposerRoute(location.pathname);
 
   const handleRetrySync = useCallback(() => {
     reloadFromServer();
@@ -362,6 +364,7 @@ export default function Layout() {
           overflow: 'hidden',
         }}
       >
+        {hideAppBar ? null : (
         <AppBar
           position="sticky"
           elevation={0}
@@ -564,6 +567,7 @@ export default function Layout() {
             ) : null}
           </Toolbar>
         </AppBar>
+        )}
 
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {supabaseConfigured && user && syncError && !onLoginRoute ? (

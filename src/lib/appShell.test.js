@@ -104,6 +104,8 @@ test('Layout pins the legal footer under a min-height 100% column', async () => 
   assert.match(src, /appShellFooterPinSx/);
   assert.match(src, /appShellFooterPinMainSx/);
   assert.match(src, /appLegalFooterSx/);
+  assert.match(src, /hideAppBar/);
+  assert.match(src, /isChatComposerRoute/);
 });
 
 test('chat column uses a desktop-width container, not the phone sm cap', () => {

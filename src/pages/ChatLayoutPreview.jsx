@@ -5,7 +5,7 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ChatThread from '../components/ChatThread.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import { chatThreadPageSx, CHAT_CONTAINER_MAX_WIDTH } from '../lib/appShell.js';
@@ -20,6 +20,8 @@ const PHOTO =
 
 export default function ChatLayoutPreview() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const isGroup = params.get('group') === '1';
   const preview = useMemo(
     () => ({
       userId: ME,
@@ -89,7 +91,11 @@ export default function ChatLayoutPreview() {
           </Typography>
         </Box>
       </Box>
-      <ChatThread conversationId="preview" groupName="Weekend" preview={preview} />
+      <ChatThread
+        conversationId="preview"
+        groupName={isGroup ? 'Weekend' : ''}
+        preview={preview}
+      />
     </Container>
   );
 }
