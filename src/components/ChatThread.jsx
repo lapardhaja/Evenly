@@ -6,7 +6,8 @@ import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import SendIcon from '@mui/icons-material/Send';
-import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -14,7 +15,7 @@ import { formatFullName, getProfilesByIds } from '../lib/friendsApi.js';
 import {
   listMessages,
   sendTextMessage,
-  sendImageMessage,
+  sendChatAttachment,
   signedChatImageUrl,
   listMessageLikes,
   likeMessage,
@@ -29,7 +30,11 @@ import {
 import { clipMessageBody, MESSAGE_BODY_MAX, parsePaymentPayload } from '../lib/chatPayment.js';
 import {
   applyLikeRealtime,
+  CHAT_ATTACHMENT_ACCEPT,
+  formatChatByteSize,
+  isFileMessage,
   isImageMessage,
+  parseFilePayload,
   parseImagePayload,
   summarizeLikes,
   toggleLikeState,
@@ -67,7 +72,7 @@ export default function ChatThread({
   groupName,
   nameByUserId = {},
   onPaymentSettled,
-  minHeight = 360,
+  minHeight = 0,
 }) {
   const { user } = useAuth();
   const theme = useTheme();
@@ -94,8 +99,11 @@ export default function ChatThread({
   const ensureImageUrls = useCallback(async (rows) => {
     const updates = {};
     for (const row of rows || []) {
-      if (!isImageMessage(row)) continue;
-      const path = parseImagePayload(row.payload)?.storage_path;
+      const path = isImageMessage(row)
+        ? parseImagePayload(row.payload)?.storage_path
+        : isFileMessage(row)
+          ? parseFilePayload(row.payload)?.storage_path
+          : '';
       if (!path || urlCacheRef.current.has(path)) continue;
       try {
         const url = await signedChatImageUrl(path);
@@ -171,7 +179,7 @@ export default function ChatThread({
       if (payload.eventType === 'INSERT' && row?.id) {
         setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
         messageIdsRef.current.add(row.id);
-        if (isImageMessage(row)) void ensureImageUrls([row]);
+        if (isImageMessage(row) || isFileMessage(row)) void ensureImageUrls([row]);
       } else if (payload.eventType === 'UPDATE' && row?.id) {
         setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...row } : m)));
         const p = parsePaymentPayload(row.payload);
@@ -280,18 +288,18 @@ export default function ChatThread({
     }
   };
 
-  const handlePickImage = async (e) => {
+  const handlePickAttachment = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || sending) return;
     setSending(true);
     setError('');
     try {
-      const row = await sendImageMessage(conversationId, file);
+      const row = await sendChatAttachment(conversationId, file);
       setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
       await ensureImageUrls([row]);
     } catch (err) {
-      setError(err?.message || 'Couldn’t send photo.');
+      setError(err?.message || 'Couldn’t send attachment.');
     } finally {
       setSending(false);
     }
@@ -375,12 +383,20 @@ export default function ChatThread({
             const label = names[m.sender_id] || 'Someone';
             const like = likes.get(m.id) || { count: 0, mine: false };
             const image = isImageMessage(m) ? parseImagePayload(m.payload) : null;
-            const imageUrl = image
-              ? imageUrls[image.storage_path] || urlCacheRef.current.get(image.storage_path) || ''
+            const file = isFileMessage(m) ? parseFilePayload(m.payload) : null;
+            const attachmentPath = image?.storage_path || file?.storage_path || '';
+            const attachmentUrl = attachmentPath
+              ? imageUrls[attachmentPath] || urlCacheRef.current.get(attachmentPath) || ''
               : '';
-            const openPhoto = imageUrl
-              ? () => setLightbox({ url: imageUrl, mimeType: image.mime_type, fileName: 'Photo' })
+            const openAttachment = attachmentUrl
+              ? () =>
+                  setLightbox({
+                    url: attachmentUrl,
+                    mimeType: image?.mime_type || file?.mime_type || '',
+                    fileName: file?.file_name || 'Photo',
+                  })
               : null;
+            const incomingText = !mine && !image && !file && m.type !== 'payment';
             return (
               <Box
                 key={m.id}
@@ -388,8 +404,8 @@ export default function ChatThread({
                   display: 'flex',
                   justifyContent: mine ? 'flex-end' : 'flex-start',
                   gap: 1,
-                  mb: 1.25,
-                  alignItems: 'flex-end',
+                  mb: 1.5,
+                  alignItems: 'flex-start',
                 }}
               >
                 {!mine ? (
@@ -399,20 +415,67 @@ export default function ChatThread({
                       height: { xs: 28, md: 36 },
                       fontSize: { xs: '0.7rem', md: '0.85rem' },
                       bgcolor: 'primary.main',
+                      mt: 0.15,
+                      flexShrink: 0,
                     }}
                   >
                     {nameToInitials(label)}
                   </Avatar>
                 ) : null}
-                <Box sx={chatBubbleMaxWidthSx}>
-                  {!mine ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                <Box
+                  sx={{
+                    ...chatBubbleMaxWidthSx,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: mine ? 'flex-end' : 'flex-start',
+                    minWidth: 0,
+                  }}
+                >
+                  {incomingText ? (
+                    <Box
+                      onPointerUp={handleBubblePointer(m)}
+                      sx={{
+                        px: 0.5,
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'baseline',
+                        columnGap: 0.75,
+                        rowGap: 0.15,
+                      }}
+                    >
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontWeight: 600, flexShrink: 0 }}
+                      >
+                        {label}
+                      </Typography>
+                      <Typography
+                        component="span"
+                        variant="body2"
+                        sx={{
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          fontSize: { xs: '0.875rem', md: '1rem' },
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        {m.body}
+                      </Typography>
+                    </Box>
+                  ) : !mine ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ px: 0.5, fontWeight: 600 }}>
                       {label}
                     </Typography>
                   ) : null}
                   <Box
                     sx={{
                       position: 'relative',
+                      width: image || file ? '100%' : 'auto',
+                      maxWidth: '100%',
                       '@keyframes evenlyHeartPop': {
                         '0%': { transform: 'translate(-50%, -50%) scale(0.35)', opacity: 0 },
                         '35%': { transform: 'translate(-50%, -50%) scale(1.2)', opacity: 1 },
@@ -433,20 +496,20 @@ export default function ChatThread({
                       />
                     ) : image ? (
                       <Box
-                        onPointerUp={handleBubblePointer(m, openPhoto)}
+                        onPointerUp={handleBubblePointer(m, openAttachment)}
                         sx={{
                           borderRadius: 2,
                           overflow: 'hidden',
                           bgcolor: mine ? 'primary.main' : 'action.hover',
-                          cursor: imageUrl ? 'pointer' : 'default',
+                          cursor: attachmentUrl ? 'pointer' : 'default',
                           userSelect: 'none',
                           WebkitUserSelect: 'none',
                         }}
                       >
-                        {imageUrl ? (
+                        {attachmentUrl ? (
                           <Box
                             component="img"
-                            src={imageUrl}
+                            src={attachmentUrl}
                             alt="Photo"
                             draggable={false}
                             sx={{
@@ -462,7 +525,37 @@ export default function ChatThread({
                           </Box>
                         )}
                       </Box>
-                    ) : (
+                    ) : file ? (
+                      <Box
+                        onPointerUp={handleBubblePointer(m, openAttachment)}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: 2,
+                          bgcolor: mine ? 'primary.main' : 'action.hover',
+                          color: mine ? 'primary.contrastText' : 'text.primary',
+                          cursor: attachmentUrl ? 'pointer' : 'default',
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none',
+                          maxWidth: '100%',
+                        }}
+                      >
+                        <InsertDriveFileOutlinedIcon fontSize="small" />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" noWrap>
+                            {file.file_name}
+                          </Typography>
+                          {file.byte_size ? (
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                              {formatChatByteSize(file.byte_size)}
+                            </Typography>
+                          ) : null}
+                        </Box>
+                      </Box>
+                    ) : incomingText ? null : (
                       <Box
                         onPointerUp={handleBubblePointer(m)}
                         sx={{
@@ -508,7 +601,8 @@ export default function ChatThread({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: mine ? 'flex-end' : 'flex-start',
-                      mt: 0.15,
+                      mt: 0.35,
+                      ml: mine ? 0 : 0.25,
                     }}
                   >
                     <IconButton
@@ -540,24 +634,24 @@ export default function ChatThread({
         onSubmit={handleSend}
         sx={{
           ...chatComposerBarSx,
-          pb: 'max(8px, env(safe-area-inset-bottom, 0px), var(--evenly-vv-bottom, 0px), var(--evenly-cookie-banner-offset, 0px))',
+          pb: 'max(8px, env(safe-area-inset-bottom, 0px), var(--evenly-vv-bottom, 0px))',
         }}
       >
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          accept={CHAT_ATTACHMENT_ACCEPT}
           hidden
-          onChange={handlePickImage}
+          onChange={handlePickAttachment}
         />
         <IconButton
           type="button"
           color="primary"
           disabled={sending}
-          aria-label="Send photo"
+          aria-label="Attach photo or document"
           onClick={() => fileInputRef.current?.click()}
         >
-          <ImageOutlinedIcon />
+          <AttachFileIcon />
         </IconButton>
         <TextField
           value={draft}

@@ -1,6 +1,7 @@
 import { compressImageDataUrl } from './compressImageForScan.js';
 
 export const CHAT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+export const CHAT_FILE_MAX_BYTES = 10 * 1024 * 1024;
 export const CHAT_IMAGE_BUCKET = 'chat-attachments';
 /** Short-lived object URLs for chat photos (private bucket). Refresh on view. */
 export const CHAT_SIGNED_URL_TTL_SECONDS = 600;
@@ -12,15 +13,81 @@ export const ALLOWED_CHAT_IMAGE_MIME = new Set([
   'image/gif',
 ]);
 
+export const ALLOWED_CHAT_FILE_MIME = new Set([
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  'application/rtf',
+  'text/rtf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/zip',
+  'application/x-zip-compressed',
+]);
+
 const MIME_TO_EXT = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'application/pdf': 'pdf',
+  'text/plain': 'txt',
+  'text/csv': 'csv',
+  'application/rtf': 'rtf',
+  'text/rtf': 'rtf',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/zip': 'zip',
+  'application/x-zip-compressed': 'zip',
 };
 
+const EXT_TO_MIME = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  pdf: 'application/pdf',
+  txt: 'text/plain',
+  csv: 'text/csv',
+  rtf: 'application/rtf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  zip: 'application/zip',
+};
+
+export const CHAT_ATTACHMENT_ACCEPT = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.ppt',
+  '.pptx',
+  '.txt',
+  '.csv',
+  '.zip',
+  '.rtf',
+].join(',');
+
 export function extensionForChatImageMime(mime) {
-  return MIME_TO_EXT[mime] || 'jpg';
+  return MIME_TO_EXT[mime] || 'bin';
 }
 
 export function buildChatImageStoragePath(conversationId, messageId, mime) {
@@ -28,17 +95,68 @@ export function buildChatImageStoragePath(conversationId, messageId, mime) {
   return `${conversationId}/${messageId}.${ext}`;
 }
 
+export function sanitizeChatFileName(name) {
+  const base = String(name || 'file').replace(/^.*[/\\]/, '');
+  const cleaned = base.replace(/[\u0000-\u001f<>:"|?*]/g, '_').trim();
+  return cleaned.slice(0, 120) || 'file';
+}
+
+export function inferChatFileMime(file) {
+  const reported = typeof file?.type === 'string' ? file.type.trim().toLowerCase() : '';
+  if (reported && reported !== 'application/octet-stream') return reported;
+  const name = typeof file?.name === 'string' ? file.name : '';
+  const ext = name.split('.').pop()?.toLowerCase();
+  return (ext && EXT_TO_MIME[ext]) || '';
+}
+
+export function classifyChatAttachment(file) {
+  const mime = inferChatFileMime(file);
+  if (ALLOWED_CHAT_IMAGE_MIME.has(mime)) return 'image';
+  if (ALLOWED_CHAT_FILE_MIME.has(mime)) return 'file';
+  return '';
+}
+
 export function assertChatImageFile(file) {
-  if (!file || typeof file.type !== 'string' || typeof file.size !== 'number') {
+  if (!file || typeof file.size !== 'number') {
     throw new Error('Pick a photo to send.');
   }
-  if (!ALLOWED_CHAT_IMAGE_MIME.has(file.type)) {
+  const mime = inferChatFileMime(file);
+  if (!ALLOWED_CHAT_IMAGE_MIME.has(mime)) {
     throw new Error('Send a JPEG, PNG, WebP, or GIF.');
   }
   if (file.size <= 0) throw new Error('That photo is empty.');
   if (file.size > CHAT_IMAGE_MAX_BYTES) {
     throw new Error('Photo is too large (max 8 MB).');
   }
+}
+
+export function assertChatFile(file) {
+  if (!file || typeof file.size !== 'number') {
+    throw new Error('Pick a file to send.');
+  }
+  const mime = inferChatFileMime(file);
+  if (!ALLOWED_CHAT_FILE_MIME.has(mime)) {
+    throw new Error('Send a PDF, Office doc, text, or zip file.');
+  }
+  if (file.size <= 0) throw new Error('That file is empty.');
+  if (file.size > CHAT_FILE_MAX_BYTES) {
+    throw new Error('File is too large (max 10 MB).');
+  }
+}
+
+export function chatNonTextPreview(type) {
+  if (type === 'image') return 'Sent a photo';
+  if (type === 'file') return 'Sent a file';
+  if (type === 'payment') return 'Payment request';
+  return '';
+}
+
+export function formatChatByteSize(bytes) {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  if (n < 1024) return `${Math.round(n)} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function parseImagePayload(raw) {
@@ -58,7 +176,26 @@ export function parseImagePayload(raw) {
 }
 
 export function isImageMessage(message) {
+  if (message?.type === 'file') return false;
   return message?.type === 'image' || Boolean(parseImagePayload(message?.payload));
+}
+
+export function parseFilePayload(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const storagePath = typeof raw.storage_path === 'string' ? raw.storage_path.trim() : '';
+  if (!storagePath) return null;
+  const fileName = sanitizeChatFileName(raw.file_name || raw.filename || 'file');
+  const mime = typeof raw.mime_type === 'string' ? raw.mime_type : 'application/octet-stream';
+  return {
+    storage_path: storagePath,
+    mime_type: mime,
+    file_name: fileName,
+    byte_size: Number(raw.byte_size) || null,
+  };
+}
+
+export function isFileMessage(message) {
+  return message?.type === 'file';
 }
 
 export function summarizeLikes(rows, myUserId) {
@@ -127,7 +264,8 @@ function dataUrlToBlob(dataUrl) {
 
 export async function fileToChatImageBlob(file) {
   assertChatImageFile(file);
-  if (file.type === 'image/gif') {
+  const mime = inferChatFileMime(file);
+  if (mime === 'image/gif') {
     return { blob: file, mime: 'image/gif', width: null, height: null };
   }
   const dataUrl = await new Promise((resolve, reject) => {
@@ -137,6 +275,6 @@ export async function fileToChatImageBlob(file) {
     reader.readAsDataURL(file);
   });
   const compressed = await compressImageDataUrl(dataUrl);
-  const { blob, mime } = dataUrlToBlob(compressed);
-  return { blob, mime, width: null, height: null };
+  const { blob, mime: outMime } = dataUrlToBlob(compressed);
+  return { blob, mime: outMime, width: null, height: null };
 }

@@ -4,10 +4,14 @@ import { notifyChatPush } from './chatPushClient.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   assertChatImageFile,
+  assertChatFile,
   buildChatImageStoragePath,
+  classifyChatAttachment,
   CHAT_IMAGE_BUCKET,
   CHAT_SIGNED_URL_TTL_SECONDS,
   fileToChatImageBlob,
+  inferChatFileMime,
+  sanitizeChatFileName,
 } from './chatMedia.js';
 
 function clientOrThrow() {
@@ -158,6 +162,53 @@ export async function sendImageMessage(conversationId, file) {
   }
   void notifyChatPush(data.id).catch(() => {});
   return data;
+}
+
+export async function sendFileMessage(conversationId, file) {
+  assertChatFile(file);
+  const mime = inferChatFileMime(file);
+  const supabase = clientOrThrow();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in');
+  const id = uuidv4();
+  const storagePath = buildChatImageStoragePath(conversationId, id, mime);
+  const up = await supabase.storage.from(CHAT_IMAGE_BUCKET).upload(storagePath, file, {
+    contentType: mime,
+    upsert: false,
+  });
+  if (up.error) throw up.error;
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      id,
+      conversation_id: conversationId,
+      sender_id: user.id,
+      type: 'file',
+      body: '',
+      payload: {
+        storage_path: storagePath,
+        mime_type: mime,
+        file_name: sanitizeChatFileName(file.name),
+        byte_size: file.size,
+      },
+    })
+    .select('id, conversation_id, sender_id, type, body, payload, created_at')
+    .single();
+  if (error) {
+    await supabase.storage.from(CHAT_IMAGE_BUCKET).remove([storagePath]).catch(() => {});
+    throw error;
+  }
+  void notifyChatPush(data.id).catch(() => {});
+  return data;
+}
+
+export async function sendChatAttachment(conversationId, file) {
+  const kind = classifyChatAttachment(file);
+  if (kind === 'image') return sendImageMessage(conversationId, file);
+  if (kind === 'file') return sendFileMessage(conversationId, file);
+  throw new Error('Send a photo, PDF, Office doc, text, or zip file.');
 }
 
 export async function signedChatImageUrl(storagePath) {

@@ -27,12 +27,17 @@ test('buildChatPushPayload uses sender name and message preview', () => {
   assert.equal(p.path, '#/chat/c1');
 });
 
-test('buildChatPushPayload labels photos', () => {
-  const p = buildChatPushPayload({
+test('buildChatPushPayload labels photos and files', () => {
+  const photo = buildChatPushPayload({
     senderName: 'Sam',
     message: { conversation_id: 'c3', type: 'image', body: '' },
   });
-  assert.equal(p.body, 'Sent a photo');
+  assert.equal(photo.body, 'Sent a photo');
+  const file = buildChatPushPayload({
+    senderName: 'Sam',
+    message: { conversation_id: 'c3', type: 'file', body: '' },
+  });
+  assert.equal(file.body, 'Sent a file');
 });
 
 test('isGonePushStatus treats 404/410 as drop subscription', () => {

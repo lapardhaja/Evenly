@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertChatFile,
   assertChatImageFile,
   buildChatImageStoragePath,
+  classifyChatAttachment,
+  formatChatByteSize,
+  inferChatFileMime,
+  isFileMessage,
+  parseFilePayload,
   parseImagePayload,
   isImageMessage,
+  sanitizeChatFileName,
   summarizeLikes,
   toggleLikeState,
   applyLikeRealtime,
@@ -29,6 +36,26 @@ test('assertChatImageFile rejects non-images and oversize', () => {
   assert.throws(() =>
     assertChatImageFile({ type: 'image/jpeg', size: CHAT_IMAGE_MAX_BYTES + 1 }),
   );
+});
+
+test('documents are classified as file attachments', () => {
+  assert.equal(classifyChatAttachment({ type: 'application/pdf', name: 'a.pdf', size: 10 }), 'file');
+  assert.equal(classifyChatAttachment({ type: 'image/png', name: 'a.png', size: 10 }), 'image');
+  assert.equal(inferChatFileMime({ type: '', name: 'notes.docx' }), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  assert.doesNotThrow(() => assertChatFile({ type: 'application/pdf', name: 'a.pdf', size: 20 }));
+  assert.throws(() => assertChatFile({ type: 'image/jpeg', name: 'a.jpg', size: 20 }));
+});
+
+test('file payload and isImageMessage do not collide', () => {
+  const fileMsg = {
+    type: 'file',
+    payload: { storage_path: 'c/m.pdf', mime_type: 'application/pdf', file_name: 'bill.pdf' },
+  };
+  assert.equal(isFileMessage(fileMsg), true);
+  assert.equal(isImageMessage(fileMsg), false);
+  assert.equal(parseFilePayload(fileMsg.payload).file_name, 'bill.pdf');
+  assert.equal(sanitizeChatFileName('../../x.pdf'), 'x.pdf');
+  assert.equal(formatChatByteSize(2048), '2 KB');
 });
 
 test('parseImagePayload needs a storage path', () => {
