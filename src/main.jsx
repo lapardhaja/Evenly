@@ -8,7 +8,7 @@ import { GroupsDataProvider } from './context/GroupsDataContext.jsx';
 import AppErrorBoundary from './components/AppErrorBoundary.jsx';
 import './index.css';
 
-const PRELOAD_RELOAD_KEY = 'evenly:chunk-reload';
+import { PRELOAD_RELOAD_KEY } from './lib/pwaReloadKey.js';
 
 /** Stale PWA cache after a deploy: hashed JS 404s → Vite preload error → blank #root. */
 window.addEventListener('vite:preloadError', () => {

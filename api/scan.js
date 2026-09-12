@@ -13,7 +13,11 @@ import {
   assertScanRequestAllowed,
   getRequestOrigin,
   resolveCorsAllowOrigin,
-} from './scanGuard.js';
+} from './_lib/scanGuard.js';
+import { applyApiSecurityHeaders } from './_lib/httpSecurity.js';
+import { clientIp, SCAN_RATE } from './_lib/rateLimit.js';
+import { consumeRateLimit } from './_lib/durableRateLimit.js';
+import { SCAN_FAILED, SCAN_RATE_LIMITED, SCAN_UNAVAILABLE } from './_lib/scanPublicErrors.js';
 
 function scanEnv() {
   return {
@@ -32,6 +36,12 @@ function applyScanCors(req, res) {
       'Content-Type, x-evenly-scan-secret',
     );
   }
+}
+
+function sendJson(req, res, status, body) {
+  applyScanCors(req, res);
+  applyApiSecurityHeaders(res);
+  return res.status(status).json(body);
 }
 
 function parseGeminiJson(text) {
@@ -105,27 +115,39 @@ export default async function handler(req, res) {
     const env = scanEnv();
     const allowOrigin = resolveCorsAllowOrigin(req, env);
     if (getRequestOrigin(req) && !allowOrigin) {
+      applyApiSecurityHeaders(res);
       return res.status(403).end();
     }
+    applyApiSecurityHeaders(res);
     applyScanCors(req, res);
     return res.status(204).end();
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendJson(req, res, 405, { error: 'Method not allowed' });
+  }
+
+  const limited = await consumeRateLimit({
+    bucket: 'scan',
+    ip: clientIp(req),
+    ...SCAN_RATE,
+  });
+  if (!limited.ok) {
+    applyScanCors(req, res);
+    applyApiSecurityHeaders(res);
+    res.setHeader('Retry-After', String(limited.retryAfterSec));
+    return res.status(429).json({ error: SCAN_RATE_LIMITED });
   }
 
   const guard = assertScanRequestAllowed(req, scanEnv());
   if (!guard.ok) {
-    applyScanCors(req, res);
-    return res.status(guard.status).json({ error: guard.error });
+    return sendJson(req, res, guard.status, { error: guard.error });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({
-      error: 'Server misconfiguration: GEMINI_API_KEY is not set',
-    });
+    console.error('Scan error: GEMINI_API_KEY missing');
+    return sendJson(req, res, 500, { error: SCAN_UNAVAILABLE });
   }
 
   let body = req.body;
@@ -133,7 +155,7 @@ export default async function handler(req, res) {
     try {
       body = JSON.parse(body);
     } catch {
-      return res.status(400).json({ error: 'Invalid JSON body' });
+      return sendJson(req, res, 400, { error: 'Invalid JSON body' });
     }
   }
 
@@ -154,20 +176,22 @@ export default async function handler(req, res) {
   }
 
   if (!base64 || typeof base64 !== 'string') {
-    return res.status(400).json({ error: 'No image provided (base64Image + mimeType)' });
+    return sendJson(req, res, 400, { error: 'No image provided (base64Image + mimeType)' });
   }
 
   const mt = String(mimeType || '').toLowerCase();
   if (mt === 'application/pdf' || mt.includes('pdf')) {
-    return res.status(400).json({ error: 'Only image uploads are supported (e.g. JPEG, PNG), not PDF.' });
+    return sendJson(req, res, 400, {
+      error: 'Only image uploads are supported (e.g. JPEG, PNG), not PDF.',
+    });
   }
   if (mt && !mt.startsWith('image/')) {
-    return res.status(400).json({ error: 'Only image MIME types are supported.' });
+    return sendJson(req, res, 400, { error: 'Only image MIME types are supported.' });
   }
 
   base64 = base64.replace(/\s/g, '');
   if (base64.length > 5_000_000) {
-    return res.status(413).json({ error: 'Image too large' });
+    return sendJson(req, res, 413, { error: 'Image too large' });
   }
 
   const models = geminiModelQueue(process.env.GEMINI_MODEL);
@@ -255,25 +279,26 @@ Always return valid JSON with keys storeName, currencyCode, items, tax, tip, dis
     });
 
     if (!gemini.ok) {
-      const msg = gemini.errorMessage || 'Gemini request failed';
-      return res.status(502).json({ error: msg });
+      console.error('Scan Gemini error:', gemini.status, gemini.errorMessage);
+      return sendJson(req, res, 502, { error: SCAN_FAILED });
     }
 
     const data = gemini.data;
 
     const blockReason = data?.candidates?.[0]?.finishReason;
     if (blockReason && blockReason !== 'STOP') {
-      return res.status(502).json({ error: `Gemini blocked response: ${blockReason}` });
+      console.error('Scan Gemini blocked:', blockReason);
+      return sendJson(req, res, 502, { error: SCAN_FAILED });
     }
 
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!text) {
-      return res.status(502).json({ error: 'No response from Gemini' });
+      return sendJson(req, res, 502, { error: SCAN_FAILED });
     }
 
     const parsed = parseGeminiJson(text);
     if (!parsed || typeof parsed !== 'object') {
-      return res.status(502).json({ error: 'Could not parse receipt data' });
+      return sendJson(req, res, 502, { error: SCAN_FAILED });
     }
 
     const storeName = String(parsed.storeName ?? '').trim().slice(0, 200);
@@ -308,6 +333,7 @@ Always return valid JSON with keys storeName, currencyCode, items, tax, tip, dis
       tax = classified.taxCost;
     }
 
+    applyApiSecurityHeaders(res);
     applyScanCors(req, res);
     return res.status(200).json({
       storeName,
@@ -322,6 +348,6 @@ Always return valid JSON with keys storeName, currencyCode, items, tax, tip, dis
     });
   } catch (err) {
     console.error('Scan error:', err);
-    return res.status(500).json({ error: err.message || 'Failed to scan receipt' });
+    return sendJson(req, res, 500, { error: SCAN_FAILED });
   }
 }

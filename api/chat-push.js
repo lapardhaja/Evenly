@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
-import { resolveCorsAllowOrigin, getRequestOrigin } from './scanGuard.js';
+import { resolveCorsAllowOrigin, getRequestOrigin } from './_lib/scanGuard.js';
+import { applyApiSecurityHeaders } from './_lib/httpSecurity.js';
+import { clientIp, CHAT_PUSH_RATE } from './_lib/rateLimit.js';
+import { consumeRateLimit } from './_lib/durableRateLimit.js';
 import {
   bearerToken,
   buildChatPushPayload,
@@ -8,7 +11,7 @@ import {
   isGonePushStatus,
   recipientUserIds,
   vapidReady,
-} from './chatPushCore.js';
+} from './_lib/chatPushCore.js';
 
 function applyCors(req, res, env) {
   const allowOrigin = resolveCorsAllowOrigin(req, env);
@@ -42,6 +45,7 @@ function readMessageId(req) {
 
 export default async function handler(req, res) {
   const env = chatPushEnv();
+  applyApiSecurityHeaders(res);
 
   if (req.method === 'OPTIONS') {
     const allowOrigin = resolveCorsAllowOrigin(req, env);
@@ -55,6 +59,17 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     applyCors(req, res, env);
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const limited = await consumeRateLimit({
+    bucket: 'chat-push',
+    ip: clientIp(req),
+    ...CHAT_PUSH_RATE,
+  });
+  if (!limited.ok) {
+    applyCors(req, res, env);
+    res.setHeader('Retry-After', String(limited.retryAfterSec));
+    return res.status(429).json({ error: 'Too many requests' });
   }
 
   const allowed = parseAllowedOriginsSafe(env);

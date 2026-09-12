@@ -43,6 +43,7 @@ test('public legal and auth routes skip profile gate and bootstrap', () => {
   assert.equal(isPublicExemptRoute('/login'), true);
   assert.equal(isPublicExemptRoute('/privacy'), true);
   assert.equal(isPublicExemptRoute('/copyright'), true);
+  assert.equal(isPublicExemptRoute('/security'), true);
   assert.equal(isPublicExemptRoute('/shared-settlement/abc'), true);
   assert.equal(isPublicExemptRoute('/share/abc-uuid'), true);
   assert.equal(isPublicExemptRoute('/share'), true);

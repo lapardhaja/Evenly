@@ -1,5 +1,7 @@
 # Security and UI audit (2026-09-08)
 
+**Later hardening (2026-09-12):** Vercel security headers, API rate limits, sanitized scan errors, shorter chat signed URLs, `security.txt`, and expanded legal/cookie copy. Operator notes: `docs/SECURITY.md`. Public page: `#/security`. Do not treat this 09-08 checklist as the full current posture.
+
 Notes from the shared-groups / attachments / legal / public-share pass. Marks **fixed in this PR** vs **residual risk**. Spec: `docs/superpowers/specs/2026-09-08-shared-groups-attachments-legal-design.md` §4.
 
 ## Scan API (`POST /api/scan`)

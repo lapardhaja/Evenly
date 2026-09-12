@@ -1,166 +1,241 @@
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableContainer from '@mui/material/TableContainer';
 import { Link as RouterLink } from 'react-router-dom';
 import LegalPageLayout from './LegalPageLayout.jsx';
-import { OPERATOR_EMAIL, OPERATOR_PLACE } from './operatorInfo.js';
+import { LegalP, LegalSection, LegalToc } from './LegalSection.jsx';
+import {
+  OPERATOR_EMAIL,
+  OPERATOR_NAME,
+  OPERATOR_PLACE,
+  SITE_NAME,
+  SITE_ORIGIN,
+} from './operatorInfo.js';
+import { SUBPROCESSORS } from '../../lib/subprocessors.js';
+
+const TOC = [
+  { id: 'who', label: 'Who we are' },
+  { id: 'scope', label: 'Scope' },
+  { id: 'collect', label: 'Information we collect' },
+  { id: 'use', label: 'How we use information' },
+  { id: 'chat', label: 'Chat, photos, likes, and alerts' },
+  { id: 'share-links', label: 'Share links' },
+  { id: 'scan', label: 'Receipt scan' },
+  { id: 'processors', label: 'Processors' },
+  { id: 'legal-bases', label: 'Legal bases and “sale”' },
+  { id: 'retention', label: 'Retention and your rights' },
+  { id: 'children', label: 'Children' },
+  { id: 'security', label: 'Security' },
+  { id: 'changes', label: 'Changes' },
+  { id: 'contact', label: 'Contact' },
+];
 
 export default function PrivacyPolicyPage() {
   return (
     <LegalPageLayout title="Privacy Policy">
-      <Typography variant="body1" paragraph>
-        Evenly is a receipt-splitting app. This page describes what data the product stores,
-        where it goes, and who can see it. Operator:{' '}
-        <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. Governing place:{' '}
-        {OPERATOR_PLACE}.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Who this applies to
-      </Typography>
-      <Typography variant="body1" paragraph>
-        It applies if you use Evenly in the browser (local-only or signed in), scan a receipt,
-        add friends, or open a share link. Signed-in features need Evenly’s Supabase project
-        (Auth, Postgres, Storage). Local-only builds keep group data on your device.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Data on your device (localStorage)
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Evenly uses browser localStorage for essential app function, not advertising:
-      </Typography>
-      <Typography component="ul" sx={{ pl: 3, mb: 2 }}>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          Group and receipt data under <code>evenly:data:v2</code> (and related keys) in
-          local-only mode. After a successful signed-in cloud load, that app-data key is
-          removed so groups live in Postgres instead.
-        </Typography>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          Theme preference (<code>evenly:themeMode</code>).
-        </Typography>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          Optional remembered sign-in identifier if you choose “remember me.”
-        </Typography>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          Short-lived auth helper keys during password-reset / session handshake.
-        </Typography>
-        <Typography component="li" variant="body1" sx={{ mb: 0.75 }}>
-          A dismiss flag for the essential-storage notice (when that banner is shown).
-        </Typography>
-      </Typography>
-      <Typography variant="body1" paragraph>
-        You can clear this by clearing site data for Evenly in your browser. That does not
-        delete a cloud account or Postgres rows.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Account, profiles, and friends (Supabase Auth + Postgres)
-      </Typography>
-      <Typography variant="body1" paragraph>
-        When cloud sign-in is enabled, Evenly uses Supabase Auth (email and password). Passwords
-        are stored by Auth, not in Evenly’s public tables. Profiles may include username,
-        display name, optional first/last name, optional Venmo username (for pay links), and an email used for friend search. Friend
-        requests and accepted friendships are stored so you can invite friends into groups.
-        Other users can find you by username or email through in-app search; treat those as
-        enumerable to people who use the product.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Groups, receipts, and sync
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Signed-in group data (people, receipts, items, allocations, settlement marks) is stored
-        in Postgres and loaded after sign-in. Access is membership-based: owners and invited
-        members can read and edit group content according to the app’s rules. Evenly syncs
-        that data when you change it while signed in.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Chat and Venmo pay links
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Signed-in members can message in a group thread and in 1:1 chats with friends or people
-        who share a group. Messages live in Postgres and are visible to conversation members
-        only (not on public share links). Settlement can post a payment-request card with amount
-        and a Venmo username. Tapping Pay on Venmo opens Venmo (or venmo.com) with amount and
-        note filled in. Evenly does not process payments, does not receive a receipt from Venmo,
-        and “I paid” is an honor-system mark on the settlement list.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Receipt attachments (Supabase Storage)
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Cloud builds can attach images or PDFs to a receipt (private Storage bucket, size and
-        type limits). Files are stored under group/receipt identifiers. Members of that group
-        can open them via short-lived signed URLs. Local-only builds do not upload attachments.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Receipt scan / OCR (Gemini)
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Optional scan sends a receipt image to Evenly’s <code>POST /api/scan</code> endpoint,
-        which calls Google Gemini to extract line items and totals. Google processes that image
-        under Google’s terms for the API. Evenly does not keep the scan image as an attachment
-        unless you choose to keep the photo. Extracted text and amounts become receipt data you
-        (and group members) can edit.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Settlement share links (legacy)
-      </Typography>
-      <Typography variant="body1" paragraph>
-        You can share a compressed settlement summary as <code>#/shared-settlement/:token</code>.
-        Anyone with the link can see names, amounts, and any note encoded in that token. The
-        token is the data; treat the URL as public. Old links keep working if you still share
-        them.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Public group share (receipts and attachments)
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Cloud group members can create a public share (<code>#/share/:id</code>) from the Settle
-        tab. Anyone with an active link can view group name, people labels, receipts (items,
-        payer, tax/tip/discount, allocations), and settlement transfers — without signing in. If
-        attachments are included (default on; you can turn this off before creating a link),
-        viewers can open those files through short-lived signed URLs. Members can copy or revoke
-        a share; revoked or missing ids do not return group data. Anyone with the link can view
-        receipts and attachments until you revoke it. Do not share that URL beyond people you
-        trust with that content. Local-only builds keep the compressed settlement-token link
-        instead of this server share.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Processors
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Hosting and APIs may include Vercel (the static app and scan endpoint),
-        Supabase (Auth, database, Storage), and Google (Gemini OCR). Their own privacy terms
-        apply to data they process.
-      </Typography>
-
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Retention and requests
-      </Typography>
-      <Typography variant="body1" paragraph>
-        Local data lasts until you clear it. Cloud account and group data last until you delete
-        them in the product or the operator deletes the project. To ask about access or deletion
-        of cloud data the operator controls, email{' '}
+      <LegalP>
+        This Privacy Policy explains how {SITE_NAME} ({SITE_ORIGIN}) collects, uses, stores, and
+        shares information when you use the service. {SITE_NAME} is operated by {OPERATOR_NAME}{' '}
+        from {OPERATOR_PLACE}. For privacy requests, email{' '}
         <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>.
-      </Typography>
+      </LegalP>
+      <LegalToc items={TOC} />
 
-      <Typography variant="h6" component="h2" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
-        Cookies
-      </Typography>
-      <Typography variant="body1" paragraph>
-        See the{' '}
-        <Link component={RouterLink} to="/cookies">
-          Cookie Policy
-        </Link>
-        . Evenly does not currently run marketing or analytics cookies.
-      </Typography>
+      <LegalSection id="who" title="1. Who we are">
+        <LegalP>
+          {SITE_NAME} is a receipt-splitting web application. Cloud features (accounts, sync,
+          friends, chat, attachments, public shares, Web Push) run on our production Supabase
+          project and Vercel deployment. Builds without those environment variables stay
+          local-only: group data never leaves the browser.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="scope" title="2. Scope">
+        <LegalP>
+          This policy applies to the website and PWA at {SITE_ORIGIN}, including hash routes such
+          as sign-in, groups, chat, and public share pages. It does not cover third-party sites we
+          link out to (for example Venmo) after you leave {SITE_NAME}.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="collect" title="3. Information we collect">
+        <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 1, mb: 0.5 }}>
+          Account and profile
+        </Typography>
+        <LegalP>
+          When cloud sign-in is enabled: email address, password (stored by Supabase Auth, not in
+          our public tables), username, display name, optional first and last name, optional Venmo
+          handle used only to pre-fill pay links, and an email used for friend search. Other users
+          of the product can look you up by username or exact email. Treat those identifiers as
+          enumerable to people who use {SITE_NAME}.
+        </LegalP>
+        <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 1, mb: 0.5 }}>
+          Groups and receipts
+        </Typography>
+        <LegalP>
+          People labels, receipt titles, dates, line items, tax/tip/discount, who paid, allocations,
+          settlement marks, and optional receipt attachments (images or PDFs). Signed-in data lives
+          in Postgres with membership-based access. Local-only builds keep the same categories in
+          browser storage under keys such as <code>evenly:data:v2</code>.
+        </LegalP>
+        <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 1, mb: 0.5 }}>
+          Device storage
+        </Typography>
+        <LegalP>
+          Essential localStorage / sessionStorage as listed in the{' '}
+          <Link component={RouterLink} to="/cookies">
+            Cookie Policy
+          </Link>
+          , including theme, cookie-notice acknowledgement, optional remembered sign-in identifier,
+          auth session material, and (on cloud) a short resume cache. We do not use advertising or
+          analytics cookies.
+        </LegalP>
+        <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 1, mb: 0.5 }}>
+          Technical logs
+        </Typography>
+        <LegalP>
+          Our host (Vercel) and database provider (Supabase) may process IP address, user agent,
+          timestamps, and request metadata to operate and secure the service. We do not run a
+          separate product-analytics SDK.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="use" title="4. How we use information">
+        <LegalP>
+          We use this information to operate {SITE_NAME}: authenticate you, sync groups, compute
+          settlements, send optional chat and Web Push alerts you enable, run optional receipt OCR,
+          mint short-lived signed URLs for attachments you are allowed to see, and respond to
+          support or legal requests. We do not sell personal information and we do not use it for
+          cross-context behavioral advertising.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="chat" title="5. Chat, photos, likes, and alerts">
+        <LegalP>
+          Signed-in members can message in a group thread and in 1:1 chats with friends or people
+          who share a group. Message bodies, optional photos (private Storage bucket, size and type
+          limits), and likes are visible to conversation members only — not on public share links.
+          Photos are delivered through short-lived signed URLs. If you enable message alerts, we
+          store a Web Push subscription for your account and send a payload such as the sender name
+          and a short preview (“Sent a photo” for images). Evenly does not process payments; Venmo
+          links open Venmo with amount and note filled in. “I paid” is an honor-system mark in
+          {SITE_NAME}.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="share-links" title="6. Share links">
+        <LegalP>
+          Cloud group members can create a public share (<code>#/share/:id</code>). Anyone with an
+          active link can view group name, people labels, receipts, and settlement transfers without
+          signing in. If attachments are included, viewers can open those files through short-lived
+          signed URLs. Revoke the share to stop new access. A legacy compressed settlement token (
+          <code>#/shared-settlement/:token</code>) encodes names and amounts in the URL itself —
+          treat that URL as public. Do not send share links to people who should not see that
+          content.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="scan" title="7. Receipt scan (Gemini)">
+        <LegalP>
+          Optional scan posts a receipt image to Evenly’s <code>POST /api/scan</code> endpoint,
+          which calls Google Gemini to extract line items and totals. Google processes that image
+          under Google’s terms for the API. Evenly does not keep the scan image as an attachment
+          unless you choose to keep the photo. Extracted text becomes editable receipt data shared
+          with group members according to membership.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="processors" title="8. Processors">
+        <LegalP>
+          We use the following processors to run the product. Each applies its own terms to data it
+          processes on our behalf.
+        </LegalP>
+        <TableContainer sx={{ mb: 2, maxWidth: '100%', overflowX: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 640 }} aria-label="Processors">
+            <TableHead>
+              <TableRow>
+                <TableCell>Provider</TableCell>
+                <TableCell>Role</TableCell>
+                <TableCell>Location</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {SUBPROCESSORS.map((row) => (
+                <TableRow key={row.name}>
+                  <TableCell sx={{ verticalAlign: 'top' }}>{row.name}</TableCell>
+                  <TableCell sx={{ verticalAlign: 'top' }}>{row.role}</TableCell>
+                  <TableCell sx={{ verticalAlign: 'top' }}>{row.region}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </LegalSection>
+
+      <LegalSection id="legal-bases" title="9. Legal bases and “do not sell”">
+        <LegalP>
+          If you are in the EEA, UK, or a similar jurisdiction, we process personal data to perform
+          the contract (providing the app you asked for), with your consent where we ask for it
+          (for example notification permission), and for legitimate interests in securing and
+          operating the service. {SITE_NAME} does not sell personal information as that term is
+          used in the California Consumer Privacy Act, and we do not share it for cross-context
+          behavioral advertising. We honor browser Global Privacy Control / Do Not Track as a
+          signal that you do not want optional tracking — we do not run that tracking today, so
+          there is nothing additional to disable.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="retention" title="10. Retention and your rights">
+        <LegalP>
+          Local data lasts until you clear site data. Cloud account, group, chat, and attachment
+          data last until you delete them in the product or we delete the project. Signed-in users
+          can delete their account from Profile (type DELETE). That removes your Auth user (cascading
+          profile, chats, and groups you own) and then removes orphaned private files. Groups you
+          only joined keep a guest name. You may also request access or deletion by emailing{' '}
+          <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>. We may retain limited
+          records as required by law or to resolve disputes. Clearing the browser does not delete
+          a cloud account.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="children" title="11. Children">
+        <LegalP>
+          {SITE_NAME} is not directed to children under 13, and we do not knowingly collect
+          personal information from children under 13 (COPPA). If you believe a child has created
+          an account, email us and we will delete it.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="security" title="12. Security">
+        <LegalP>
+          Practices (TLS, row-level security, private Storage buckets, short-lived signed URLs,
+          browser hardening headers) are summarized on the{' '}
+          <Link component={RouterLink} to="/security">
+            Security
+          </Link>{' '}
+          page. No method of transmission or storage is 100% secure.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="changes" title="13. Changes">
+        <LegalP>
+          We will update the effective date at the top of this page when the policy changes.
+          Material changes will be posted here before they take effect where reasonably possible.
+        </LegalP>
+      </LegalSection>
+
+      <LegalSection id="contact" title="14. Contact">
+        <LegalP>
+          {OPERATOR_NAME} · {OPERATOR_PLACE}
+          <br />
+          <Link href={`mailto:${OPERATOR_EMAIL}`}>{OPERATOR_EMAIL}</Link>
+        </LegalP>
+      </LegalSection>
     </LegalPageLayout>
   );
 }

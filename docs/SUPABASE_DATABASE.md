@@ -43,6 +43,8 @@ Run `20260909140000_friend_requests_realtime.sql` to add **`friend_requests`** t
 Run `20260909160000_push_subscriptions.sql` for **`push_subscriptions`** (Web Push endpoints per user; RLS = own rows). Server fan-out uses the service role from `POST /api/chat-push`.  
 Run `20260910120000_chat_images_likes_friend_search.sql` for chat **`image`** messages, **`message_likes`**, private Storage bucket **`chat-attachments`**, name-aware **`search_profiles_by_username`**, and **`add_friend_to_group`** healing a missing owner `group_members` row.
 
+Run `20260912180000_account_delete_and_rate_limit.sql` so **`receipt_attachments.uploaded_by`** is `ON DELETE SET NULL` (Auth user delete no longer fails), **`api_rate_events`** + **`consume_rate_limit`** (service_role only), and in-app **`POST /api/delete-account`** can call `auth.admin.deleteUser`.
+
 | Table | Purpose |
 |--------|--------|
 | **`groups`** | One row per split group; `user_id` = creator/owner (`auth.users.id`). Optional `display_currency` (default USD) for Settle tab display. Optional `settled_transfers` (JSON array of strings) for which “Settle up” rows are marked done. |

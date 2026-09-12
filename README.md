@@ -61,6 +61,8 @@ Local scan: `vercel dev` then `VITE_SCAN_RECEIPT_URL=http://localhost:3000 npm r
 
 `POST /api/chat-push` returns **503** `{ error: "Push is not configured" }` until those server keys are set. In-tab banners still work after the OS permission prompt, with Evenly open in the background.
 
+**Delete account** (cloud): Profile → Delete my account → type `DELETE`. Needs `SUPABASE_SERVICE_ROLE_KEY` on Vercel (`POST /api/delete-account`). Optional shared rate limits: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
+
 ## PWA (install on phone / desktop)
 
 The build is a **Progressive Web App**: **Web App Manifest** + **service worker** (via `vite-plugin-pwa`).
@@ -81,6 +83,12 @@ The build is a **Progressive Web App**: **Web App Manifest** + **service worker*
 - react-router-dom v6 (`createHashRouter` — same `#/` URLs as before)
 - currency.js
 - localStorage persistence; optional Supabase Auth + Postgres sync (`@supabase/supabase-js`)
+
+## Legal and security
+
+In-app (hash routes): [Privacy](https://evenly.lapardhaja.com/#/privacy), [Terms](https://evenly.lapardhaja.com/#/terms), [Cookies](https://evenly.lapardhaja.com/#/cookies), [Copyright](https://evenly.lapardhaja.com/#/copyright), [Security](https://evenly.lapardhaja.com/#/security).
+
+Vulnerability reports: `servetlap29@gmail.com` · [security.txt](https://evenly.lapardhaja.com/.well-known/security.txt) · [`SECURITY.md`](SECURITY.md) · operator notes in [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ## License
 

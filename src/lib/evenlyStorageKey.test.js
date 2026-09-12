@@ -12,6 +12,7 @@ import {
   readLastCloudCacheUserId,
   clearLastCloudCacheUserId,
   purgeEvenlyDataFromLocalStorage,
+  purgeCloudUserBrowserState,
   resolveCloudFailureData,
   shouldKeepCloudDataWithoutUser,
   shouldKeepDataReadyOnAuthLoading,
@@ -111,6 +112,17 @@ describe('evenlyStorageKey', () => {
   it('falls back to a cached user id when lastUser is missing', () => {
     writeCloudUserCache('u-fallback', { groups: { g1: { name: 'Cached' } } });
     assert.equal(readLastCloudCacheUserId(), 'u-fallback');
+  });
+
+  it('purgeCloudUserBrowserState drops legacy data and the cloud cache', () => {
+    const uid = 'u-gone';
+    writeCloudUserCache(uid, { groups: { g1: { name: 'X' } } });
+    localStorage.setItem(EVENLY_DATA_LEGACY_KEY, '{"groups":{}}');
+    rememberCloudCacheUserId(uid);
+    purgeCloudUserBrowserState(uid);
+    assert.equal(localStorage.getItem(EVENLY_DATA_LEGACY_KEY), null);
+    assert.equal(localStorage.getItem(cloudCacheKey(uid)), null);
+    assert.equal(readLastCloudCacheUserId(), null);
   });
 
   it('purgeEvenlyDataFromLocalStorage removes legacy keys only, not the cloud cache', () => {

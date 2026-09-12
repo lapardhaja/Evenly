@@ -24,6 +24,7 @@ export const PUBLIC_EXEMPT_ROUTES = [
   '/terms',
   '/cookies',
   '/copyright',
+  '/security',
   '/share',
 ];
 

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Evenly is a hash-routed SPA. Crawlers see index.html; in-app routes are #/privacy, #/terms, etc.

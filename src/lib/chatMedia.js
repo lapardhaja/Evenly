@@ -2,7 +2,8 @@ import { compressImageDataUrl } from './compressImageForScan.js';
 
 export const CHAT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 export const CHAT_IMAGE_BUCKET = 'chat-attachments';
-export const CHAT_SIGNED_URL_TTL_SECONDS = 3600;
+/** Short-lived object URLs for chat photos (private bucket). Refresh on view. */
+export const CHAT_SIGNED_URL_TTL_SECONDS = 600;
 
 export const ALLOWED_CHAT_IMAGE_MIME = new Set([
   'image/jpeg',

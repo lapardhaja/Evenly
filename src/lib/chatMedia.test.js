@@ -9,7 +9,12 @@ import {
   toggleLikeState,
   applyLikeRealtime,
   CHAT_IMAGE_MAX_BYTES,
+  CHAT_SIGNED_URL_TTL_SECONDS,
 } from './chatMedia.js';
+
+test('chat photo signed URLs expire in 10 minutes', () => {
+  assert.equal(CHAT_SIGNED_URL_TTL_SECONDS, 600);
+});
 
 test('buildChatImageStoragePath is conversation/message.ext', () => {
   assert.equal(

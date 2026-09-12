@@ -1,4 +1,5 @@
-const REMEMBER_ID_KEY = 'evenly-remember-login-id';
+export const REMEMBER_LOGIN_ID_KEY = 'evenly-remember-login-id';
+const REMEMBER_ID_KEY = REMEMBER_LOGIN_ID_KEY;
 
 export function getRememberedLoginId() {
   try {
