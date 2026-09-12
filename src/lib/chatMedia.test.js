@@ -3,11 +3,15 @@ import assert from 'node:assert/strict';
 import {
   assertChatFile,
   assertChatImageFile,
+  assertChatAudioFile,
   buildChatImageStoragePath,
   classifyChatAttachment,
+  chatNonTextPreview,
   formatChatByteSize,
   inferChatFileMime,
+  isAudioMessage,
   isFileMessage,
+  parseAudioPayload,
   parseFilePayload,
   parseImagePayload,
   isImageMessage,
@@ -36,6 +40,22 @@ test('assertChatImageFile rejects non-images and oversize', () => {
   assert.throws(() =>
     assertChatImageFile({ type: 'image/jpeg', size: CHAT_IMAGE_MAX_BYTES + 1 }),
   );
+});
+
+test('voice notes are classified as audio and do not collide with images', () => {
+  assert.equal(classifyChatAttachment({ type: 'audio/webm', name: 'voice.webm', size: 10 }), 'audio');
+  assert.equal(classifyChatAttachment({ type: 'audio/mp4', name: 'voice.m4a', size: 10 }), 'audio');
+  const audioMsg = {
+    type: 'audio',
+    payload: { storage_path: 'c/m.webm', mime_type: 'audio/webm', duration_ms: 1500 },
+  };
+  assert.equal(isAudioMessage(audioMsg), true);
+  assert.equal(isImageMessage(audioMsg), false);
+  assert.equal(isFileMessage(audioMsg), false);
+  assert.equal(parseAudioPayload(audioMsg.payload).duration_ms, 1500);
+  assert.equal(chatNonTextPreview('audio'), 'Sent a voice message');
+  assert.doesNotThrow(() => assertChatAudioFile({ type: 'audio/webm', name: 'voice.webm', size: 20 }));
+  assert.throws(() => assertChatAudioFile({ type: 'application/pdf', name: 'a.pdf', size: 20 }));
 });
 
 test('documents are classified as file attachments', () => {

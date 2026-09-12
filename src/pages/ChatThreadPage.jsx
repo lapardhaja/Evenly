@@ -6,9 +6,11 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import Avatar from '@mui/material/Avatar';
 import ChatThread from '../components/ChatThread.jsx';
 import { fetchConversation, fetchConversationMembers } from '../lib/chatApi.js';
 import { formatFullName, getProfilesByIds } from '../lib/friendsApi.js';
+import { nameToInitials } from '../functions/utils.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
@@ -21,6 +23,7 @@ export default function ChatThreadPage() {
   const { data, setData } = useGroupsData();
   const [meta, setMeta] = useState(null);
   const [title, setTitle] = useState('Chat');
+  const [subtitle, setSubtitle] = useState('');
   const [groupName, setGroupName] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -39,19 +42,25 @@ export default function ChatThreadPage() {
           const g = data.groups?.[c.group_id];
           setGroupName(g?.name || 'Group');
           setTitle(g?.name || 'Group');
+          setSubtitle('');
         } else {
           const members = await fetchConversationMembers(conversationId);
           const other = members.find((id) => id !== user?.id);
           if (other) {
             const profs = await getProfilesByIds([other]);
             const p = profs[0];
-            setTitle(formatFullName(p) || p?.username || 'Chat');
+            const full = formatFullName(p);
+            const handle = p?.username || '';
+            setTitle(full || handle || 'Chat');
+            setSubtitle(full && handle ? handle : '');
           } else {
             setTitle('Chat');
+            setSubtitle('');
           }
         }
       } catch {
         setTitle('Chat');
+        setSubtitle('');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -91,13 +100,23 @@ export default function ChatThreadPage() {
 
   return (
     <Container maxWidth={CHAT_CONTAINER_MAX_WIDTH} sx={chatThreadPageSx}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexShrink: 0, minWidth: 0 }}>
         <IconButton onClick={() => navigate('/chat')} size="small" aria-label="Back to chats">
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h6" fontWeight={700} noWrap>
-          {title}
-        </Typography>
+        <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: '0.85rem' }}>
+          {nameToInitials(title)}
+        </Avatar>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="subtitle1" fontWeight={700} noWrap lineHeight={1.2}>
+            {title}
+          </Typography>
+          {subtitle ? (
+            <Typography variant="caption" color="text.secondary" noWrap display="block">
+              {subtitle}
+            </Typography>
+          ) : null}
+        </Box>
       </Box>
       {loading ? (
         <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

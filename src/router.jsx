@@ -18,6 +18,7 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import ProfileSetupPage from './pages/ProfileSetupPage.jsx';
 import ChatInboxPage from './pages/ChatInboxPage.jsx';
 import ChatThreadPage from './pages/ChatThreadPage.jsx';
+import ChatLayoutPreview from './pages/ChatLayoutPreview.jsx';
 
 export const router = createHashRouter([
   {
@@ -63,6 +64,14 @@ export const router = createHashRouter([
           </RequireAuth>
         ),
       },
+      ...(import.meta.env.DEV
+        ? [
+            {
+              path: 'dev/chat-layout',
+              element: <ChatLayoutPreview />,
+            },
+          ]
+        : []),
       {
         path: 'chat/:conversationId',
         element: (

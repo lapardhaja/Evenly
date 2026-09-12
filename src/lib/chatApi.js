@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   assertChatImageFile,
   assertChatFile,
+  assertChatAudioFile,
   buildChatImageStoragePath,
   classifyChatAttachment,
   CHAT_IMAGE_BUCKET,
@@ -208,7 +209,49 @@ export async function sendChatAttachment(conversationId, file) {
   const kind = classifyChatAttachment(file);
   if (kind === 'image') return sendImageMessage(conversationId, file);
   if (kind === 'file') return sendFileMessage(conversationId, file);
-  throw new Error('Send a photo, PDF, Office doc, text, or zip file.');
+  if (kind === 'audio') return sendAudioMessage(conversationId, file);
+  throw new Error('Send a photo, voice note, PDF, Office doc, text, or zip file.');
+}
+
+export async function sendAudioMessage(conversationId, file, { durationMs } = {}) {
+  assertChatAudioFile(file);
+  const mime = (inferChatFileMime(file) || file.type || 'audio/webm').split(';')[0];
+  const supabase = clientOrThrow();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in');
+  const id = uuidv4();
+  const storagePath = buildChatImageStoragePath(conversationId, id, mime);
+  const up = await supabase.storage.from(CHAT_IMAGE_BUCKET).upload(storagePath, file, {
+    contentType: mime,
+    upsert: false,
+  });
+  if (up.error) throw up.error;
+  const duration = Number(durationMs);
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      id,
+      conversation_id: conversationId,
+      sender_id: user.id,
+      type: 'audio',
+      body: '',
+      payload: {
+        storage_path: storagePath,
+        mime_type: mime,
+        byte_size: file.size,
+        duration_ms: Number.isFinite(duration) && duration > 0 ? Math.round(duration) : null,
+      },
+    })
+    .select('id, conversation_id, sender_id, type, body, payload, created_at')
+    .single();
+  if (error) {
+    await supabase.storage.from(CHAT_IMAGE_BUCKET).remove([storagePath]).catch(() => {});
+    throw error;
+  }
+  void notifyChatPush(data.id).catch(() => {});
+  return data;
 }
 
 export async function signedChatImageUrl(storagePath) {

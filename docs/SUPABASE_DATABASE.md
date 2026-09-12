@@ -79,7 +79,7 @@ All `public` tables use **RLS**.
 ## Storage (`chat-attachments`)
 
 Private bucket (not public). Object path: `{conversation_id}/{message_id}.{ext}`.  
-Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Max file size: 8 MB.  
+Allowed MIME types: images (`jpeg`/`png`/`webp`/`gif`), documents (PDF/Office/text/zip), and voice notes (`audio/webm`, `audio/mp4`, `audio/mpeg`, `audio/ogg`, `audio/aac`, `audio/wav`). Message `type` includes `text`, `payment`, `image`, `file`, `audio`. Max file size: 8 MB images / 10 MB files and voice notes.  
 Storage RLS: select/insert/delete for authenticated conversation members (`is_conversation_member(storage_path_group_id(name))` — first path segment is the conversation UUID). No LIST policy. Clients mint **`createSignedUrl`** after insert.
 
 ## Storage (`receipt-attachments`)

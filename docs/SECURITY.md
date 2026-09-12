@@ -52,7 +52,7 @@ Optional `RATE_LIMIT_PEPPER` for the IP hash (defaults to the service role key i
 ## Storage
 
 - `receipt-attachments` and `chat-attachments` are **private**.
-- Receipt signed URLs: 120s. Chat photo signed URLs: 600s (`CHAT_SIGNED_URL_TTL_SECONDS`).
+- Receipt signed URLs: 120s. Chat attachment signed URLs: 600s (`CHAT_SIGNED_URL_TTL_SECONDS`). Voice notes use the same private bucket and signed URLs as photos/files.
 - Public share RPCs gate which paths the UI learns.
 
 ## Residual product risks (do not “fix” without a product decision)

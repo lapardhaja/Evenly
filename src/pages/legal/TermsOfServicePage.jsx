@@ -45,7 +45,7 @@ export default function TermsOfServicePage() {
         <LegalP>
           {SITE_NAME} helps people split receipts: groups, people, items, who paid, and settlement
           transfers. Cloud mode (when configured) adds accounts, sync, friends, attachments, public
-          group share, group and 1:1 chat (including photos and likes), Web Push, and Venmo pay
+          group share, group and 1:1 chat (including photos, voice notes, and likes), Web Push, and Venmo pay
           links. Local-only mode keeps group data in the browser. Features may change. The service
           is provided as-is.
         </LegalP>
@@ -83,8 +83,8 @@ export default function TermsOfServicePage() {
           worldwide, non-exclusive license to host, process, and display that content solely to
           operate {SITE_NAME}: to you, to group or conversation members, and to anyone you give a
           share link. You represent you have the right to share it. Receipt scans send an image to
-          Google Gemini; extracted values become editable receipt data. Chat photos are stored in a
-          private bucket and shown via short-lived URLs to conversation members.
+          Google Gemini; extracted values become editable receipt data. Chat photos and voice notes
+          are stored in a private bucket and shown via short-lived URLs to conversation members.
         </LegalP>
       </LegalSection>
 
