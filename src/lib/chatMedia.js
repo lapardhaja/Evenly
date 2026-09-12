@@ -47,6 +47,13 @@ const MIME_TO_EXT = {
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
   'application/zip': 'zip',
   'application/x-zip-compressed': 'zip',
+  'audio/webm': 'webm',
+  'audio/mp4': 'm4a',
+  'audio/mpeg': 'mp3',
+  'audio/ogg': 'ogg',
+  'audio/aac': 'm4a',
+  'audio/wav': 'wav',
+  'audio/x-m4a': 'm4a',
 };
 
 const EXT_TO_MIME = {
@@ -66,7 +73,25 @@ const EXT_TO_MIME = {
   ppt: 'application/vnd.ms-powerpoint',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   zip: 'application/zip',
+  webm: 'audio/webm',
+  m4a: 'audio/mp4',
+  mp3: 'audio/mpeg',
+  ogg: 'audio/ogg',
+  wav: 'audio/wav',
 };
+
+export const ALLOWED_CHAT_AUDIO_MIME = new Set([
+  'audio/webm',
+  'audio/mp4',
+  'audio/mpeg',
+  'audio/ogg',
+  'audio/aac',
+  'audio/wav',
+  'audio/x-m4a',
+]);
+
+export const CHAT_IMAGE_GALLERY_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
+export const CHAT_CAMERA_ACCEPT = 'image/*';
 
 export const CHAT_ATTACHMENT_ACCEPT = [
   'image/jpeg',
@@ -112,6 +137,7 @@ export function inferChatFileMime(file) {
 export function classifyChatAttachment(file) {
   const mime = inferChatFileMime(file);
   if (ALLOWED_CHAT_IMAGE_MIME.has(mime)) return 'image';
+  if (ALLOWED_CHAT_AUDIO_MIME.has(mime.split(';')[0])) return 'audio';
   if (ALLOWED_CHAT_FILE_MIME.has(mime)) return 'file';
   return '';
 }
@@ -144,11 +170,18 @@ export function assertChatFile(file) {
   }
 }
 
-export function chatNonTextPreview(type) {
-  if (type === 'image') return 'Sent a photo';
-  if (type === 'file') return 'Sent a file';
-  if (type === 'payment') return 'Payment request';
-  return '';
+export function assertChatAudioFile(file) {
+  if (!file || typeof file.size !== 'number') {
+    throw new Error('Record a voice message first.');
+  }
+  const mime = inferChatFileMime(file).split(';')[0];
+  if (!ALLOWED_CHAT_AUDIO_MIME.has(mime) && !String(file.type || '').startsWith('audio/')) {
+    throw new Error('That voice note isn’t a supported audio type.');
+  }
+  if (file.size <= 0) throw new Error('That voice note is empty.');
+  if (file.size > CHAT_FILE_MAX_BYTES) {
+    throw new Error('Voice note is too large (max 10 MB).');
+  }
 }
 
 export function formatChatByteSize(bytes) {
@@ -157,6 +190,14 @@ export function formatChatByteSize(bytes) {
   if (n < 1024) return `${Math.round(n)} B`;
   if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function chatNonTextPreview(type) {
+  if (type === 'image') return 'Sent a photo';
+  if (type === 'file') return 'Sent a file';
+  if (type === 'audio') return 'Sent a voice message';
+  if (type === 'payment') return 'Payment request';
+  return '';
 }
 
 export function parseImagePayload(raw) {
@@ -176,7 +217,9 @@ export function parseImagePayload(raw) {
 }
 
 export function isImageMessage(message) {
-  if (message?.type === 'file') return false;
+  if (message?.type === 'file' || message?.type === 'audio' || message?.type === 'payment' || message?.type === 'text') {
+    return false;
+  }
   return message?.type === 'image' || Boolean(parseImagePayload(message?.payload));
 }
 
@@ -196,6 +239,23 @@ export function parseFilePayload(raw) {
 
 export function isFileMessage(message) {
   return message?.type === 'file';
+}
+
+export function parseAudioPayload(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const storagePath = typeof raw.storage_path === 'string' ? raw.storage_path.trim() : '';
+  if (!storagePath) return null;
+  const duration = Number(raw.duration_ms);
+  return {
+    storage_path: storagePath,
+    mime_type: typeof raw.mime_type === 'string' ? raw.mime_type : 'audio/webm',
+    duration_ms: Number.isFinite(duration) && duration > 0 ? duration : null,
+    byte_size: Number(raw.byte_size) || null,
+  };
+}
+
+export function isAudioMessage(message) {
+  return message?.type === 'audio';
 }
 
 export function summarizeLikes(rows, myUserId) {

@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
-import SendIcon from '@mui/icons-material/Send';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -16,6 +13,7 @@ import {
   listMessages,
   sendTextMessage,
   sendChatAttachment,
+  sendAudioMessage,
   signedChatImageUrl,
   listMessageLikes,
   likeMessage,
@@ -27,27 +25,35 @@ import {
   subscribeToConversationMessages,
   notifyChatUnreadChanged,
 } from '../lib/chatApi.js';
-import { clipMessageBody, MESSAGE_BODY_MAX, parsePaymentPayload } from '../lib/chatPayment.js';
+import { clipMessageBody, parsePaymentPayload } from '../lib/chatPayment.js';
 import {
   applyLikeRealtime,
-  CHAT_ATTACHMENT_ACCEPT,
   formatChatByteSize,
+  isAudioMessage,
   isFileMessage,
   isImageMessage,
+  parseAudioPayload,
   parseFilePayload,
   parseImagePayload,
   summarizeLikes,
   toggleLikeState,
 } from '../lib/chatMedia.js';
-import { emitOpenChatConversation, requestChatNotificationPermission } from '../lib/chatAlerts.js';
+import { emitOpenChatConversation } from '../lib/chatAlerts.js';
 import PaymentMessageCard from './PaymentMessageCard.jsx';
 import AttachmentLightbox from './AttachmentLightbox.jsx';
+import ChatComposer from './ChatComposer.jsx';
+import ChatAudioBubble from './ChatAudioBubble.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
-import { chatComposerBarSx, chatMessagesSx, chatThreadRootSx, chatBubbleMaxWidthSx } from '../lib/appShell.js';
+import { chatMessagesSx, chatThreadRootSx, chatBubbleMaxWidthSx } from '../lib/appShell.js';
 import { isChatNearBottom, pinChatToLatestAfterLayout } from '../lib/chatScroll.js';
+import {
+  CHAT_AVATAR_GAP_PX,
+  CHAT_AVATAR_PX,
+  CHAT_NAME_GUTTER_PX,
+  chatBubbleRadii,
+  chatClusterMeta,
+} from '../lib/chatLayout.js';
 
 const DOUBLE_TAP_MS = 300;
 
@@ -73,24 +79,26 @@ export default function ChatThread({
   nameByUserId = {},
   onPaymentSettled,
   minHeight = 0,
+  preview = null,
 }) {
   const { user } = useAuth();
-  const theme = useTheme();
-  const desktop = useMediaQuery(theme.breakpoints.up('md'));
-  const [messages, setMessages] = useState([]);
+  const previewMode = Boolean(preview);
+  const myUserId = preview?.userId || user?.id;
+  const [messages, setMessages] = useState(() => preview?.messages || []);
   const [profiles, setProfiles] = useState({});
   const [draft, setDraft] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!preview);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const [likes, setLikes] = useState(() => new Map());
-  const [imageUrls, setImageUrls] = useState({});
+  const [likes, setLikes] = useState(() =>
+    preview?.likes instanceof Map ? preview.likes : new Map(),
+  );
+  const [imageUrls, setImageUrls] = useState(() => preview?.imageUrls || {});
   const [lightbox, setLightbox] = useState(null);
   const [heartBurstId, setHeartBurstId] = useState('');
   const listRef = useRef(null);
   const nearBottomRef = useRef(true);
   const pinnedForConversationRef = useRef(null);
-  const fileInputRef = useRef(null);
   const urlCacheRef = useRef(new Map());
   const lastTapRef = useRef({ id: '', t: 0 });
   const messageIdsRef = useRef(new Set());
@@ -103,7 +111,9 @@ export default function ChatThread({
         ? parseImagePayload(row.payload)?.storage_path
         : isFileMessage(row)
           ? parseFilePayload(row.payload)?.storage_path
-          : '';
+          : isAudioMessage(row)
+            ? parseAudioPayload(row.payload)?.storage_path
+            : '';
       if (!path || urlCacheRef.current.has(path)) continue;
       try {
         const url = await signedChatImageUrl(path);
@@ -138,7 +148,7 @@ export default function ChatThread({
         setProfiles({});
       }
       const likeRows = await listMessageLikes(rows.map((m) => m.id));
-      setLikes(summarizeLikes(likeRows, user?.id));
+      setLikes(summarizeLikes(likeRows, myUserId));
       await ensureImageUrls(rows);
       await markConversationRead(conversationId);
       notifyChatUnreadChanged();
@@ -147,9 +157,13 @@ export default function ChatThread({
     } finally {
       setLoading(false);
     }
-  }, [conversationId, ensureImageUrls, user?.id]);
+  }, [conversationId, ensureImageUrls, myUserId]);
 
   useEffect(() => {
+    if (previewMode) {
+      setLoading(false);
+      return undefined;
+    }
     setLoading(true);
     setMessages([]);
     setLikes(new Map());
@@ -161,25 +175,27 @@ export default function ChatThread({
     nearBottomRef.current = true;
     pinnedForConversationRef.current = null;
     load();
-  }, [load]);
+    return undefined;
+  }, [load, previewMode]);
 
   useEffect(() => {
+    if (previewMode) return undefined;
     emitOpenChatConversation(conversationId || '');
     return () => emitOpenChatConversation('');
-  }, [conversationId]);
+  }, [conversationId, previewMode]);
 
   useEffect(() => {
     messageIdsRef.current = new Set(messages.map((m) => m.id));
   }, [messages]);
 
   useEffect(() => {
-    if (!conversationId) return undefined;
+    if (previewMode || !conversationId) return undefined;
     return subscribeToConversationMessages(conversationId, (payload) => {
       const row = payload.new;
       if (payload.eventType === 'INSERT' && row?.id) {
         setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
         messageIdsRef.current.add(row.id);
-        if (isImageMessage(row) || isFileMessage(row)) void ensureImageUrls([row]);
+        if (isImageMessage(row) || isFileMessage(row) || isAudioMessage(row)) void ensureImageUrls([row]);
       } else if (payload.eventType === 'UPDATE' && row?.id) {
         setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...row } : m)));
         const p = parsePaymentPayload(row.payload);
@@ -189,14 +205,14 @@ export default function ChatThread({
       }
       markConversationRead(conversationId).then(() => notifyChatUnreadChanged()).catch(() => {});
     });
-  }, [conversationId, onPaymentSettled, ensureImageUrls]);
+  }, [conversationId, onPaymentSettled, ensureImageUrls, previewMode]);
 
   useEffect(() => {
-    if (!conversationId) return undefined;
+    if (previewMode || !conversationId) return undefined;
     return subscribeToMessageLikes((payload) => {
-      setLikes((prev) => applyLikeRealtime(prev, payload, user?.id, messageIdsRef.current));
+      setLikes((prev) => applyLikeRealtime(prev, payload, myUserId, messageIdsRef.current));
     }, `evenly-message-likes:${conversationId}`);
-  }, [conversationId, user?.id]);
+  }, [conversationId, myUserId, previewMode]);
 
   useEffect(() => () => {
     if (burstTimerRef.current) window.clearTimeout(burstTimerRef.current);
@@ -210,7 +226,7 @@ export default function ChatThread({
     if (!el) return undefined;
     const opening = pinnedForConversationRef.current !== conversationId;
     const last = messages[messages.length - 1];
-    const mine = last?.sender_id === user?.id;
+    const mine = last?.sender_id === myUserId;
     if (!opening && !mine && !nearBottomRef.current && !isChatNearBottom(el)) {
       return undefined;
     }
@@ -218,15 +234,15 @@ export default function ChatThread({
     pinnedForConversationRef.current = conversationId;
     nearBottomRef.current = true;
     return cancel;
-  }, [loading, conversationId, lastMessageId, user?.id]);
+  }, [loading, conversationId, lastMessageId, myUserId]);
 
   const names = useMemo(() => {
-    const map = { ...nameByUserId };
+    const map = { ...(preview?.names || {}), ...nameByUserId };
     Object.entries(profiles).forEach(([id, pr]) => {
       if (!map[id]) map[id] = profileLabel(pr, 'Someone');
     });
     return map;
-  }, [nameByUserId, profiles]);
+  }, [nameByUserId, profiles, preview]);
 
   const showHeartBurst = (messageId) => {
     setHeartBurstId(messageId);
@@ -235,13 +251,14 @@ export default function ChatThread({
   };
 
   const setLiked = async (messageId, liked) => {
-    if (!user?.id) return;
-    setLikes((prev) => toggleLikeState(prev, messageId, user.id, liked));
+    if (!myUserId) return;
+    setLikes((prev) => toggleLikeState(prev, messageId, myUserId, liked));
+    if (previewMode) return;
     try {
       if (liked) await likeMessage(messageId);
       else await unlikeMessage(messageId);
     } catch (err) {
-      setLikes((prev) => toggleLikeState(prev, messageId, user.id, !liked));
+      setLikes((prev) => toggleLikeState(prev, messageId, myUserId, !liked));
       setError(err?.message || 'Couldn’t update like.');
     }
   };
@@ -277,6 +294,21 @@ export default function ChatThread({
     if (!body || sending) return;
     setSending(true);
     setError('');
+    if (previewMode) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `preview-${Date.now()}`,
+          sender_id: myUserId,
+          type: 'text',
+          body,
+          payload: {},
+        },
+      ]);
+      setDraft('');
+      setSending(false);
+      return;
+    }
     try {
       const row = await sendTextMessage(conversationId, body);
       setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
@@ -294,12 +326,50 @@ export default function ChatThread({
     if (!file || sending) return;
     setSending(true);
     setError('');
+    if (previewMode) {
+      setSending(false);
+      setError('Preview layout — attachments aren’t uploaded.');
+      return;
+    }
     try {
       const row = await sendChatAttachment(conversationId, file);
       setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
       await ensureImageUrls([row]);
     } catch (err) {
       setError(err?.message || 'Couldn’t send attachment.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendVoice = async (file, durationMs) => {
+    if (!file || sending) return;
+    setSending(true);
+    setError('');
+    if (previewMode) {
+      const id = `preview-audio-${Date.now()}`;
+      const path = `preview/${id}.webm`;
+      const url = URL.createObjectURL(file);
+      setImageUrls((prev) => ({ ...prev, [path]: url }));
+      setMessages((prev) => [
+        ...prev,
+        {
+          id,
+          sender_id: myUserId,
+          type: 'audio',
+          body: '',
+          payload: { storage_path: path, mime_type: file.type, duration_ms: durationMs },
+        },
+      ]);
+      setSending(false);
+      return;
+    }
+    try {
+      const row = await sendAudioMessage(conversationId, file, { durationMs });
+      setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
+      await ensureImageUrls([row]);
+    } catch (err) {
+      setError(err?.message || 'Couldn’t send voice note.');
     } finally {
       setSending(false);
     }
@@ -346,7 +416,7 @@ export default function ChatThread({
     }
   };
 
-  if (!conversationId) {
+  if (!conversationId && !previewMode) {
     return (
       <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
         No conversation.
@@ -378,17 +448,23 @@ export default function ChatThread({
             No messages yet.
           </Typography>
         ) : (
-          messages.map((m) => {
-            const mine = m.sender_id === user?.id;
-            const label = names[m.sender_id] || 'Someone';
+          messages.map((m, i) => {
+            const cluster = chatClusterMeta(messages, i, {
+              myUserId,
+              isGroup: Boolean(groupName),
+            });
+            const { mine, showName, showAvatar, firstInRun, lastInRun } = cluster;
+            const label = names[m.sender_id] || preview?.names?.[m.sender_id] || 'Someone';
             const like = likes.get(m.id) || { count: 0, mine: false };
+            const showLikeChip = like.count > 0 || like.mine;
             const image = isImageMessage(m) ? parseImagePayload(m.payload) : null;
             const file = isFileMessage(m) ? parseFilePayload(m.payload) : null;
-            const attachmentPath = image?.storage_path || file?.storage_path || '';
+            const audio = isAudioMessage(m) ? parseAudioPayload(m.payload) : null;
+            const attachmentPath = image?.storage_path || file?.storage_path || audio?.storage_path || '';
             const attachmentUrl = attachmentPath
               ? imageUrls[attachmentPath] || urlCacheRef.current.get(attachmentPath) || ''
               : '';
-            const openAttachment = attachmentUrl
+            const openAttachment = attachmentUrl && !audio
               ? () =>
                   setLightbox({
                     url: attachmentUrl,
@@ -396,86 +472,65 @@ export default function ChatThread({
                     fileName: file?.file_name || 'Photo',
                   })
               : null;
-            const incomingText = !mine && !image && !file && m.type !== 'payment';
+            const radii = chatBubbleRadii({
+              mine,
+              firstInRun,
+              lastInRun,
+              isMedia: Boolean(image),
+            });
             return (
               <Box
                 key={m.id}
                 sx={{
                   display: 'flex',
-                  justifyContent: mine ? 'flex-end' : 'flex-start',
-                  gap: 1,
-                  mb: 1.5,
-                  alignItems: 'flex-start',
+                  flexDirection: 'column',
+                  alignItems: mine ? 'flex-end' : 'flex-start',
+                  mb: lastInRun ? (showLikeChip ? 2.25 : 1.25) : 0.25,
+                  mt: firstInRun && i > 0 ? 0.75 : 0,
+                  px: 0.5,
                 }}
               >
-                {!mine ? (
-                  <Avatar
-                    sx={{
-                      width: { xs: 28, md: 36 },
-                      height: { xs: 28, md: 36 },
-                      fontSize: { xs: '0.7rem', md: '0.85rem' },
-                      bgcolor: 'primary.main',
-                      mt: 0.15,
-                      flexShrink: 0,
-                    }}
+                {showName ? (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ ml: `${CHAT_NAME_GUTTER_PX}px`, mb: 0.35, fontWeight: 600 }}
                   >
-                    {nameToInitials(label)}
-                  </Avatar>
+                    {label}
+                  </Typography>
                 ) : null}
                 <Box
                   sx={{
-                    ...chatBubbleMaxWidthSx,
                     display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: mine ? 'flex-end' : 'flex-start',
-                    minWidth: 0,
+                    alignItems: 'flex-end',
+                    gap: `${CHAT_AVATAR_GAP_PX}px`,
+                    maxWidth: '100%',
+                    flexDirection: mine ? 'row-reverse' : 'row',
                   }}
                 >
-                  {incomingText ? (
-                    <Box
-                      onPointerUp={handleBubblePointer(m)}
-                      sx={{
-                        px: 0.5,
-                        userSelect: 'none',
-                        WebkitUserSelect: 'none',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        alignItems: 'baseline',
-                        columnGap: 0.75,
-                        rowGap: 0.15,
-                      }}
-                    >
-                      <Typography
-                        component="span"
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ fontWeight: 600, flexShrink: 0 }}
-                      >
-                        {label}
-                      </Typography>
-                      <Typography
-                        component="span"
-                        variant="body2"
+                  {!mine ? (
+                    showAvatar ? (
+                      <Avatar
                         sx={{
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                          fontSize: { xs: '0.875rem', md: '1rem' },
-                          lineHeight: 1.45,
+                          width: CHAT_AVATAR_PX,
+                          height: CHAT_AVATAR_PX,
+                          fontSize: '0.7rem',
+                          bgcolor: 'primary.main',
+                          flexShrink: 0,
                         }}
                       >
-                        {m.body}
-                      </Typography>
-                    </Box>
-                  ) : !mine ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ px: 0.5, fontWeight: 600 }}>
-                      {label}
-                    </Typography>
+                        {nameToInitials(label)}
+                      </Avatar>
+                    ) : (
+                      <Box sx={{ width: CHAT_AVATAR_PX, flexShrink: 0 }} />
+                    )
                   ) : null}
                   <Box
+                    className="evenly-chat-bubble"
                     sx={{
+                      ...chatBubbleMaxWidthSx,
                       position: 'relative',
-                      width: image || file ? '100%' : 'auto',
-                      maxWidth: '100%',
+                      minWidth: 0,
                       '@keyframes evenlyHeartPop': {
                         '0%': { transform: 'translate(-50%, -50%) scale(0.35)', opacity: 0 },
                         '35%': { transform: 'translate(-50%, -50%) scale(1.2)', opacity: 1 },
@@ -486,7 +541,7 @@ export default function ChatThread({
                     {m.type === 'payment' ? (
                       <PaymentMessageCard
                         message={m}
-                        currentUserId={user?.id}
+                        currentUserId={myUserId}
                         fromName={names[parsePaymentPayload(m.payload)?.from_user_id] || 'Someone'}
                         toName={names[parsePaymentPayload(m.payload)?.to_user_id] || 'someone'}
                         groupName={groupName}
@@ -498,7 +553,7 @@ export default function ChatThread({
                       <Box
                         onPointerUp={handleBubblePointer(m, openAttachment)}
                         sx={{
-                          borderRadius: 2,
+                          ...radii,
                           overflow: 'hidden',
                           bgcolor: mine ? 'primary.main' : 'action.hover',
                           cursor: attachmentUrl ? 'pointer' : 'default',
@@ -534,7 +589,7 @@ export default function ChatThread({
                           gap: 1,
                           px: 1.5,
                           py: 1,
-                          borderRadius: 2,
+                          ...radii,
                           bgcolor: mine ? 'primary.main' : 'action.hover',
                           color: mine ? 'primary.contrastText' : 'text.primary',
                           cursor: attachmentUrl ? 'pointer' : 'default',
@@ -555,13 +610,21 @@ export default function ChatThread({
                           ) : null}
                         </Box>
                       </Box>
-                    ) : incomingText ? null : (
+                    ) : audio ? (
+                      <ChatAudioBubble
+                        url={attachmentUrl}
+                        durationMs={audio.duration_ms}
+                        mine={mine}
+                        radii={radii}
+                        onPointerUp={handleBubblePointer(m)}
+                      />
+                    ) : (
                       <Box
                         onPointerUp={handleBubblePointer(m)}
                         sx={{
-                          px: { xs: 1.5, md: 2 },
-                          py: { xs: 1, md: 1.25 },
-                          borderRadius: 2,
+                          px: 1.75,
+                          py: 1,
+                          ...radii,
                           bgcolor: mine ? 'primary.main' : 'action.hover',
                           color: mine ? 'primary.contrastText' : 'text.primary',
                           userSelect: 'none',
@@ -573,8 +636,8 @@ export default function ChatThread({
                           sx={{
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
-                            fontSize: { xs: '0.875rem', md: '1rem' },
-                            lineHeight: 1.45,
+                            fontSize: '0.9375rem',
+                            lineHeight: 1.4,
                           }}
                         >
                           {m.body}
@@ -595,33 +658,45 @@ export default function ChatThread({
                         }}
                       />
                     ) : null}
-                  </Box>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: mine ? 'flex-end' : 'flex-start',
-                      mt: 0.35,
-                      ml: mine ? 0 : 0.25,
-                    }}
-                  >
-                    <IconButton
-                      size="small"
-                      aria-label={like.mine ? 'Unlike' : 'Like'}
-                      onClick={() => setLiked(m.id, !like.mine)}
-                      sx={{ p: 0.5 }}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: -12,
+                        [mine ? 'right' : 'left']: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        bgcolor: 'background.paper',
+                        borderRadius: 999,
+                        boxShadow: 1,
+                        pr: like.count > 1 ? 0.75 : 0.25,
+                        opacity: showLikeChip ? 1 : 0,
+                        pointerEvents: showLikeChip ? 'auto' : 'none',
+                        '@media (hover: hover)': {
+                          '.evenly-chat-bubble:hover &': {
+                            opacity: 1,
+                            pointerEvents: 'auto',
+                          },
+                        },
+                      }}
                     >
-                      {like.mine ? (
-                        <FavoriteIcon fontSize="small" sx={{ color: 'error.main' }} />
-                      ) : (
-                        <FavoriteBorderIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                    {like.count > 0 ? (
-                      <Typography variant="caption" color="text.secondary">
-                        {like.count}
-                      </Typography>
-                    ) : null}
+                      <IconButton
+                        size="small"
+                        aria-label={like.mine ? 'Unlike' : 'Like'}
+                        onClick={() => setLiked(m.id, !like.mine)}
+                        sx={{ p: 0.35 }}
+                      >
+                        {like.mine ? (
+                          <FavoriteIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                        ) : (
+                          <FavoriteBorderIcon sx={{ fontSize: 16 }} />
+                        )}
+                      </IconButton>
+                      {like.count > 0 ? (
+                        <Typography variant="caption" color="text.secondary">
+                          {like.count}
+                        </Typography>
+                      ) : null}
+                    </Box>
                   </Box>
                 </Box>
               </Box>
@@ -629,49 +704,15 @@ export default function ChatThread({
           })
         )}
       </Box>
-      <Box
-        component="form"
-        onSubmit={handleSend}
-        sx={{
-          ...chatComposerBarSx,
-          pb: 'max(8px, env(safe-area-inset-bottom, 0px), var(--evenly-vv-bottom, 0px))',
-        }}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={CHAT_ATTACHMENT_ACCEPT}
-          hidden
-          onChange={handlePickAttachment}
-        />
-        <IconButton
-          type="button"
-          color="primary"
-          disabled={sending}
-          aria-label="Attach photo or document"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <AttachFileIcon />
-        </IconButton>
-        <TextField
-          value={draft}
-          onChange={(e) => setDraft(e.target.value.slice(0, MESSAGE_BODY_MAX))}
-          onFocus={() => requestChatNotificationPermission()}
-          placeholder="Message"
-          fullWidth
-          size={desktop ? 'medium' : 'small'}
-          multiline
-          maxRows={4}
-        />
-        <IconButton
-          type="submit"
-          color="primary"
-          disabled={sending || !clipMessageBody(draft)}
-          aria-label="Send"
-        >
-          <SendIcon />
-        </IconButton>
-      </Box>
+      <ChatComposer
+        draft={draft}
+        onDraftChange={setDraft}
+        sending={sending}
+        onSend={handleSend}
+        onPickFile={handlePickAttachment}
+        onSendVoice={handleSendVoice}
+        onError={setError}
+      />
       <AttachmentLightbox
         open={Boolean(lightbox)}
         onClose={() => setLightbox(null)}

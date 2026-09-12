@@ -36,6 +36,7 @@ export function isPublicExemptRoute(pathname) {
 
 /** DM thread (`/chat/:id`) or group Chat tab — composer must dock to the layout bottom. */
 export function isChatComposerRoute(pathname) {
+  if (pathname === '/dev/chat-layout') return true;
   if (pathname.startsWith('/chat/')) return pathname.length > '/chat/'.length;
   return /^\/groups\/[^/]+\/chat\/?$/.test(pathname);
 }
@@ -95,7 +96,7 @@ export const chatThreadRootSx = {
 };
 
 export const CHAT_COMPOSER_MOBILE_CLEARANCE =
-  'calc(80px + env(safe-area-inset-bottom, 0px) + var(--evenly-vv-bottom, 0px) + var(--evenly-cookie-banner-offset, 0px))';
+  'calc(92px + env(safe-area-inset-bottom, 0px) + var(--evenly-vv-bottom, 0px) + var(--evenly-cookie-banner-offset, 0px))';
 
 export const chatMessagesSx = {
   flex: 1,

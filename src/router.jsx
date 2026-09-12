@@ -63,6 +63,15 @@ export const router = createHashRouter([
           </RequireAuth>
         ),
       },
+      ...(import.meta.env.DEV
+        ? [
+            {
+              path: 'dev/chat-layout',
+              lazy: () =>
+                import('./pages/ChatLayoutPreview.jsx').then((m) => ({ Component: m.default })),
+            },
+          ]
+        : []),
       {
         path: 'chat/:conversationId',
         element: (

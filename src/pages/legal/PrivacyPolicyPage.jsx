@@ -23,7 +23,7 @@ const TOC = [
   { id: 'scope', label: 'Scope' },
   { id: 'collect', label: 'Information we collect' },
   { id: 'use', label: 'How we use information' },
-  { id: 'chat', label: 'Chat, photos, likes, and alerts' },
+  { id: 'chat', label: 'Chat, photos, voice notes, likes, and alerts' },
   { id: 'share-links', label: 'Share links' },
   { id: 'scan', label: 'Receipt scan' },
   { id: 'processors', label: 'Processors' },
@@ -115,15 +115,15 @@ export default function PrivacyPolicyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection id="chat" title="5. Chat, photos, likes, and alerts">
+      <LegalSection id="chat" title="5. Chat, photos, voice notes, likes, and alerts">
         <LegalP>
           Signed-in members can message in a group thread and in 1:1 chats with friends or people
-          who share a group. Message bodies, optional photos and documents (private Storage bucket,
-          size and type limits), and likes are visible to conversation members only — not on public
-          share links. Attachments are delivered through short-lived signed URLs. If you enable
-          message alerts, we store a Web Push subscription for your account and send a payload such
-          as the sender name and a short preview (“Sent a photo” / “Sent a file”). Evenly does not
-          process payments; Venmo
+          who share a group. Message bodies, optional photos, documents, and voice notes (private
+          Storage bucket, size and type limits), and likes are visible to conversation members only
+          — not on public share links. Attachments are delivered through short-lived signed URLs. If
+          you enable message alerts, we store a Web Push subscription for your account and send a
+          payload such as the sender name and a short preview (“Sent a photo” / “Sent a file” /
+          “Sent a voice message”). Evenly does not process payments; Venmo
           links open Venmo with amount and note filled in. “I paid” is an honor-system mark in
           {SITE_NAME}.
         </LegalP>

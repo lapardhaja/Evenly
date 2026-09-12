@@ -65,6 +65,7 @@ test('app shell stays viewport-bounded so the inner scroller owns wheel scroll',
 test('DM thread is a composer route; inbox and groups are not', () => {
   assert.equal(isChatComposerRoute('/chat/abc'), true);
   assert.equal(isChatComposerRoute('/chat'), false);
+  assert.equal(isChatComposerRoute('/dev/chat-layout'), true);
   assert.equal(isChatComposerRoute('/groups/g1/chat'), true);
   assert.equal(isChatComposerRoute('/groups/g1/receipts'), false);
   assert.equal(isChatComposerRoute('/'), false);
@@ -103,6 +104,8 @@ test('Layout pins the legal footer under a min-height 100% column', async () => 
   assert.match(src, /appShellFooterPinSx/);
   assert.match(src, /appShellFooterPinMainSx/);
   assert.match(src, /appLegalFooterSx/);
+  assert.match(src, /hideAppBar/);
+  assert.match(src, /isChatComposerRoute/);
 });
 
 test('chat column uses a desktop-width container, not the phone sm cap', () => {
@@ -201,24 +204,31 @@ test('html/body/#root lock document scroll so chat cannot pan the page', async (
   assert.match(css, /html,\s*body,\s*#root\s*\{[^}]*overflow:\s*hidden/s);
 });
 
-test('chat thread pins the composer on phones and attaches documents', async () => {
+test('chat thread is Instagram-style with voice notes and a pill composer', async () => {
   const { readFileSync } = await import('node:fs');
   const { dirname, join } = await import('node:path');
   const { fileURLToPath } = await import('node:url');
-  const src = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), '../components/ChatThread.jsx'),
-    'utf8',
-  );
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const thread = readFileSync(join(root, 'components/ChatThread.jsx'), 'utf8');
+  const composer = readFileSync(join(root, 'components/ChatComposer.jsx'), 'utf8');
+  const page = readFileSync(join(root, 'pages/ChatThreadPage.jsx'), 'utf8');
   const sql = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), '../../supabase/migrations/20260912220000_chat_file_attachments.sql'),
+    join(root, '../supabase/migrations/20260912233000_chat_voice_notes.sql'),
     'utf8',
   );
-  assert.match(src, /AttachFileIcon/);
-  assert.match(src, /CHAT_ATTACHMENT_ACCEPT/);
-  assert.match(src, /sendChatAttachment/);
-  assert.match(src, /alignItems: 'flex-start'/);
-  assert.match(src, /incomingText/);
-  assert.doesNotMatch(src, /ImageOutlinedIcon/);
-  assert.match(sql, /'file'/);
-  assert.match(sql, /application\/pdf/);
+  assert.match(thread, /chatClusterMeta/);
+  assert.match(thread, /showAvatar/);
+  assert.match(thread, /ChatComposer/);
+  assert.match(thread, /ChatAudioBubble/);
+  assert.match(thread, /showName/);
+  assert.match(thread, /alignItems: 'flex-end'/);
+  assert.doesNotMatch(thread, /incomingText/);
+  assert.match(composer, /Message\.\.\./);
+  assert.match(composer, /Voice message/);
+  assert.match(composer, /Take photo/);
+  assert.match(composer, /Photo library/);
+  assert.match(composer, /Attach file/);
+  assert.match(sql, /'audio'/);
+  assert.match(sql, /audio\/webm/);
+  assert.match(page, /subtitle/);
 });

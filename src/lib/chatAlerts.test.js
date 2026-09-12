@@ -130,6 +130,7 @@ test('incomingChatPreview clips body', () => {
   assert.equal(incomingChatPreview({ type: 'payment', body: '' }), 'Payment request');
   assert.equal(incomingChatPreview({ type: 'image', body: '' }), 'Sent a photo');
   assert.equal(incomingChatPreview({ type: 'file', body: '' }), 'Sent a file');
+  assert.equal(incomingChatPreview({ type: 'audio', body: '' }), 'Sent a voice message');
   assert.equal(incomingChatPreview({ type: 'text', body: '  yo  ' }), 'yo');
   assert.equal(incomingChatPreview({ type: 'text', body: 'a'.repeat(90) }).length <= 80, true);
 });
