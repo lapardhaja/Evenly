@@ -237,12 +237,12 @@ export default function GroupPeopleTab({ groupData }) {
                 return (
                   <Box key={f.user_id}>
                     {i > 0 ? <Divider /> : null}
-                    <ListItem sx={{ gap: 1, py: 1.25, pr: 1 }}>
+                    <ListItem sx={{ gap: 1, py: 1.25, pr: 1, overflow: 'hidden' }}>
                       <ListItemAvatar sx={{ minWidth: 48 }}>
                         <Avatar sx={{ bgcolor: 'primary.main' }}>{nameToInitials(label)}</Avatar>
                       </ListItemAvatar>
                       <ListItemText
-                        sx={{ minWidth: 0, flex: '1 1 auto' }}
+                        sx={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}
                         primary={label}
                         primaryTypographyProps={{ noWrap: true }}
                         secondary={f.username ? `@${f.username}` : null}
