@@ -11,10 +11,13 @@ import {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
-test('CSP allows self, fonts, supabase, inline (index.html + MUI), and Venmo-safe COOP', () => {
+test('CSP allows self, fonts, supabase, MUI styles, and Venmo-safe COOP — no script unsafe-inline', () => {
   assert.match(CONTENT_SECURITY_POLICY, /default-src 'self'/);
   assert.match(CONTENT_SECURITY_POLICY, /frame-ancestors 'none'/);
-  assert.match(CONTENT_SECURITY_POLICY, /script-src 'self' 'unsafe-inline'/);
+  assert.match(CONTENT_SECURITY_POLICY, /script-src 'self'/);
+  assert.match(CONTENT_SECURITY_POLICY, /script-src-attr 'none'/);
+  assert.equal(CONTENT_SECURITY_POLICY.includes("'unsafe-inline'") && /script-src [^;]*unsafe-inline/.test(CONTENT_SECURITY_POLICY), false);
+  assert.equal(/script-src 'self'/.test(CONTENT_SECURITY_POLICY) && !/script-src 'self' 'unsafe-inline'/.test(CONTENT_SECURITY_POLICY), true);
   assert.match(CONTENT_SECURITY_POLICY, /style-src 'self' 'unsafe-inline' https:\/\/fonts\.googleapis\.com/);
   assert.match(CONTENT_SECURITY_POLICY, /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co/);
   assert.match(CONTENT_SECURITY_POLICY, /img-src 'self' data: blob: https:\/\/\*\.supabase\.co/);
@@ -40,7 +43,15 @@ test('vercel.json headers match securityHeaders.js (no drift)', () => {
   assert.deepEqual(got, expected);
 });
 
-test('index.html sets referrer policy for non-Vercel static hosts', () => {
+test('index.html has no inline scripts; auth capture is a same-origin file', () => {
   const html = readFileSync(join(root, 'index.html'), 'utf8');
   assert.match(html, /name="referrer"[^>]*content="strict-origin-when-cross-origin"/);
+  assert.match(html, /<script src="\/auth-capture\.js"><\/script>/);
+  const scripts = html.match(/<script[\s\S]*?<\/script>/g) || [];
+  for (const tag of scripts) {
+    assert.match(tag, /\ssrc=/);
+  }
+  const capture = readFileSync(join(root, 'public/auth-capture.js'), 'utf8');
+  assert.match(capture, /evenly:auth:pending/);
+  assert.equal(capture.includes('import '), false);
 });

@@ -12,6 +12,7 @@ export default defineConfig(({ command }) => ({
       filename: 'sw.js',
       registerType: 'autoUpdate',
       includeAssets: [
+        'auth-capture.js',
         'brand/evenly-icon.svg',
         'brand/apple-touch-icon.png',
         'brand/pwa-192.png',

@@ -5,7 +5,7 @@
  * Not applied on GitHub Pages. Production is Vercel (`evenly.lapardhaja.com`).
  *
  * CSP notes:
- * - `'unsafe-inline'` scripts: password-reset capture in `index.html` (must run before the PWA SW).
+ * - Scripts: `'self'` only. Auth capture lives in `/auth-capture.js` (not inline).
  * - `'unsafe-inline'` styles: MUI / Emotion runtime style tags + Google Fonts CSS.
  * - `Cross-Origin-Opener-Policy: same-origin-allow-popups` so Venmo `window.open` still works.
  * - No COEP: would break Google Fonts and Supabase signed image URLs.
@@ -17,7 +17,8 @@ export const CONTENT_SECURITY_POLICY = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
+  "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https://*.supabase.co",
