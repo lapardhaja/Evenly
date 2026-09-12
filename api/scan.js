@@ -15,7 +15,8 @@ import {
   resolveCorsAllowOrigin,
 } from './scanGuard.js';
 import { applyApiSecurityHeaders } from './httpSecurity.js';
-import { clientIp, scanLimiter } from './rateLimit.js';
+import { clientIp, SCAN_RATE } from './rateLimit.js';
+import { consumeRateLimit } from './durableRateLimit.js';
 import { SCAN_FAILED, SCAN_RATE_LIMITED, SCAN_UNAVAILABLE } from './scanPublicErrors.js';
 
 function scanEnv() {
@@ -126,7 +127,11 @@ export default async function handler(req, res) {
     return sendJson(req, res, 405, { error: 'Method not allowed' });
   }
 
-  const limited = scanLimiter.check(clientIp(req));
+  const limited = await consumeRateLimit({
+    bucket: 'scan',
+    ip: clientIp(req),
+    ...SCAN_RATE,
+  });
   if (!limited.ok) {
     applyScanCors(req, res);
     applyApiSecurityHeaders(res);

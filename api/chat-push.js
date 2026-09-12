@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { resolveCorsAllowOrigin, getRequestOrigin } from './scanGuard.js';
 import { applyApiSecurityHeaders } from './httpSecurity.js';
-import { chatPushLimiter, clientIp } from './rateLimit.js';
+import { clientIp, CHAT_PUSH_RATE } from './rateLimit.js';
+import { consumeRateLimit } from './durableRateLimit.js';
 import {
   bearerToken,
   buildChatPushPayload,
@@ -60,7 +61,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const limited = chatPushLimiter.check(clientIp(req));
+  const limited = await consumeRateLimit({
+    bucket: 'chat-push',
+    ip: clientIp(req),
+    ...CHAT_PUSH_RATE,
+  });
   if (!limited.ok) {
     applyCors(req, res, env);
     res.setHeader('Retry-After', String(limited.retryAfterSec));

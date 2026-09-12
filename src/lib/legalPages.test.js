@@ -68,7 +68,8 @@ test('scan API does not return key names or raw exception messages', () => {
   assert.equal(src.includes('err.message'), false);
   assert.match(src, /SCAN_UNAVAILABLE/);
   assert.match(src, /SCAN_FAILED/);
-  assert.match(src, /scanLimiter/);
+  assert.match(src, /consumeRateLimit/);
+  assert.match(src, /SCAN_RATE/);
 });
 
 test('router registers #/security as a public page', () => {

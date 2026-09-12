@@ -73,8 +73,6 @@ export function createRateLimiter({ windowMs, max }) {
 
 /** Receipt OCR: 15 images / 15 minutes / IP. */
 export const SCAN_RATE = { windowMs: 15 * 60 * 1000, max: 15 };
-export const scanLimiter = createRateLimiter(SCAN_RATE);
 
 /** Chat push fan-out: 120 POSTs / 5 minutes / IP (one POST per outbound message). */
 export const CHAT_PUSH_RATE = { windowMs: 5 * 60 * 1000, max: 120 };
-export const chatPushLimiter = createRateLimiter(CHAT_PUSH_RATE);
