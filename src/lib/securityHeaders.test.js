@@ -19,7 +19,7 @@ test('CSP allows self, fonts, supabase, MUI styles, and Venmo-safe COOP — no s
   assert.equal(CONTENT_SECURITY_POLICY.includes("'unsafe-inline'") && /script-src [^;]*unsafe-inline/.test(CONTENT_SECURITY_POLICY), false);
   assert.equal(/script-src 'self'/.test(CONTENT_SECURITY_POLICY) && !/script-src 'self' 'unsafe-inline'/.test(CONTENT_SECURITY_POLICY), true);
   assert.match(CONTENT_SECURITY_POLICY, /style-src 'self' 'unsafe-inline' https:\/\/fonts\.googleapis\.com/);
-  assert.match(CONTENT_SECURITY_POLICY, /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co https:\/\/open\.er-api\.com https:\/\/cdn\.jsdelivr\.net/);
+  assert.match(CONTENT_SECURITY_POLICY, /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co https:\/\/open\.er-api\.com https:\/\/cdn\.jsdelivr\.net https:\/\/api\.frankfurter\.dev/);
   assert.match(CONTENT_SECURITY_POLICY, /img-src 'self' data: blob: https:\/\/\*\.supabase\.co/);
   assert.equal(CONTENT_SECURITY_POLICY.includes('unsafe-eval'), false);
   assert.equal(

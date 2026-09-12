@@ -4,8 +4,6 @@ import { useParams, useNavigate, useBlocker, useLocation } from 'react-router-do
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import IconButton from '@mui/material/IconButton';
 import ButtonBase from '@mui/material/ButtonBase';
 import TextField from '@mui/material/TextField';
@@ -25,9 +23,6 @@ import { useGroupReceipt } from '../hooks/useGroupData.js';
 import ReceiptAttachments from '../components/ReceiptAttachments.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import ReceiptInfoItemsTab from './ReceiptInfoItemsTab.jsx';
-import ReceiptInfoPeopleTab from './ReceiptInfoPeopleTab.jsx';
-
-const TABS = ['items', 'people'];
 
 export default function ReceiptInfoPage() {
   const { groupId, receiptId, tab } = useParams();
@@ -76,7 +71,10 @@ export default function ReceiptInfoPage() {
     }
   }, [location.pathname, groupId, receiptId]);
 
-  const currentTab = TABS.indexOf(tab) >= 0 ? TABS.indexOf(tab) : 0;
+  useEffect(() => {
+    if (tab !== 'people') return;
+    navigate(`/groups/${groupId}/receipt/${receiptId}`, { replace: true });
+  }, [tab, groupId, receiptId, navigate]);
 
   if (!receipt) {
     return (
@@ -346,28 +344,7 @@ export default function ReceiptInfoPage() {
         enabled={isSupabaseConfigured()}
       />
 
-      <Tabs
-        value={currentTab}
-        onChange={(_, v) =>
-          navigate(`/groups/${groupId}/receipt/${receiptId}/${TABS[v]}`)
-        }
-        indicatorColor="primary"
-        textColor="primary"
-        centered
-        sx={{ mb: { xs: 1, sm: 2 } }}
-      >
-        {TABS.map((t) => (
-          <Tab key={t} label={t.charAt(0).toUpperCase() + t.slice(1)} />
-        ))}
-      </Tabs>
-
-      {currentTab === 0 && <ReceiptInfoItemsTab receiptData={receiptData} />}
-      {currentTab === 1 && (
-        <ReceiptInfoPeopleTab
-          receiptData={receiptData}
-          isGroupReceipt
-        />
-      )}
+      <ReceiptInfoItemsTab receiptData={receiptData} />
 
       {EditTextModal}
     </Container>

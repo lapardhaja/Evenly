@@ -25,12 +25,17 @@ export const SUBPROCESSORS = [
   },
   {
     name: 'ExchangeRate-API (open.er-api.com)',
-    role: 'Public USD FX table for mixed-currency group totals and Settle. No account data is sent',
+    role: 'Latest USD FX table for today’s receipts and Venmo USD amounts. No account data is sent',
     region: 'Varies (third-party CDN / API)',
   },
   {
     name: 'jsDelivr / Fawaz Ahmed currency-api',
-    role: 'Fallback public FX table if ExchangeRate-API is unavailable. No account data is sent',
+    role: 'Dated public FX tables (from 2024-03-02) and latest fallback. No account data is sent',
     region: 'Varies (jsDelivr CDN)',
+  },
+  {
+    name: 'Frankfurter (api.frankfurter.dev)',
+    role: 'Historical ECB FX table for receipt dates before the currency-api archive, and as fallback. No account data is sent',
+    region: 'Varies (third-party API)',
   },
 ];

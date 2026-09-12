@@ -28,11 +28,11 @@ import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import CurrencyAutocomplete from '../components/CurrencyAutocomplete.jsx';
 import {
   getUsdRatesTable,
-  conversionFactorFromUsdRates,
   formatMoneyWithCode,
   normalizeCurrencyCode,
 } from '../lib/currencies.js';
-import { listReceiptsCurrencyMeta, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
+import { SETTLE_FX_DATE_COPY } from '../lib/groupListTotals.js';
+import { listReceiptsCurrencyMeta, loadReceiptFxFactors, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getProfilesByIds } from '../lib/friendsApi.js';
 import {
@@ -93,38 +93,19 @@ export default function GroupSettleTab({ groupId, groupData }) {
     setFxError('');
 
     (async () => {
-      const factors = {};
-      const failed = [];
-      const rates = await getUsdRatesTable();
+      const [ratesToday, fx] = await Promise.all([
+        getUsdRatesTable(),
+        loadReceiptFxFactors(meta, target),
+      ]);
       if (cancelled) return;
-      setUsdRates(rates || null);
-      if (!rates) {
-        for (const row of meta) {
-          factors[row.id] = 1;
-          failed.push(row.id);
-        }
-        setReceiptFactors(factors);
+      setUsdRates(ratesToday || null);
+      setReceiptFactors(fx.factors);
+      if (!fx.ratesAvailable) {
         setFxError('Couldn’t load exchange rates. Totals may mix currencies.');
-        setFxLoading(false);
-        return;
+      } else if (fx.failed.length > 0) {
+        setFxError('Some amounts couldn’t be converted — shown in the receipt’s currency.');
       }
-      for (const row of meta) {
-        const from = normalizeCurrencyCode(row.currencyCode);
-        const rate = conversionFactorFromUsdRates(rates, from, target);
-        if (rate == null || !Number.isFinite(rate) || rate <= 0) {
-          factors[row.id] = 1;
-          failed.push(row.id);
-        } else {
-          factors[row.id] = rate;
-        }
-      }
-      if (!cancelled) {
-        setReceiptFactors(factors);
-        if (failed.length > 0) {
-          setFxError('Some amounts couldn’t be converted — shown in the receipt’s currency.');
-        }
-        setFxLoading(false);
-      }
+      setFxLoading(false);
     })();
 
     return () => {
@@ -441,7 +422,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         </Alert>
       ) : null}
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        Rates update daily. Wrong currency on a receipt? Fix it on that receipt’s page.
+        {SETTLE_FX_DATE_COPY}
       </Typography>
 
       {/* Net Balances */}
@@ -515,13 +496,14 @@ export default function GroupSettleTab({ groupId, groupData }) {
         onClick={() => setShareLinkOpen(true)}
         sx={{ mb: 2 }}
       >
-        Share Cost Evenly
+        Share settlement
       </Button>
 
       {isSupabaseConfigured() ? (
         <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
           Pay on Venmo opens the Venmo app (or venmo.com) with the amount filled in. Evenly never
-          sends money. After you send it in Venmo, tap I paid here.
+          sends money. After you send it in Venmo, tap I paid here. I paid only marks it in Evenly
+          — it does not confirm the Venmo payment.
         </Alert>
       ) : null}
 

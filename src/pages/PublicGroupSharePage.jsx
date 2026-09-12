@@ -25,18 +25,17 @@ import AttachmentLightbox, { canPreviewAttachmentInline } from '../components/At
 import { receiptGrandTotal } from '../functions/receiptTotals.js';
 import { idMapToList, nameToInitials } from '../functions/utils.js';
 import {
-  conversionFactorFromUsdRates,
   formatMoneyWithCode,
-  getUsdRatesTable,
   normalizeCurrencyCode,
 } from '../lib/currencies.js';
+import { FX_RECEIPT_DATE_CAPTION } from '../lib/groupListTotals.js';
+import { listReceiptsCurrencyMeta, loadReceiptFxFactors, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
 import {
   fetchPublicAttachmentUrl,
   fetchPublicGroupShare,
   publicSharePayloadToGroup,
   publicShareTransfers,
 } from '../lib/publicGroupShare.js';
-import { listReceiptsCurrencyMeta, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
 function formatDate(ts) {
@@ -179,6 +178,12 @@ export default function PublicGroupSharePage() {
   const peopleMap = useMemo(() => group?.people || {}, [group]);
   const receipts = useMemo(() => (group ? idMapToList(group.receipts) : []), [group]);
   const settleCode = normalizeCurrencyCode(group?.displayCurrency || 'USD');
+  const needsFx = useMemo(() => {
+    if (!group) return false;
+    return listReceiptsCurrencyMeta(group).some(
+      (row) => normalizeCurrencyCode(row.currencyCode) !== settleCode,
+    );
+  }, [group, settleCode]);
 
   useEffect(() => {
     if (!group) {
@@ -199,36 +204,15 @@ export default function PublicGroupSharePage() {
 
     let cancelled = false;
     (async () => {
-      const factors = {};
-      const failed = [];
-      const rates = await getUsdRatesTable();
+      const fx = await loadReceiptFxFactors(meta, settleCode);
       if (cancelled) return;
-      if (!rates) {
-        for (const row of meta) {
-          factors[row.id] = 1;
-          failed.push(row.id);
-        }
-        setReceiptFactors(factors);
+      setReceiptFactors(fx.factors);
+      if (!fx.ratesAvailable) {
         setFxError('Couldn’t load exchange rates. Amounts may mix currencies.');
-        return;
-      }
-      for (const row of meta) {
-        const from = normalizeCurrencyCode(row.currencyCode);
-        const rate = conversionFactorFromUsdRates(rates, from, settleCode);
-        if (rate == null || !Number.isFinite(rate) || rate <= 0) {
-          factors[row.id] = 1;
-          failed.push(row.id);
-        } else {
-          factors[row.id] = rate;
-        }
-      }
-      if (!cancelled) {
-        setReceiptFactors(factors);
-        setFxError(
-          failed.length > 0
-            ? 'Some amounts couldn’t be converted — shown in the receipt’s currency.'
-            : '',
-        );
+      } else if (fx.failed.length > 0) {
+        setFxError('Some amounts couldn’t be converted — shown in the receipt’s currency.');
+      } else {
+        setFxError('');
       }
     })();
     return () => {
@@ -327,6 +311,10 @@ export default function PublicGroupSharePage() {
         <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
           {fxError}
         </Alert>
+      ) : needsFx ? (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+          {FX_RECEIPT_DATE_CAPTION}
+        </Typography>
       ) : null}
       {attachError ? (
         <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setAttachError('')}>

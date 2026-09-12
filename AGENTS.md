@@ -48,9 +48,8 @@ Groups → Receipts hierarchy. People are defined at the group level and shared 
 - `src/pages/GroupReceiptsTab.jsx` — Receipt list within a group
 - `src/pages/GroupPeopleTab.jsx` — People management (group level)
 - `src/pages/GroupSettleTab.jsx` — Net balances + minimized transfers
-- `src/pages/ReceiptInfoPage.jsx` — Receipt detail with Paid By + Items/People tabs
+- `src/pages/ReceiptInfoPage.jsx` — Receipt detail with Paid By + items
 - `src/pages/ReceiptInfoItemsTab.jsx` — Item table + per-person breakdown
-- `src/pages/ReceiptInfoPeopleTab.jsx` — People list (read-only in group context)
 - `src/hooks/useGroupData.js` — All CRUD and computation logic
 - `src/hooks/useLocalStorage.js` — Generic localStorage hook
 - `src/functions/settlement.js` — Net balance + greedy transfer minimization

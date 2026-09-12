@@ -99,7 +99,7 @@ export default function SettlementShareDialog({
   return (
     <>
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" scroll="paper">
-        <DialogTitle>Share Cost Evenly</DialogTitle>
+        <DialogTitle>Share settlement</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
           <Typography
             component="label"
