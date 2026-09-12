@@ -129,7 +129,7 @@ export default function ReceiptInfoPage() {
               !receipt.locked &&
               showEditTextModal({
                 setValue: (value) => updateReceiptProperty('title', value),
-                title: 'Edit Receipt Name',
+                title: 'Receipt name',
                 value: receipt.title,
               })
             }
@@ -208,7 +208,7 @@ export default function ReceiptInfoPage() {
             color="warning"
             variant="outlined"
           >
-            Leave without choosing
+            Leave anyway
           </Button>
           <Button
             onClick={handleSavePayerAndLeave}

@@ -107,11 +107,6 @@ export default function GroupPeopleTab({ groupData }) {
 
   return (
     <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Split people are shared across every receipt. Invite an Evenly friend so they can see this
-        group — or add a name-only guest for someone without an account.
-      </Typography>
-
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <List disablePadding>
           {people.map((person) => {
@@ -189,7 +184,6 @@ export default function GroupPeopleTab({ groupData }) {
               if (e.key === 'Enter') handleAddPerson();
             }}
             variant="outlined"
-            helperText="Won’t get the group in their Evenly — just a split label."
           />
         </Box>
         <Button variant="outlined" onClick={handleAddPerson} sx={{ whiteSpace: 'nowrap', mt: 0.25 }}>
@@ -213,10 +207,6 @@ export default function GroupPeopleTab({ groupData }) {
       <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Invite a friend to this group</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            They must already be your Evenly friend. That adds them as a member so they can see
-            receipts and chat.
-          </Typography>
           <TextField
             size="small"
             fullWidth
@@ -234,8 +224,7 @@ export default function GroupPeopleTab({ groupData }) {
             <Typography color="text.secondary">Loading…</Typography>
           ) : friendsList.length === 0 ? (
             <Typography color="text.secondary">
-              No friends yet. Open Friends (person icon, top right), search them, and tap Add
-              friend.
+              No friends yet. Add them from Friends first.
             </Typography>
           ) : filteredFriends.length === 0 ? (
             <Typography color="text.secondary">No friends match that filter.</Typography>

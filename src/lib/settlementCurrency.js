@@ -7,6 +7,17 @@ import {
   normalizeCurrencyCode,
 } from './currencies.js';
 
+export const FX_RATES_UNAVAILABLE =
+  'Couldn’t load exchange rates. Amounts may mix currencies.';
+export const FX_RATES_PARTIAL =
+  'Some amounts couldn’t be converted — shown in the receipt’s currency.';
+
+export function fxErrorMessage(fx) {
+  if (!fx?.ratesAvailable) return FX_RATES_UNAVAILABLE;
+  if (fx.failed?.length) return FX_RATES_PARTIAL;
+  return '';
+}
+
 /**
  * Clone group with all receipt money fields scaled by per-receipt factor (for FX display).
  */

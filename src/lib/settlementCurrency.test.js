@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { receiptFxFactorsFromTables, scaleGroupMoneyForDisplay } from './settlementCurrency.js';
+import { fxErrorMessage, receiptFxFactorsFromTables, scaleGroupMoneyForDisplay } from './settlementCurrency.js';
 
 test('receiptFxFactorsFromTables uses that day’s table', () => {
   const d1 = new Date(2024, 5, 1, 12).getTime();
@@ -52,4 +52,10 @@ test('scaleGroupMoneyForDisplay multiplies money fields', () => {
   assert.equal(scaled.receipts.a.taxCost, 2);
   assert.equal(scaled.receipts.a.tipCost, 4);
   assert.equal(scaled.receipts.a.discountCost, 1);
+});
+
+test('fxErrorMessage: unavailable vs partial vs ok', () => {
+  assert.match(fxErrorMessage({ ratesAvailable: false, failed: ['a'] }), /Couldn’t load exchange rates/);
+  assert.match(fxErrorMessage({ ratesAvailable: true, failed: ['a'] }), /couldn’t be converted/);
+  assert.equal(fxErrorMessage({ ratesAvailable: true, failed: [] }), '');
 });

@@ -179,7 +179,7 @@ export default function GroupShareDialog({
               return (
                 <Box key={row.id} sx={{ mb: 2 }}>
                   <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                    {row.include_attachments ? 'Link (receipts + attachments)' : 'Link (receipts only)'}
+                    {row.include_attachments ? 'With attachments' : 'Receipts only'}
                   </Typography>
                   <TextField
                     id={`evenly-share-url-${row.id}`}
@@ -234,12 +234,8 @@ export default function GroupShareDialog({
           >
             {shares.length ? 'Create another link' : 'Create link'}
           </Button>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 3, mb: 1 }}>
-            Need a summary without receipts? Use a settlement-only link that stays on this
-            device (works offline).
-          </Typography>
-          <Button variant="text" onClick={() => setLegacyOpen(true)}>
-            Settlement-only link (offline)
+          <Button variant="text" onClick={() => setLegacyOpen(true)} sx={{ mt: 2 }}>
+            Settlement-only (this device)
           </Button>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

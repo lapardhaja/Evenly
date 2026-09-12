@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  GROUP_TOTAL_FX_DATE_COPY,
   GROUP_TOTAL_FX_FAILED_COPY,
-  groupListFxBanner,
+  groupListFxFailed,
   groupListTotalDisplay,
 } from './groupListTotals.js';
 
@@ -23,43 +22,27 @@ test('groupListTotalDisplay never appends *', () => {
   assert.notEqual(converted, raw);
 });
 
-test('groupListFxBanner: loading and empty hide copy', () => {
-  assert.deepEqual(
-    groupListFxBanner({ fxReady: false, groups: [{ id: 'g' }], convertedTotals: {} }),
-    { failed: false, dated: false },
+test('groupListFxFailed: loading and empty are false', () => {
+  assert.equal(
+    groupListFxFailed({ fxReady: false, groups: [{ id: 'g' }], convertedTotals: {} }),
+    false,
   );
-  assert.deepEqual(
-    groupListFxBanner({ fxReady: true, groups: [], convertedTotals: {} }),
-    { failed: false, dated: false },
-  );
+  assert.equal(groupListFxFailed({ fxReady: true, groups: [], convertedTotals: {} }), false);
 });
 
-test('groupListFxBanner: converted vs failed vs mixed', () => {
+test('groupListFxFailed: any null total is failed', () => {
   const groups = [{ id: 'a' }, { id: 'b' }];
-  assert.deepEqual(
-    groupListFxBanner({
-      fxReady: true,
-      groups,
-      convertedTotals: { a: 1, b: 2 },
-    }),
-    { failed: false, dated: true },
+  assert.equal(
+    groupListFxFailed({ fxReady: true, groups, convertedTotals: { a: 1, b: 2 } }),
+    false,
   );
-  assert.deepEqual(
-    groupListFxBanner({
-      fxReady: true,
-      groups,
-      convertedTotals: { a: null, b: null },
-    }),
-    { failed: true, dated: false },
+  assert.equal(
+    groupListFxFailed({ fxReady: true, groups, convertedTotals: { a: null, b: null } }),
+    true,
   );
-  assert.deepEqual(
-    groupListFxBanner({
-      fxReady: true,
-      groups,
-      convertedTotals: { a: 1, b: null },
-    }),
-    { failed: true, dated: true },
+  assert.equal(
+    groupListFxFailed({ fxReady: true, groups, convertedTotals: { a: 1, b: null } }),
+    true,
   );
-  assert.match(GROUP_TOTAL_FX_DATE_COPY, /receipt’s date/);
   assert.match(GROUP_TOTAL_FX_FAILED_COPY, /mix currencies/);
 });

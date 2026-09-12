@@ -25,7 +25,7 @@ export const SUBPROCESSORS = [
   },
   {
     name: 'ExchangeRate-API (open.er-api.com)',
-    role: 'Latest USD FX table for today’s receipts and Venmo USD amounts. No account data is sent',
+    role: 'Latest USD FX table for Venmo USD and same-day receipts. No account data is sent',
     region: 'Varies (third-party CDN / API)',
   },
   {

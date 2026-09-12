@@ -28,8 +28,7 @@ import {
   formatMoneyWithCode,
   normalizeCurrencyCode,
 } from '../lib/currencies.js';
-import { FX_RECEIPT_DATE_CAPTION } from '../lib/groupListTotals.js';
-import { listReceiptsCurrencyMeta, loadReceiptFxFactors, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
+import { listReceiptsCurrencyMeta, loadReceiptFxFactors, scaleGroupMoneyForDisplay, fxErrorMessage } from '../lib/settlementCurrency.js';
 import {
   fetchPublicAttachmentUrl,
   fetchPublicGroupShare,
@@ -178,12 +177,6 @@ export default function PublicGroupSharePage() {
   const peopleMap = useMemo(() => group?.people || {}, [group]);
   const receipts = useMemo(() => (group ? idMapToList(group.receipts) : []), [group]);
   const settleCode = normalizeCurrencyCode(group?.displayCurrency || 'USD');
-  const needsFx = useMemo(() => {
-    if (!group) return false;
-    return listReceiptsCurrencyMeta(group).some(
-      (row) => normalizeCurrencyCode(row.currencyCode) !== settleCode,
-    );
-  }, [group, settleCode]);
 
   useEffect(() => {
     if (!group) {
@@ -207,13 +200,7 @@ export default function PublicGroupSharePage() {
       const fx = await loadReceiptFxFactors(meta, settleCode);
       if (cancelled) return;
       setReceiptFactors(fx.factors);
-      if (!fx.ratesAvailable) {
-        setFxError('Couldn’t load exchange rates. Amounts may mix currencies.');
-      } else if (fx.failed.length > 0) {
-        setFxError('Some amounts couldn’t be converted — shown in the receipt’s currency.');
-      } else {
-        setFxError('');
-      }
+      setFxError(fxErrorMessage(fx));
     })();
     return () => {
       cancelled = true;
@@ -304,17 +291,13 @@ export default function PublicGroupSharePage() {
         {group.name || 'Group'}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Read-only view. Settlement shown in {settleCode}.
+        Settlement in {settleCode}.
       </Typography>
 
       {fxError ? (
         <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
           {fxError}
         </Alert>
-      ) : needsFx ? (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          {FX_RECEIPT_DATE_CAPTION}
-        </Typography>
       ) : null}
       {attachError ? (
         <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setAttachError('')}>

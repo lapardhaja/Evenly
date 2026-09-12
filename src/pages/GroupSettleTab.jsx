@@ -31,8 +31,7 @@ import {
   formatMoneyWithCode,
   normalizeCurrencyCode,
 } from '../lib/currencies.js';
-import { SETTLE_FX_DATE_COPY } from '../lib/groupListTotals.js';
-import { listReceiptsCurrencyMeta, loadReceiptFxFactors, scaleGroupMoneyForDisplay } from '../lib/settlementCurrency.js';
+import { listReceiptsCurrencyMeta, loadReceiptFxFactors, scaleGroupMoneyForDisplay, fxErrorMessage } from '../lib/settlementCurrency.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getProfilesByIds } from '../lib/friendsApi.js';
 import {
@@ -100,11 +99,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
       if (cancelled) return;
       setUsdRates(ratesToday || null);
       setReceiptFactors(fx.factors);
-      if (!fx.ratesAvailable) {
-        setFxError('Couldn’t load exchange rates. Totals may mix currencies.');
-      } else if (fx.failed.length > 0) {
-        setFxError('Some amounts couldn’t be converted — shown in the receipt’s currency.');
-      }
+      setFxError(fxErrorMessage(fx));
       setFxLoading(false);
     })();
 
@@ -247,9 +242,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
     (t, fromPerson, toPerson) => {
       const handle = profilesByUser[toPerson.linkedUserId]?.venmo_username;
       if (!isValidVenmoUsername(handle)) {
-        setPaySnack(
-          `${toPerson.name} hasn’t added a Venmo username. Ask them to add it on Profile and tap Check in Venmo.`,
-        );
+        setPaySnack(`${toPerson.name} hasn’t added a Venmo username.`);
         return;
       }
       const usd = venmoUsdAmount(t.amount, settleCode, usdRates);
@@ -270,7 +263,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
         setPaySnack('Couldn’t open Venmo.');
         return;
       }
-      setPaySnack('Venmo should open with the amount filled in. Send it there, then come back and tap I paid.');
+      setPaySnack('Venmo opened. Send it, then tap I paid.');
     },
     [profilesByUser, settleCode, usdRates, group?.name],
   );
@@ -279,9 +272,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
     async (t, fromPerson, toPerson) => {
       const handle = profilesByUser[toPerson.linkedUserId]?.venmo_username;
       if (!isValidVenmoUsername(handle)) {
-        setPaySnack(
-          `${toPerson.name} hasn’t added a Venmo username (Profile → Check in Venmo).`,
-        );
+        setPaySnack(`${toPerson.name} hasn’t added a Venmo username.`);
         return;
       }
       const usd = venmoUsdAmount(t.amount, settleCode, usdRates);
@@ -421,9 +412,6 @@ export default function GroupSettleTab({ groupId, groupData }) {
           {fxError}
         </Alert>
       ) : null}
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        {SETTLE_FX_DATE_COPY}
-      </Typography>
 
       {/* Net Balances */}
       <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
@@ -496,16 +484,8 @@ export default function GroupSettleTab({ groupId, groupData }) {
         onClick={() => setShareLinkOpen(true)}
         sx={{ mb: 2 }}
       >
-        Share settlement
+        {isSupabaseConfigured() ? 'Share group' : 'Share settlement'}
       </Button>
-
-      {isSupabaseConfigured() ? (
-        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
-          Pay on Venmo opens the Venmo app (or venmo.com) with the amount filled in. Evenly never
-          sends money. After you send it in Venmo, tap I paid here. I paid only marks it in Evenly
-          — it does not confirm the Venmo payment.
-        </Alert>
-      ) : null}
 
       {isSupabaseConfigured() && canRequestAny ? (
         <FormControlLabel
@@ -666,8 +646,7 @@ export default function GroupSettleTab({ groupId, groupData }) {
                     </Box>
                     {iAmDebtor && !isSettled && !isValidVenmoUsername(creditorVenmo) ? (
                       <Typography variant="caption" color="text.secondary">
-                        {toPerson.name} hasn’t added a Venmo username yet. Ask them to set it on
-                        Profile and tap Check in Venmo.
+                        {toPerson.name} hasn’t added a Venmo username.
                       </Typography>
                     ) : null}
                     {iAmDebtor && !isSettled && isValidVenmoUsername(creditorVenmo) && usdAmt == null ? (
