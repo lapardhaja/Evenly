@@ -118,12 +118,18 @@ export const chatComposerBarSx = {
   position: { xs: 'fixed', md: 'relative' },
   left: { xs: 0, md: 'auto' },
   right: { xs: 0, md: 'auto' },
-  bottom: { xs: 'var(--evenly-cookie-banner-offset, 0px)', md: 'auto' },
+  bottom: {
+    xs: 'calc(var(--evenly-cookie-banner-offset, 0px) + var(--evenly-vv-bottom, 0px))',
+    md: 'auto',
+  },
   zIndex: { xs: 8, md: 1 },
   bgcolor: 'background.default',
   px: { xs: 1, md: 0 },
   pt: 1,
-  pb: 1,
+  pb: {
+    xs: 'max(10px, calc(env(safe-area-inset-bottom, 0px) - var(--evenly-vv-bottom, 0px)))',
+    md: 1,
+  },
   borderTop: { xs: '1px solid', md: 0 },
   borderColor: 'divider',
 };
