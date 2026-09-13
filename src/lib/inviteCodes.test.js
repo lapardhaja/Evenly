@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -50,6 +50,30 @@ test('friendlyInviteCodeError does not dump RPC jargon', () => {
   assert.match(friendlyInviteCodeError('Invite not found'), /QR or link/i);
   assert.match(friendlyInviteCodeError('That’s your own code'), /own code/i);
   assert.equal(/invite not found/i.test(friendlyInviteCodeError('Invite not found')), false);
+});
+
+test('stripped UUID is 32 hex and matches invite token format', () => {
+  const hex = '550e8400-e29b-41d4-a716-446655440000'.replaceAll('-', '');
+  assert.equal(hex.length, 32);
+  assert.equal(isInviteToken(`g_${hex}`), true);
+  assert.equal(isInviteToken(`f_${hex}`), true);
+});
+
+test('QR token RPCs use gen_random_uuid, not pgcrypto gen_random_bytes', () => {
+  const dir = join(dirname(fileURLToPath(import.meta.url)), '../../supabase/migrations');
+  const sql = readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .map((f) => readFileSync(join(dir, f), 'utf8'))
+    .join('\n');
+  for (const name of ['ensure_group_join_code', 'rotate_group_join_code', 'ensure_friend_code']) {
+    const start = sql.lastIndexOf(`create or replace function public.${name}`);
+    assert.ok(start >= 0, name);
+    const end = sql.indexOf('$$;', start);
+    const body = sql.slice(start, end === -1 ? undefined : end);
+    assert.doesNotMatch(body, /gen_random_bytes/);
+    assert.match(body, /replace\(gen_random_uuid\(\)::text, '-', ''\)/);
+  }
 });
 
 test('join-by-code SQL does not require friendships; add_friend_to_group still does', () => {
