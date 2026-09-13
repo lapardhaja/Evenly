@@ -69,6 +69,15 @@ test('creating a group opens people with the join QR', () => {
   assert.match(friends, /isSupabaseConfigured/);
 });
 
+test('groups + SpeedDial offers Scan QR to join a group or add a friend', () => {
+  const groups = read('src/pages/GroupsPage.jsx');
+  assert.match(groups, /SpeedDial/);
+  assert.match(groups, /tooltipTitle="New group"/);
+  assert.match(groups, /tooltipTitle="Scan QR"/);
+  assert.match(groups, /navigate\('\/scan'\)/);
+  assert.match(groups, /create one or scan a QR/);
+});
+
 test('subprocessors list dated FX hosts', () => {
   const src = read('src/lib/subprocessors.js');
   assert.match(src, /frankfurter\.dev/);

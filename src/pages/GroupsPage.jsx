@@ -12,7 +12,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import Fab from '@mui/material/Fab';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
@@ -20,7 +19,11 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
+import SpeedDial from '@mui/material/SpeedDial';
+import SpeedDialAction from '@mui/material/SpeedDialAction';
+import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import AddIcon from '@mui/icons-material/Add';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import FolderSharedIcon from '@mui/icons-material/FolderShared';
 import SearchIcon from '@mui/icons-material/Search';
 import useEditTextModal from '../components/useEditTextModal.jsx';
@@ -70,6 +73,7 @@ export default function GroupsPage() {
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const [searchQuery, setSearchQuery] = useState('');
   const [undoDelete, setUndoDelete] = useState(null);
+  const [speedDialOpen, setSpeedDialOpen] = useState(false);
 
   const sorted = useMemo(
     () => [...groups].sort((a, b) => b.date - a.date),
@@ -98,6 +102,15 @@ export default function GroupsPage() {
       initialPeople: getDefaultPeopleMapForNewGroup(user, profile),
     });
     if (id) navigate(`/groups/${id}/people`, { state: { showJoinQr: true } });
+  };
+
+  const openNewGroup = () => {
+    setSpeedDialOpen(false);
+    showEditTextModal({
+      value: '',
+      setValue: handleCreate,
+      title: 'New group',
+    });
   };
 
   const handleSwipeDeleteGroup = useCallback(
@@ -224,7 +237,7 @@ export default function GroupsPage() {
         >
           <FolderSharedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
           <Typography color="text.secondary">
-            No groups yet. Tap + to create one.
+            No groups yet. Tap + to create one or scan a QR.
           </Typography>
         </Paper>
       ) : (
@@ -291,19 +304,30 @@ export default function GroupsPage() {
       <Box aria-hidden sx={fabScrollClearanceSx} />
 
       <FabPortal>
-        <Fab
-          color="primary"
-          onClick={() =>
-            showEditTextModal({
-              value: '',
-              setValue: handleCreate,
-              title: 'New group',
-            })
-          }
+        <SpeedDial
+          ariaLabel="Add group or scan QR"
           sx={fabFixedPlacementSx}
+          icon={<SpeedDialIcon />}
+          open={speedDialOpen}
+          onOpen={() => setSpeedDialOpen(true)}
+          onClose={() => setSpeedDialOpen(false)}
         >
-          <AddIcon />
-        </Fab>
+          <SpeedDialAction
+            icon={<AddIcon />}
+            tooltipTitle="New group"
+            tooltipOpen
+            onClick={openNewGroup}
+          />
+          <SpeedDialAction
+            icon={<QrCodeScannerIcon />}
+            tooltipTitle="Scan QR"
+            tooltipOpen
+            onClick={() => {
+              setSpeedDialOpen(false);
+              navigate('/scan');
+            }}
+          />
+        </SpeedDial>
       </FabPortal>
 
       {EditTextModal}
