@@ -61,17 +61,23 @@ export default function ScanQrPage() {
     let lockTimer = 0;
     let running = true;
     let busy = false;
+    let cancelled = false;
     (async () => {
       const video = videoRef.current;
       if (!video) return;
       if (finderDemo) {
         try {
           const demo = await attachFinderDemoStream(video);
+          if (cancelled) {
+            demo.stream?.getTracks?.().forEach((t) => t.stop());
+            return;
+          }
           stream = demo.stream;
           demoCanvas = demo.canvas;
+          setError('');
           setHint('Point the camera at an Evenly QR code.');
         } catch {
-          setError('Couldn’t start the finder demo.');
+          if (!cancelled) setError('Couldn’t start the finder demo.');
           return;
         }
       } else if (!navigator.mediaDevices?.getUserMedia) {
@@ -83,13 +89,21 @@ export default function ScanQrPage() {
             video: { facingMode: { ideal: 'environment' } },
             audio: false,
           });
+          if (cancelled) {
+            stream?.getTracks?.().forEach((t) => t.stop());
+            return;
+          }
           video.srcObject = stream;
           video.setAttribute('playsinline', '');
           video.setAttribute('webkit-playsinline', 'true');
           await video.play();
+          if (cancelled) return;
+          setError('');
           setHint('Point the camera at an Evenly QR code.');
         } catch {
-          setError('Camera permission is needed to scan in the app. You can still pick a photo.');
+          if (!cancelled) {
+            setError('Camera permission is needed to scan in the app. You can still pick a photo.');
+          }
           return;
         }
       }
@@ -113,7 +127,7 @@ export default function ScanQrPage() {
               scanHeight: result.height,
             });
             setHint('Got it');
-            const waitMs = finderDemo ? 1400 : SCAN_LOCK_MS;
+            const waitMs = finderDemo ? 2200 : SCAN_LOCK_MS;
             lockTimer = window.setTimeout(() => {
               navigate(invitePath(result.invite.kind, result.invite.token), {
                 replace: true,
@@ -150,6 +164,7 @@ export default function ScanQrPage() {
       timer = window.setInterval(tick, 180);
     })();
     return () => {
+      cancelled = true;
       running = false;
       if (timer) window.clearInterval(timer);
       if (lockTimer) window.clearTimeout(lockTimer);
@@ -166,12 +181,16 @@ export default function ScanQrPage() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Group codes add you to the group. Personal codes make you friends.
       </Typography>
-      {error ? (
+      {scanUi.status === 'locked' ? (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Got it
+        </Alert>
+      ) : error ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}
         </Alert>
       ) : (
-        <Alert severity={scanUi.status === 'locked' ? 'success' : 'info'} sx={{ mb: 2 }}>
+        <Alert severity="info" sx={{ mb: 2 }}>
           {hint}
         </Alert>
       )}

@@ -65,6 +65,7 @@ export default function ScanQrViewfinder({
         overflow: 'hidden',
         bgcolor: 'black',
         mb: 2,
+        minHeight: 220,
       }}
     >
       <Box
@@ -76,7 +77,7 @@ export default function ScanQrViewfinder({
         sx={{
           display: 'block',
           width: '100%',
-          maxHeight: 360,
+          minHeight: 220,
           objectFit: 'contain',
           bgcolor: 'black',
         }}
@@ -98,9 +99,18 @@ export default function ScanQrViewfinder({
           <polygon
             points={quadToSvgPoints(quad)}
             fill={fill}
-            stroke={stroke}
-            strokeWidth={locked ? 6 : 4}
+            stroke="#ffffff"
+            strokeWidth={locked ? 10 : 8}
             strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          <polygon
+            points={quadToSvgPoints(quad)}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={locked ? 4 : 3}
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
           />
         </Box>
       ) : null}

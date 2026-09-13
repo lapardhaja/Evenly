@@ -81,6 +81,7 @@ test('Scan QR viewfinder hunts, boxes the code, then locks before load', () => {
   assert.match(page, /SCAN_LOCK_MS/);
   assert.match(page, /scanInviteFromVideo/);
   assert.match(page, /Got it/);
+  assert.match(page, /cancelled/);
   assert.match(view, /hunting/);
   assert.match(view, /polygon/);
   assert.match(view, /viewBox/);
