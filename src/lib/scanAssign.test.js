@@ -50,6 +50,23 @@ test('applyLastReceipt copies shares for renamed-id same-name items', () => {
   assert.deepEqual(got, { 0: { np1: 1 } });
 });
 
+test('applyLastReceipt skips items whose last-receipt name is duplicated', () => {
+  const lastReceipt = {
+    items: {
+      a: { name: 'Coke', quantity: 1 },
+      b: { name: 'Coke', quantity: 1 },
+    },
+    itemToPersonQuantityMap: { a: { op1: 1 }, b: { op1: 1 } },
+    people: [{ id: 'op1', name: 'Alex', linkedUserId: 'u1' }],
+  };
+  const got = applyLastReceipt({
+    lastReceipt,
+    newItems: [{ name: 'Coke', quantity: 1 }],
+    newPeople: [{ id: 'np1', name: 'Alex', linkedUserId: 'u1' }],
+  });
+  assert.deepEqual(got, {});
+});
+
 test('quantityMapsFromIndexedItems writes both maps', () => {
   const maps = quantityMapsFromIndexedItems(
     [{ id: 'i1' }, { id: 'i2' }],
