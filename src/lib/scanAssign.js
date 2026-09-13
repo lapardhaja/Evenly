@@ -23,9 +23,10 @@ export function everyoneShares(personIds) {
   return shares;
 }
 
-export function justMeShares(personId) {
+export function justMeShares(personId, itemQty = 1) {
   if (!personId) return {};
-  return { [personId]: 1 };
+  const q = Math.max(1, Math.floor(Number(itemQty) || 1));
+  return { [personId]: q };
 }
 
 export function toggleShare(shares, personId, itemQty) {

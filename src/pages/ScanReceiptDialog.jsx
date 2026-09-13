@@ -369,7 +369,7 @@ export default function ScanReceiptDialog({
                         </Button>
                       ) : null}
                       {mePersonId ? (
-                        <Button size="small" onClick={() => setRowShares(index, justMeShares(mePersonId))}>
+                        <Button size="small" onClick={() => setRowShares(index, justMeShares(mePersonId, qty))}>
                           Just me
                         </Button>
                       ) : null}

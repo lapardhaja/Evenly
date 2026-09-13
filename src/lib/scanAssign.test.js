@@ -23,6 +23,7 @@ test('personMatchKey prefers linkedUserId', () => {
 test('everyoneShares and justMeShares', () => {
   assert.deepEqual(everyoneShares(['a', 'b']), { a: 1, b: 1 });
   assert.deepEqual(justMeShares('a'), { a: 1 });
+  assert.deepEqual(justMeShares('a', 2), { a: 2 });
 });
 
 test('matchLastItemShares remaps by linked user then name', () => {
