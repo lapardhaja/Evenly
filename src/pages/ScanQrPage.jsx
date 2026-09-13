@@ -1,71 +1,162 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
+import QRCode from 'qrcode';
 import { invitePath } from '../lib/inviteCodes.js';
-import { decodeInviteFromFile, decodeInviteFromVideo } from '../lib/decodeInviteQr.js';
+import { SCAN_LOCK_MS } from '../lib/scanQrOverlay.js';
+import {
+  decodeInviteFromFile,
+  scanInviteFromVideo,
+} from '../lib/decodeInviteQr.js';
+import ScanQrViewfinder from '../components/ScanQrViewfinder.jsx';
+
+const DEMO_JOIN_TOKEN = `g_${'ab'.repeat(16)}`;
+
+async function attachFinderDemoStream(video) {
+  const canvas = document.createElement('canvas');
+  await QRCode.toCanvas(
+    canvas,
+    `https://evenly.lapardhaja.com/#/join/${DEMO_JOIN_TOKEN}`,
+    {
+      width: 320,
+      margin: 3,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#111111', light: '#f7f7f7' },
+    },
+  );
+  if (typeof canvas.captureStream !== 'function') {
+    throw new Error('Demo stream is not available in this browser.');
+  }
+  const stream = canvas.captureStream(8);
+  video.srcObject = stream;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', 'true');
+  await video.play();
+  return { stream, canvas };
+}
 
 export default function ScanQrPage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const finderDemo = import.meta.env.DEV && params.get('finder') === '1';
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileRef = useRef(null);
   const [error, setError] = useState('');
   const [hint, setHint] = useState('Point the camera at an Evenly QR code.');
+  const [scanUi, setScanUi] = useState({
+    status: 'searching',
+    quad: null,
+    scanWidth: 0,
+    scanHeight: 0,
+  });
 
   useEffect(() => {
     let stream;
+    let demoCanvas;
     let timer = 0;
+    let lockTimer = 0;
     let running = true;
     let busy = false;
     (async () => {
-      if (!navigator.mediaDevices?.getUserMedia) {
+      const video = videoRef.current;
+      if (!video) return;
+      if (finderDemo) {
+        try {
+          const demo = await attachFinderDemoStream(video);
+          stream = demo.stream;
+          demoCanvas = demo.canvas;
+          setHint('Point the camera at an Evenly QR code.');
+        } catch {
+          setError('Couldn’t start the finder demo.');
+          return;
+        }
+      } else if (!navigator.mediaDevices?.getUserMedia) {
         setHint('Pick a photo of the QR below, or use the Camera app.');
         return;
+      } else {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false,
+          });
+          video.srcObject = stream;
+          video.setAttribute('playsinline', '');
+          video.setAttribute('webkit-playsinline', 'true');
+          await video.play();
+          setHint('Point the camera at an Evenly QR code.');
+        } catch {
+          setError('Camera permission is needed to scan in the app. You can still pick a photo.');
+          return;
+        }
       }
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
-          audio: false,
-        });
-        const video = videoRef.current;
-        if (!video) return;
-        video.srcObject = stream;
-        video.setAttribute('playsinline', '');
-        video.setAttribute('webkit-playsinline', 'true');
-        await video.play();
-        setHint('Point the camera at an Evenly QR code.');
-        const canvas = canvasRef.current;
-        const tick = () => {
-          if (!running || busy) return;
-          busy = true;
-          try {
-            const parsed = decodeInviteFromVideo(video, canvas);
-            if (parsed) {
-              running = false;
-              navigate(invitePath(parsed.kind, parsed.token), { replace: true });
-              return;
+      const canvas = canvasRef.current;
+      const tick = () => {
+        if (!running || busy) return;
+        busy = true;
+        try {
+          const result = scanInviteFromVideo(video, canvas);
+          if (result.status === 'invite' && result.invite) {
+            running = false;
+            try {
+              video.pause();
+            } catch {
+              /* ignore */
             }
-          } catch {
-            /* keep scanning */
-          } finally {
-            busy = false;
+            setScanUi({
+              status: 'locked',
+              quad: result.quad,
+              scanWidth: result.width,
+              scanHeight: result.height,
+            });
+            setHint('Got it');
+            const waitMs = finderDemo ? 1400 : SCAN_LOCK_MS;
+            lockTimer = window.setTimeout(() => {
+              navigate(invitePath(result.invite.kind, result.invite.token), {
+                replace: true,
+              });
+            }, waitMs);
+            return;
           }
-        };
-        timer = window.setInterval(tick, 180);
-      } catch {
-        setError('Camera permission is needed to scan in the app. You can still pick a photo.');
-      }
+          if (result.status === 'other' && result.quad) {
+            setScanUi({
+              status: 'other',
+              quad: result.quad,
+              scanWidth: result.width,
+              scanHeight: result.height,
+            });
+            setHint('Not an Evenly code. Try a group or friend QR.');
+            return;
+          }
+          setScanUi((prev) =>
+            prev.status === 'searching'
+              ? prev
+              : {
+                  status: 'searching',
+                  quad: null,
+                  scanWidth: 0,
+                  scanHeight: 0,
+                },
+          );
+        } catch {
+          /* keep scanning */
+        } finally {
+          busy = false;
+        }
+      };
+      timer = window.setInterval(tick, 180);
     })();
     return () => {
       running = false;
       if (timer) window.clearInterval(timer);
+      if (lockTimer) window.clearTimeout(lockTimer);
       stream?.getTracks?.().forEach((t) => t.stop());
+      demoCanvas = null;
     };
-  }, [navigate]);
+  }, [finderDemo, navigate]);
 
   return (
     <Container maxWidth="sm" sx={{ py: 3 }}>
@@ -80,24 +171,16 @@ export default function ScanQrPage() {
           {error}
         </Alert>
       ) : (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity={scanUi.status === 'locked' ? 'success' : 'info'} sx={{ mb: 2 }}>
           {hint}
         </Alert>
       )}
-      <Box
-        component="video"
-        ref={videoRef}
-        playsInline
-        muted
-        autoPlay
-        sx={{
-          width: '100%',
-          maxHeight: 360,
-          borderRadius: 2,
-          bgcolor: 'black',
-          objectFit: 'cover',
-          mb: 2,
-        }}
+      <ScanQrViewfinder
+        videoRef={videoRef}
+        status={scanUi.status}
+        quad={scanUi.quad}
+        scanWidth={scanUi.scanWidth}
+        scanHeight={scanUi.scanHeight}
       />
       <canvas ref={canvasRef} hidden />
       <input

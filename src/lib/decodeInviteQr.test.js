@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import QRCode from 'qrcode';
 import { parseInviteFromText } from './inviteCodes.js';
-import { decodeInviteFromImageData } from './decodeInviteQr.js';
+import { decodeInviteFromImageData, scanFrameImageData } from './decodeInviteQr.js';
 
 const TOKEN_G = `g_${'ab'.repeat(16)}`;
 const TOKEN_F = `f_${'cd'.repeat(16)}`;
@@ -56,7 +56,20 @@ test('ScanQrPage decodes with jsQR, not BarcodeDetector-only', () => {
     join(dirname(fileURLToPath(import.meta.url)), '../pages/ScanQrPage.jsx'),
     'utf8',
   );
-  assert.match(src, /decodeInviteFromVideo/);
+  assert.match(src, /scanInviteFromVideo/);
   assert.match(src, /decodeInviteFromFile/);
   assert.doesNotMatch(src, /BarcodeDetector/);
+});
+
+test('scanFrameImageData returns a quad around an Evenly join QR', () => {
+  const url = `https://evenly.lapardhaja.com/#/join/${TOKEN_G}`;
+  const image = rasterizeQr(url);
+  const result = scanFrameImageData(image);
+  assert.equal(result.status, 'invite');
+  assert.deepEqual(result.invite, { kind: 'group', token: TOKEN_G });
+  assert.equal(result.quad.length, 4);
+  const xs = result.quad.map((p) => p.x);
+  const ys = result.quad.map((p) => p.y);
+  assert.ok(Math.max(...xs) - Math.min(...xs) > image.width * 0.4);
+  assert.ok(Math.max(...ys) - Math.min(...ys) > image.height * 0.4);
 });
