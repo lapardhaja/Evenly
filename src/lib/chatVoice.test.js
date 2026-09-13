@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {
   audioFileFromChunks,
   CHAT_AUDIO_MAX_MS,
+  encodeWavPcm16,
   extensionForAudioMime,
   formatVoiceClock,
   pickRecorderMimeType,
+  wavFileFromSamples,
 } from './chatVoice.js';
 
 test('formatVoiceClock is m:ss', () => {
@@ -19,16 +21,23 @@ test('extensionForAudioMime maps containers', () => {
   assert.equal(extensionForAudioMime('audio/webm;codecs=opus'), 'webm');
   assert.equal(extensionForAudioMime('audio/mp4'), 'm4a');
   assert.equal(extensionForAudioMime('audio/mpeg'), 'mp3');
+  assert.equal(extensionForAudioMime('audio/wav'), 'wav');
 });
 
-test('pickRecorderMimeType uses the first supported candidate', () => {
+test('pickRecorderMimeType prefers mp4 so iOS can play the file', () => {
   assert.equal(pickRecorderMimeType(undefined), '');
-  const Recorder = {
+  const both = {
     isTypeSupported(t) {
-      return t === 'audio/mp4';
+      return t === 'audio/webm' || t === 'audio/mp4';
     },
   };
-  assert.equal(pickRecorderMimeType(Recorder), 'audio/mp4');
+  assert.equal(pickRecorderMimeType(both), 'audio/mp4');
+  const onlyWebm = {
+    isTypeSupported(t) {
+      return t === 'audio/webm';
+    },
+  };
+  assert.equal(pickRecorderMimeType(onlyWebm), 'audio/webm');
 });
 
 test('audioFileFromChunks names a voice file', () => {
@@ -36,4 +45,22 @@ test('audioFileFromChunks names a voice file', () => {
   assert.equal(file.name, 'voice.webm');
   assert.equal(file.type, 'audio/webm');
   assert.equal(file.size, 3);
+});
+
+test('encodeWavPcm16 writes a RIFF/WAVE header and 16-bit samples', () => {
+  const samples = new Float32Array(16);
+  samples[0] = 1;
+  samples[1] = -1;
+  const buf = encodeWavPcm16(samples, 16000);
+  const bytes = new Uint8Array(buf);
+  assert.equal(String.fromCharCode(...bytes.slice(0, 4)), 'RIFF');
+  assert.equal(String.fromCharCode(...bytes.slice(8, 12)), 'WAVE');
+  assert.equal(buf.byteLength, 44 + 32);
+  const view = new DataView(buf);
+  assert.equal(view.getUint32(24, true), 16000);
+  assert.equal(view.getInt16(44, true), 0x7fff);
+  assert.equal(view.getInt16(46, true), -0x8000);
+  const file = wavFileFromSamples(samples, 16000);
+  assert.equal(file.name, 'voice.wav');
+  assert.equal(file.type, 'audio/wav');
 });

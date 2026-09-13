@@ -9,6 +9,8 @@
  * - `'unsafe-inline'` styles: MUI / Emotion runtime style tags + Google Fonts CSS.
  * - `connect-src` also allows FX: `open.er-api.com`, `cdn.jsdelivr.net`, `api.frankfurter.dev` (`currencies.js`).
  * - `Cross-Origin-Opener-Policy: same-origin-allow-popups` so Venmo `window.open` still works.
+ * - `media-src` allows chat voice notes (`<audio>` from Supabase signed URLs + blob/WAV) and QR camera preview.
+ * - Permissions-Policy: camera + mic are `(self)` for voice notes and in-app QR scan. Geo/payment/USB/topics stay off.
  * - No COEP: would break Google Fonts and Supabase signed image URLs.
  */
 
@@ -23,6 +25,7 @@ export const CONTENT_SECURITY_POLICY = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https://*.supabase.co",
+  "media-src 'self' blob: mediastream: https://*.supabase.co",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://open.er-api.com https://cdn.jsdelivr.net https://api.frankfurter.dev",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
@@ -30,7 +33,7 @@ export const CONTENT_SECURITY_POLICY = [
 ].join('; ');
 
 export const PERMISSIONS_POLICY =
-  'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()';
+  'camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), browsing-topics=()';
 
 export const VERCEL_SECURITY_HEADERS = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },

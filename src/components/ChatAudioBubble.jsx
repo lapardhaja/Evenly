@@ -6,11 +6,21 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import { formatVoiceClock } from '../lib/chatVoice.js';
 
-export default function ChatAudioBubble({ url, durationMs, mine, radii, onPointerUp }) {
+export default function ChatAudioBubble({ url, durationMs, mine, radii, onPointerUp, onError }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const known = Number(durationMs) > 0 ? Number(durationMs) : 0;
+
+  useEffect(() => {
+    setPlaying(false);
+    setProgress(0);
+    const el = audioRef.current;
+    if (el) {
+      el.pause();
+      el.currentTime = 0;
+    }
+  }, [url]);
 
   useEffect(() => {
     const el = audioRef.current;
@@ -26,22 +36,44 @@ export default function ChatAudioBubble({ url, durationMs, mine, radii, onPointe
     };
     el.addEventListener('timeupdate', onTime);
     el.addEventListener('ended', onEnd);
+    const onPause = () => {
+      if (!el.ended) setPlaying(false);
+    };
+    el.addEventListener('pause', onPause);
     return () => {
       el.removeEventListener('timeupdate', onTime);
       el.removeEventListener('ended', onEnd);
+      el.removeEventListener('pause', onPause);
     };
   }, [known, url]);
 
-  const toggle = (e) => {
-    e.stopPropagation();
+  const toggle = async () => {
     const el = audioRef.current;
-    if (!el || !url) return;
+    if (!el || !url) {
+      onError?.('This voice note isn’t ready yet.');
+      return;
+    }
     if (playing) {
       el.pause();
       setPlaying(false);
       return;
     }
-    void el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    try {
+      el.playsInline = true;
+      el.setAttribute('playsinline', '');
+      el.setAttribute('webkit-playsinline', '');
+      await el.play();
+      setPlaying(true);
+    } catch (err) {
+      setPlaying(false);
+      onError?.(err?.message || 'Couldn’t play that voice note.');
+    }
+  };
+
+  const handlePlayPointer = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    void toggle();
   };
 
   const label = formatVoiceClock(known || progress * known);
@@ -63,10 +95,19 @@ export default function ChatAudioBubble({ url, durationMs, mine, radii, onPointe
         WebkitUserSelect: 'none',
       }}
     >
-      <audio ref={audioRef} src={url || undefined} preload="metadata" />
+      <audio
+        ref={audioRef}
+        src={url || undefined}
+        preload="auto"
+        playsInline
+        // iOS Safari needs the webkit attribute; React doesn't map it.
+        {...{ 'webkit-playsinline': 'true' }}
+      />
       <IconButton
         size="small"
-        onClick={toggle}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={handlePlayPointer}
+        onClick={(e) => e.stopPropagation()}
         disabled={!url}
         aria-label={playing ? 'Pause voice note' : 'Play voice note'}
         sx={{ color: 'inherit', p: 0.5 }}

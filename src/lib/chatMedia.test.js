@@ -45,6 +45,7 @@ test('assertChatImageFile rejects non-images and oversize', () => {
 test('voice notes are classified as audio and do not collide with images', () => {
   assert.equal(classifyChatAttachment({ type: 'audio/webm', name: 'voice.webm', size: 10 }), 'audio');
   assert.equal(classifyChatAttachment({ type: 'audio/mp4', name: 'voice.m4a', size: 10 }), 'audio');
+  assert.equal(classifyChatAttachment({ type: 'audio/wav', name: 'voice.wav', size: 10 }), 'audio');
   const audioMsg = {
     type: 'audio',
     payload: { storage_path: 'c/m.webm', mime_type: 'audio/webm', duration_ms: 1500 },

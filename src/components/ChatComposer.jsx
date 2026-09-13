@@ -19,11 +19,10 @@ import {
 import { requestChatNotificationPermission } from '../lib/chatAlerts.js';
 import { chatComposerBarSx } from '../lib/appShell.js';
 import {
-  audioFileFromChunks,
   CHAT_AUDIO_MAX_MS,
   CHAT_AUDIO_MIN_MS,
   formatVoiceClock,
-  pickRecorderMimeType,
+  startVoiceCapture,
 } from '../lib/chatVoice.js';
 
 export default function ChatComposer({
@@ -38,9 +37,7 @@ export default function ChatComposer({
   const cameraRef = useRef(null);
   const galleryRef = useRef(null);
   const fileRef = useRef(null);
-  const recorderRef = useRef(null);
-  const chunksRef = useRef([]);
-  const streamRef = useRef(null);
+  const sessionRef = useRef(null);
   const startedAtRef = useRef(0);
   const [recording, setRecording] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -64,52 +61,29 @@ export default function ChatComposer({
 
   useEffect(
     () => () => {
-      stopStream();
       try {
-        recorderRef.current?.state === 'recording' && recorderRef.current.stop();
+        void sessionRef.current?.cancel?.();
       } catch {
         /* ignore */
       }
+      sessionRef.current = null;
     },
     [],
   );
 
-  const stopStream = () => {
-    streamRef.current?.getTracks?.().forEach((t) => t.stop());
-    streamRef.current = null;
-  };
-
   const finishRecording = async (sendIt) => {
     if (closingRef.current) return;
-    const recorder = recorderRef.current;
-    if (!recorder) return;
+    const session = sessionRef.current;
+    if (!session) return;
     closingRef.current = true;
-    const startedAt = startedAtRef.current;
-    recorderRef.current = null;
+    sessionRef.current = null;
     setRecording(false);
     setElapsedMs(0);
-    const mime = recorder?.mimeType || pickRecorderMimeType();
-    const stopPromise = new Promise((resolve) => {
-      if (!recorder || recorder.state === 'inactive') {
-        resolve();
-        return;
-      }
-      recorder.onstop = () => resolve();
-      try {
-        recorder.stop();
-      } catch {
-        resolve();
-      }
-    });
-    await stopPromise;
-    stopStream();
-    const durationMs = Date.now() - startedAt;
-    const chunks = chunksRef.current;
-    chunksRef.current = [];
     try {
-      if (!sendIt || durationMs < CHAT_AUDIO_MIN_MS || !chunks.length) return;
-      const file = audioFileFromChunks(chunks, mime);
-      await onSendVoice(file, durationMs);
+      const result = sendIt ? await session.stop() : await session.cancel();
+      if (!sendIt || !result?.file) return;
+      if ((result.durationMs || 0) < CHAT_AUDIO_MIN_MS) return;
+      await onSendVoice(result.file, result.durationMs);
     } catch (err) {
       onError?.(err?.message || 'Couldn’t send voice note.');
     } finally {
@@ -120,27 +94,15 @@ export default function ChatComposer({
 
   const startRecording = async () => {
     if (sending || recording || closingRef.current) return;
-    const mime = pickRecorderMimeType();
-    if (!mime || typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      onError?.('Voice notes aren’t supported in this browser.');
-      return;
-    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const recorder = new MediaRecorder(stream, { mimeType: mime });
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size) chunksRef.current.push(e.data);
-      };
-      recorderRef.current = recorder;
+      const session = await startVoiceCapture();
+      sessionRef.current = session;
       startedAtRef.current = Date.now();
       setElapsedMs(0);
       setRecording(true);
-      recorder.start(200);
-    } catch {
-      stopStream();
-      onError?.('Microphone permission is needed for voice notes.');
+    } catch (err) {
+      sessionRef.current = null;
+      onError?.(err?.message || 'Microphone permission is needed for voice notes.');
     }
   };
 

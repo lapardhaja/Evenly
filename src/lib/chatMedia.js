@@ -53,6 +53,8 @@ const MIME_TO_EXT = {
   'audio/ogg': 'ogg',
   'audio/aac': 'm4a',
   'audio/wav': 'wav',
+  'audio/x-wav': 'wav',
+  'audio/wave': 'wav',
   'audio/x-m4a': 'm4a',
 };
 
@@ -78,6 +80,7 @@ const EXT_TO_MIME = {
   mp3: 'audio/mpeg',
   ogg: 'audio/ogg',
   wav: 'audio/wav',
+  wave: 'audio/wav',
 };
 
 export const ALLOWED_CHAT_AUDIO_MIME = new Set([
@@ -87,6 +90,8 @@ export const ALLOWED_CHAT_AUDIO_MIME = new Set([
   'audio/ogg',
   'audio/aac',
   'audio/wav',
+  'audio/x-wav',
+  'audio/wave',
   'audio/x-m4a',
 ]);
 
