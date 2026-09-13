@@ -5,5 +5,5 @@ export const OPERATOR_PLACE = 'New York, New York';
 export const OPERATOR_LAW = 'the State of New York';
 export const SITE_NAME = 'Evenly';
 export const SITE_ORIGIN = 'https://evenly.lapardhaja.com';
-export const LEGAL_EFFECTIVE_DATE = '12 September 2026';
-export const LEGAL_VERSION = '2026.09.12';
+export const LEGAL_EFFECTIVE_DATE = '13 September 2026';
+export const LEGAL_VERSION = '2026.09.13';

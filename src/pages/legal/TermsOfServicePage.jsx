@@ -45,7 +45,8 @@ export default function TermsOfServicePage() {
         <LegalP>
           {SITE_NAME} helps people split receipts: groups, people, items, who paid, and settlement
           transfers. Cloud mode (when configured) adds accounts, sync, friends, attachments, public
-          group share, group and 1:1 chat (including photos, voice notes, and likes), Web Push, and Venmo pay
+          group share, group and 1:1 chat (including photos, voice notes, and likes), QR codes to
+          join a group or become friends, Web Push, and Venmo pay
           links. Local-only mode keeps group data in the browser. Features may change. The service
           is provided as-is.
         </LegalP>

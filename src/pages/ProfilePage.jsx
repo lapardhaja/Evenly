@@ -20,6 +20,7 @@ import {
   requestAccountDeletion,
 } from '../lib/deleteAccount.js';
 import { purgeCloudUserBrowserState } from '../lib/evenlyStorageKey.js';
+import InviteQrDialog from '../components/InviteQrDialog.jsx';
 
 export default function ProfilePage() {
   const { user, session, refreshProfile, configured } = useAuth();
@@ -39,6 +40,7 @@ export default function ProfilePage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTyped, setDeleteTyped] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const loadProfile = useCallback(async (opts = {}) => {
     const silent = !!opts.silent;
@@ -281,6 +283,11 @@ export default function ProfilePage() {
               >
                 Check in Venmo
               </Button>
+              {configured ? (
+                <Button variant="outlined" onClick={() => setQrOpen(true)}>
+                  My friend QR
+                </Button>
+              ) : null}
               <Button
                 variant="outlined"
                 onClick={handleSaveProfile}
@@ -333,6 +340,13 @@ export default function ProfilePage() {
           </Button>
         </Paper>
       ) : null}
+
+      <InviteQrDialog
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        kind="friend"
+        title="Your friend QR"
+      />
 
       <Dialog
         open={deleteOpen}

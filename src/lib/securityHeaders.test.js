@@ -30,8 +30,11 @@ test('CSP allows self, fonts, supabase, MUI styles, and Venmo-safe COOP — no s
     VERCEL_SECURITY_HEADERS.some((h) => h.key === 'Cross-Origin-Embedder-Policy'),
     false,
   );
-  assert.match(PERMISSIONS_POLICY, /camera=\(\)/);
+  assert.match(PERMISSIONS_POLICY, /camera=\(self\)/);
+  assert.match(PERMISSIONS_POLICY, /microphone=\(self\)/);
+  assert.match(PERMISSIONS_POLICY, /geolocation=\(\)/);
   assert.match(PERMISSIONS_POLICY, /browsing-topics=\(\)/);
+  assert.match(CONTENT_SECURITY_POLICY, /media-src 'self' blob: mediastream: https:\/\/\*\.supabase\.co/);
 });
 
 test('vercel.json headers match securityHeaders.js (no drift)', () => {

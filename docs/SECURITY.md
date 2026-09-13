@@ -8,12 +8,12 @@ How Evenly is hardened in production. Public copy lives at `#/security`. Contact
 
 | Header | Intent |
 | --- | --- |
-| `Content-Security-Policy` | Default `'self'`. Scripts are same-origin only (`/auth-capture.js` for password-reset capture — **no** script `'unsafe-inline'`). Inline styles are required for MUI/Emotion. Fonts: Google Fonts. Images: this origin + `*.supabase.co`. Connect: this origin + `*.supabase.co` (HTTPS + WSS) + FX (`open.er-api.com`, `cdn.jsdelivr.net`, `api.frankfurter.dev`). |
+| `Content-Security-Policy` | Default `'self'`. Scripts are same-origin only (`/auth-capture.js` for password-reset capture — **no** script `'unsafe-inline'`). Inline styles are required for MUI/Emotion. Fonts: Google Fonts. Images: this origin + `*.supabase.co`. Media: this origin + `blob:` + `mediastream:` + `*.supabase.co` (voice notes + QR camera). Connect: this origin + `*.supabase.co` (HTTPS + WSS) + FX (`open.er-api.com`, `cdn.jsdelivr.net`, `api.frankfurter.dev`). |
 | `Strict-Transport-Security` | Two years, `includeSubDomains`. **No `preload`.** |
 | `X-Frame-Options` / `frame-ancestors` | Deny clickjacking. |
 | `X-Content-Type-Options` | `nosniff`. |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` (also a `<meta>` in `index.html`). |
-| `Permissions-Policy` | Camera, mic, geo, Payment Request, USB, Topics off. Receipt scan uses a file input (`capture="environment"`), not `getUserMedia`. |
+| `Permissions-Policy` | Camera and microphone allowed for this origin (voice notes, in-app QR scan). Geo, Payment Request, USB, Topics off. Receipt scan still uses a file input (`capture="environment"`). |
 | `Cross-Origin-Opener-Policy` | `same-origin-allow-popups` so Venmo `window.open` still works. **Do not set COEP** — it breaks Google Fonts and Supabase signed images. |
 
 `src/lib/securityHeaders.test.js` fails if `vercel.json` drifts.
@@ -59,6 +59,7 @@ Optional `RATE_LIMIT_PEPPER` for the IP hash (defaults to the service role key i
 
 - Username / email enumeration via friend search and availability RPCs.
 - Active `#/share/:id` URLs are world-readable by design.
+- Active `#/join/:token` / `#/add/:token` URLs add the signed-in opener (group membership or friendship). Tokens are unguessable; leaking the QR is an invite.
 - Legacy `#/shared-settlement/:token` encodes data in the URL.
 
 ## Related

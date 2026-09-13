@@ -9,6 +9,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import ChatThread from '../components/ChatThread.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import { chatThreadPageSx, CHAT_CONTAINER_MAX_WIDTH } from '../lib/appShell.js';
+import { encodeWavPcm16 } from '../lib/chatVoice.js';
 
 const THEM = 'them';
 const ME = 'me';
@@ -17,6 +18,19 @@ const PHOTO =
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect fill="#163325" width="640" height="480"/><text x="50%" y="50%" fill="#efe6d6" font-size="28" text-anchor="middle" font-family="sans-serif">photo</text></svg>',
   );
+
+function previewVoiceUrl() {
+  const sr = 16000;
+  const n = sr; // 1s 440Hz so Play has something to hear
+  const samples = new Float32Array(n);
+  for (let i = 0; i < n; i += 1) {
+    samples[i] = Math.sin((2 * Math.PI * 440 * i) / sr) * 0.28;
+  }
+  const bytes = new Uint8Array(encodeWavPcm16(samples, sr));
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return `data:audio/wav;base64,${btoa(binary)}`;
+}
 
 export default function ChatLayoutPreview() {
   const navigate = useNavigate();
@@ -27,8 +41,43 @@ export default function ChatLayoutPreview() {
       userId: ME,
       names: { [THEM]: 'Amanda Nicol' },
       likes: new Map([['m1', { count: 1, mine: false }]]),
-      imageUrls: { 'preview/photo.jpg': PHOTO },
+      imageUrls: { 'preview/photo.jpg': PHOTO, 'preview/voice.wav': previewVoiceUrl() },
       messages: [
+        {
+          id: 'm0',
+          sender_id: THEM,
+          type: 'text',
+          body: 'Older message that should be above the fold',
+          payload: {},
+        },
+        {
+          id: 'm0b',
+          sender_id: ME,
+          type: 'text',
+          body: 'Scroll past these so open lands on the voice note',
+          payload: {},
+        },
+        {
+          id: 'm0c',
+          sender_id: THEM,
+          type: 'text',
+          body: 'Filler so the thread is taller than the viewport',
+          payload: {},
+        },
+        {
+          id: 'm0d',
+          sender_id: THEM,
+          type: 'text',
+          body: 'Still filler',
+          payload: {},
+        },
+        {
+          id: 'm0e',
+          sender_id: ME,
+          type: 'text',
+          body: 'Almost at the latest',
+          payload: {},
+        },
         {
           id: 'm1',
           sender_id: THEM,
@@ -63,9 +112,9 @@ export default function ChatLayoutPreview() {
           type: 'audio',
           body: '',
           payload: {
-            storage_path: 'preview/voice.webm',
-            mime_type: 'audio/webm',
-            duration_ms: 4200,
+            storage_path: 'preview/voice.wav',
+            mime_type: 'audio/wav',
+            duration_ms: 1000,
           },
         },
       ],

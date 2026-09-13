@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
       <LegalSection id="who" title="1. Who we are">
         <LegalP>
           {SITE_NAME} is a receipt-splitting web application. Cloud features (accounts, sync,
-          friends, chat, attachments, public shares, Web Push) run on our production Supabase
+          friends, chat, attachments, public shares, QR join/friend invites, Web Push) run on our production Supabase
           project and Vercel deployment. Builds without those environment variables stay
           local-only: group data never leaves the browser.
         </LegalP>
@@ -137,7 +137,11 @@ export default function PrivacyPolicyPage() {
           signed URLs. Revoke the share to stop new access. A legacy compressed settlement token (
           <code>#/shared-settlement/:token</code>) encodes names and amounts in the URL itself —
           treat that URL as public. Do not send share links to people who should not see that
-          content.
+          content. Group join QR codes and links (<code>#/join/:token</code>) add the signed-in
+          scanner as a member without requiring an existing friendship. Personal QR codes and links
+          (<code>#/add/:token</code>) create a friendship immediately. Treat those codes like
+          invites: anyone who opens them while signed in is added. Rotate a group code from People
+          if it leaked.
         </LegalP>
       </LegalSection>
 
