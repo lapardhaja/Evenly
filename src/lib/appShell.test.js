@@ -234,6 +234,9 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   assert.match(composer, /Take photo/);
   assert.match(composer, /Photo library/);
   assert.match(composer, /Attach file/);
+  assert.match(composer, /startVoiceCapture/);
+  assert.doesNotMatch(composer, /start\(200\)/);
+  assert.match(thread, /ResizeObserver/);
   assert.match(composer, /fontSize: '16px'/);
   assert.match(composer, /tabIndex=\{-1\}/);
   assert.doesNotMatch(composer, /0\.95rem/);

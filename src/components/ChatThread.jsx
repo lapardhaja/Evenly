@@ -46,7 +46,7 @@ import ChatAudioBubble from './ChatAudioBubble.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
 import { chatMessagesSx, chatThreadRootSx, chatBubbleMaxWidthSx } from '../lib/appShell.js';
-import { isChatNearBottom, pinChatToLatestAfterLayout } from '../lib/chatScroll.js';
+import { isChatNearBottom, pinChatToLatestAfterLayout, scrollChatToBottom } from '../lib/chatScroll.js';
 import {
   CHAT_AVATAR_GAP_PX,
   CHAT_AVATAR_PX,
@@ -126,6 +126,9 @@ export default function ChatThread({
     }
     if (Object.keys(updates).length) {
       setImageUrls((prev) => ({ ...prev, ...updates }));
+      if (nearBottomRef.current) {
+        pinChatToLatestAfterLayout(listRef.current);
+      }
     }
   }, []);
 
@@ -219,6 +222,7 @@ export default function ChatThread({
   }, []);
 
   const lastMessageId = messages.length ? messages[messages.length - 1].id : '';
+  const imageUrlCount = Object.keys(imageUrls).length;
 
   useLayoutEffect(() => {
     if (loading) return undefined;
@@ -233,8 +237,35 @@ export default function ChatThread({
     const cancel = pinChatToLatestAfterLayout(el);
     pinnedForConversationRef.current = conversationId;
     nearBottomRef.current = true;
-    return cancel;
-  }, [loading, conversationId, lastMessageId, myUserId]);
+    const t1 = window.setTimeout(() => {
+      if (nearBottomRef.current) scrollChatToBottom(el);
+    }, 80);
+    const t2 = window.setTimeout(() => {
+      if (nearBottomRef.current) scrollChatToBottom(el);
+    }, 280);
+    const t3 = window.setTimeout(() => {
+      if (nearBottomRef.current) scrollChatToBottom(el);
+    }, 700);
+    return () => {
+      cancel();
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+    };
+  }, [loading, conversationId, lastMessageId, myUserId, imageUrlCount]);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const pin = () => {
+      if (!nearBottomRef.current) return;
+      scrollChatToBottom(el);
+    };
+    const ro = new ResizeObserver(pin);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => ro.disconnect();
+  }, [conversationId, loading, lastMessageId]);
 
   useEffect(() => {
     const onViewport = () => {
@@ -583,6 +614,9 @@ export default function ChatThread({
                             src={attachmentUrl}
                             alt="Photo"
                             draggable={false}
+                            onLoad={() => {
+                              if (nearBottomRef.current) scrollChatToBottom(listRef.current);
+                            }}
                             sx={{
                               display: 'block',
                               width: '100%',
@@ -633,6 +667,7 @@ export default function ChatThread({
                         mine={mine}
                         radii={radii}
                         onPointerUp={handleBubblePointer(m)}
+                        onError={setError}
                       />
                     ) : (
                       <Box
