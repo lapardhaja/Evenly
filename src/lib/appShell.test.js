@@ -112,6 +112,7 @@ test('chat column uses a desktop-width container, not the phone sm cap', () => {
   assert.equal(CHAT_CONTAINER_MAX_WIDTH, 'lg');
   assert.notEqual(CHAT_CONTAINER_MAX_WIDTH, 'sm');
   assert.deepEqual(chatBubbleMaxWidthSx.maxWidth, { xs: '85%', md: 560, lg: 640 });
+  assert.equal(chatBubbleMaxWidthSx.width, 'max-content');
 });
 
 test('chat thread page is a bounded flex column; only the message pane scrolls', () => {
@@ -217,6 +218,7 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   const thread = readFileSync(join(root, 'components/ChatThread.jsx'), 'utf8');
   const composer = readFileSync(join(root, 'components/ChatComposer.jsx'), 'utf8');
   const page = readFileSync(join(root, 'pages/ChatThreadPage.jsx'), 'utf8');
+  const shell = readFileSync(join(root, 'lib/appShell.js'), 'utf8');
   const sql = readFileSync(
     join(root, '../supabase/migrations/20260912233000_chat_voice_notes.sql'),
     'utf8',
@@ -227,6 +229,12 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   assert.match(thread, /ChatAudioBubble/);
   assert.match(thread, /showName/);
   assert.match(thread, /alignItems: 'flex-end'/);
+  assert.match(thread, /width: '100%'/);
+  assert.match(shell, /width: 'max-content'/);
+  assert.match(thread, /chatBubbleMaxWidthSx/);
+  assert.match(thread, /width: 'max-content'/);
+  assert.match(thread, /overflowWrap: 'break-word'/);
+  assert.doesNotMatch(thread, /wordBreak: 'break-word'/);
   assert.doesNotMatch(thread, /incomingText/);
   assert.match(thread, /visualViewport/);
   assert.match(composer, /Message\.\.\./);

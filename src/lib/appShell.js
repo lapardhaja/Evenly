@@ -84,6 +84,9 @@ export const CHAT_CONTAINER_MAX_WIDTH = 'lg';
 
 export const chatBubbleMaxWidthSx = {
   maxWidth: { xs: '85%', md: 560, lg: 640 },
+  // max-content, not fit-content: Safari min-content is the longest word, which
+  // wraps "Hey team" in a shrink-to-fit outgoing column.
+  width: 'max-content',
 };
 
 export const chatThreadRootSx = {
