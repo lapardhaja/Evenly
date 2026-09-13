@@ -58,3 +58,30 @@ test('quantityMapsFromIndexedItems writes both maps', () => {
   assert.equal(maps.itemToPersonQuantityMap.i1.p1, 1);
   assert.equal(maps.personToItemQuantityMap.p2.i2, 1);
 });
+
+test('buildScannedReceiptRecord attaches shares and paidById', () => {
+  const rec = buildScannedReceiptRecord(
+    [{ name: 'Soup', cost: 8, quantity: 1 }],
+    { paidById: 'p1', sharesByIndex: { 0: { p1: 1, p2: 1 } }, taxCost: 0, tipCost: 0, discountCost: 0 },
+    { displayCurrency: 'USD', now: 1, makeId: () => 'i1', allowedPersonIds: ['p1', 'p2'] },
+  );
+  const itemId = Object.keys(rec.items)[0];
+  assert.equal(itemId, 'i1');
+  assert.equal(rec.paidById, 'p1');
+  assert.equal(rec.itemToPersonQuantityMap[itemId].p2, 1);
+});
+
+test('buildScannedReceiptRecord drops unknown people and bad rows', () => {
+  const rec = buildScannedReceiptRecord(
+    [
+      { name: '  ', cost: 8, quantity: 1 },
+      { name: 'Soup', cost: -1, quantity: 1 },
+      { name: 'Bread', cost: 3, quantity: 1 },
+    ],
+    { paidById: 'ghost', sharesByIndex: { 0: { p1: 1 } } },
+    { displayCurrency: 'usd', now: 9, makeId: () => 'i1', allowedPersonIds: ['p1'] },
+  );
+  assert.equal(rec.paidById, '');
+  assert.equal(Object.keys(rec.items).length, 1);
+  assert.equal(rec.items.i1.name, 'Bread');
+});

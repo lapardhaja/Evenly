@@ -13,6 +13,7 @@ import { normalizeCurrencyCode } from '../lib/currencies.js';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { removeMember } from '../lib/groupMembersApi.js';
 import { relabelPeopleForDisplay, relabelSelfPeopleMap } from '../lib/defaultGroupPeople.js';
+import { buildScannedReceiptRecord } from '../lib/scanAssign.js';
 
 function useHealSelfPersonNames(groupId, peopleMap, user, profile, setData) {
   useEffect(() => {
@@ -310,53 +311,16 @@ export function useGroup(groupId) {
   const addReceiptWithItems = useCallback(
     (title, lineItems, charges = {}) => {
       const receiptId = uuidv4();
-      const items = {};
-      for (const row of lineItems) {
-        const name = String(row.name || '').trim();
-        if (!name) continue;
-        const cost = Number(row.cost);
-        const quantity = Math.max(1, Math.min(999, Number(row.quantity) || 1));
-        if (!Number.isFinite(cost) || cost <= 0) continue;
-        items[uuidv4()] = { name, cost, quantity };
-      }
-      const taxCost = currency(charges.taxCost ?? 0).value;
-      const tipCost = currency(charges.tipCost ?? 0).value;
-      const discountCost = currency(charges.discountCost ?? 0).value;
-      const taxBehavior =
-        charges.taxBehavior === 'inclusive' || charges.taxBehavior === 'exclusive'
-          ? charges.taxBehavior
-          : 'exclusive';
-      let dateMs = Date.now();
-      if (charges.receiptDate && typeof charges.receiptDate === 'string') {
-        const iso = charges.receiptDate.trim();
-        if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-          const parsed = new Date(`${iso}T12:00:00`).getTime();
-          if (!Number.isNaN(parsed)) dateMs = parsed;
-        }
-      }
       setData((prev) => {
         const g = { ...prev.groups[groupId] };
-        const receiptCc = normalizeCurrencyCode(
-          charges.currencyCode || g.displayCurrency || 'USD',
-        );
+        const rec = buildScannedReceiptRecord(lineItems, charges, {
+          title,
+          displayCurrency: g.displayCurrency || 'USD',
+          allowedPersonIds: Object.keys(g.people || {}),
+        });
         g.receipts = {
           ...g.receipts,
-          [receiptId]: {
-            title,
-            date: dateMs,
-            locked: false,
-            paidById: '',
-            currencyCode: receiptCc,
-            items,
-            personToItemQuantityMap: {},
-            itemToPersonQuantityMap: {},
-            personPaidMap: {},
-            taxCost: Number.isFinite(taxCost) && taxCost >= 0 ? taxCost : 0,
-            tipCost: Number.isFinite(tipCost) && tipCost >= 0 ? tipCost : 0,
-            discountCost:
-              Number.isFinite(discountCost) && discountCost >= 0 ? discountCost : 0,
-            taxBehavior,
-          },
+          [receiptId]: rec,
         };
         return { ...prev, groups: { ...prev.groups, [groupId]: g } };
       });
