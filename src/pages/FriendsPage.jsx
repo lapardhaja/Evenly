@@ -35,6 +35,7 @@ import {
 import { friendSearchAction } from '../lib/friendInvite.js';
 import { nameToInitials } from '../functions/utils.js';
 import InviteQrDialog from '../components/InviteQrDialog.jsx';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
 function personLabel(row) {
   return formatFullName(row) || row?.username || row?.display_name || 'Someone';
@@ -168,14 +169,16 @@ export default function FriendsPage() {
         instantly. After you’re friends, invite them into a group from People — or share the group
         QR so they can join without being friends.
       </Typography>
-      <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-        <Button variant="contained" startIcon={<QrCode2Icon />} onClick={() => setQrOpen(true)}>
-          My QR
-        </Button>
-        <Button variant="outlined" component={RouterLink} to="/scan">
-          Scan QR
-        </Button>
-      </Box>
+      {isSupabaseConfigured() ? (
+        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          <Button variant="contained" startIcon={<QrCode2Icon />} onClick={() => setQrOpen(true)}>
+            My QR
+          </Button>
+          <Button variant="outlined" component={RouterLink} to="/scan">
+            Scan QR
+          </Button>
+        </Box>
+      ) : null}
 
       {message ? (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage('')}>

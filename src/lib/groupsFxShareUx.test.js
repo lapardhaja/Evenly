@@ -63,6 +63,10 @@ test('invite-friend row does not overlay In group on the username', () => {
 test('creating a group opens people with the join QR', () => {
   const groups = read('src/pages/GroupsPage.jsx');
   assert.match(groups, /showJoinQr/);
+  const friends = read('src/pages/FriendsPage.jsx');
+  assert.match(friends, /My QR/);
+  assert.match(friends, /Scan QR/);
+  assert.match(friends, /isSupabaseConfigured/);
 });
 
 test('subprocessors list dated FX hosts', () => {
