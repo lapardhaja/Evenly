@@ -1,18 +1,41 @@
 import jsQR from 'jsqr';
 import { parseInviteFromText } from './inviteCodes.js';
+import { cornersFromLocation } from './scanQrOverlay.js';
 
 const SCAN_MAX_WIDTH = 640;
 
-export function decodeQrTextFromRgba(data, width, height) {
-  if (!data || !width || !height) return '';
+export function decodeQrFromRgba(data, width, height) {
+  if (!data || !width || !height) return null;
   const code = jsQR(data, width, height, { inversionAttempts: 'attemptBoth' });
-  return code?.data ? String(code.data).trim() : '';
+  if (!code?.data) return null;
+  return {
+    text: String(code.data).trim(),
+    quad: cornersFromLocation(code.location),
+  };
+}
+
+export function decodeQrTextFromRgba(data, width, height) {
+  return decodeQrFromRgba(data, width, height)?.text || '';
+}
+
+export function scanFrameImageData(imageData) {
+  if (!imageData?.data || !imageData.width || !imageData.height) {
+    return { status: 'empty' };
+  }
+  const qr = decodeQrFromRgba(imageData.data, imageData.width, imageData.height);
+  if (!qr) return { status: 'empty' };
+  const invite = parseInviteFromText(qr.text);
+  return {
+    status: invite ? 'invite' : 'other',
+    invite: invite || null,
+    quad: qr.quad,
+    width: imageData.width,
+    height: imageData.height,
+  };
 }
 
 export function decodeInviteFromImageData(imageData) {
-  if (!imageData?.data || !imageData.width || !imageData.height) return null;
-  const text = decodeQrTextFromRgba(imageData.data, imageData.width, imageData.height);
-  return parseInviteFromText(text);
+  return scanFrameImageData(imageData).invite || null;
 }
 
 export function drawVideoFrame(video, canvas) {
@@ -31,6 +54,12 @@ export function drawVideoFrame(video, canvas) {
 
 export function decodeInviteFromVideo(video, canvas) {
   return decodeInviteFromImageData(drawVideoFrame(video, canvas));
+}
+
+export function scanInviteFromVideo(video, canvas) {
+  const imageData = drawVideoFrame(video, canvas);
+  if (!imageData) return { status: 'empty' };
+  return scanFrameImageData(imageData);
 }
 
 function loadImage(url) {
