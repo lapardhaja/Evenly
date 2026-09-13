@@ -33,6 +33,35 @@ export function formatVoiceClock(ms) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+export const VOICE_WAVE_BARS = 56;
+
+export function peakFromPcm(float32) {
+  if (!float32?.length) return 0;
+  let peak = 0;
+  for (let i = 0; i < float32.length; i += 1) {
+    const a = Math.abs(float32[i]);
+    if (a > peak) peak = a;
+  }
+  return peak;
+}
+
+export function appendVoiceLevel(levels, next, max = VOICE_WAVE_BARS) {
+  const prev = Array.isArray(levels) ? levels : [];
+  const v = Math.max(0, Math.min(1, Number(next) || 0));
+  if (prev.length >= max) return prev.slice(prev.length - max + 1).concat(v);
+  return prev.concat(v);
+}
+
+export function recordingElapsedMs({
+  startedAt = 0,
+  pausedAccumMs = 0,
+  pauseStartedAt = 0,
+  now = Date.now(),
+} = {}) {
+  const frozen = pauseStartedAt ? Math.max(0, now - pauseStartedAt) : 0;
+  return Math.max(0, now - startedAt - pausedAccumMs - frozen);
+}
+
 export function audioFileFromChunks(chunks, mime) {
   const type = String(mime || 'audio/webm').split(';')[0] || 'audio/webm';
   const blob = new Blob(chunks, { type });
@@ -94,7 +123,64 @@ function stopTracks(stream) {
   stream?.getTracks?.().forEach((t) => t.stop());
 }
 
-async function startWavSession(stream, ctx) {
+function attachLevelMeter(stream, onLevel) {
+  if (!onLevel) return () => {};
+  const Ctx = globalThis.AudioContext || globalThis.webkitAudioContext;
+  if (typeof Ctx !== 'function') return () => {};
+  let ctx;
+  try {
+    ctx = new Ctx();
+  } catch {
+    return () => {};
+  }
+  let raf = 0;
+  let source;
+  let analyser;
+  try {
+    source = ctx.createMediaStreamSource(stream);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+  } catch {
+    try {
+      void ctx.close();
+    } catch {
+      /* ignore */
+    }
+    return () => {};
+  }
+  const data = new Uint8Array(analyser.fftSize);
+  const tick = () => {
+    analyser.getByteTimeDomainData(data);
+    let peak = 0;
+    for (let i = 0; i < data.length; i += 1) {
+      const v = Math.abs(data[i] - 128) / 128;
+      if (v > peak) peak = v;
+    }
+    try {
+      onLevel(peak);
+    } catch {
+      /* ignore */
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  return () => {
+    cancelAnimationFrame(raf);
+    try {
+      source.disconnect();
+    } catch {
+      /* ignore */
+    }
+    try {
+      void ctx.close();
+    } catch {
+      /* ignore */
+    }
+  };
+}
+
+async function startWavSession(stream, ctx, { onLevel } = {}) {
   if (ctx.state === 'suspended') await ctx.resume();
   const sampleRate = ctx.sampleRate || 44100;
   const source = ctx.createMediaStreamSource(stream);
@@ -103,9 +189,16 @@ async function startWavSession(stream, ctx) {
   mute.gain.value = 0.0001;
   const chunks = [];
   const maxSamples = Math.floor((sampleRate * CHAT_AUDIO_MAX_MS) / 1000);
+  let paused = false;
   processor.onaudioprocess = (e) => {
+    if (paused) return;
     const input = e.inputBuffer.getChannelData(0);
     chunks.push(new Float32Array(input));
+    try {
+      onLevel?.(peakFromPcm(input));
+    } catch {
+      /* ignore */
+    }
   };
   source.connect(processor);
   processor.connect(mute);
@@ -150,10 +243,16 @@ async function startWavSession(stream, ctx) {
   return {
     stop: () => finish(true),
     cancel: () => finish(false),
+    pause() {
+      paused = true;
+    },
+    resume() {
+      paused = false;
+    },
   };
 }
 
-function startMediaRecorderSession(stream) {
+function startMediaRecorderSession(stream, { onLevel } = {}) {
   const mime = pickRecorderMimeType();
   if (!mime || typeof MediaRecorder === 'undefined') {
     stopTracks(stream);
@@ -165,6 +264,9 @@ function startMediaRecorderSession(stream) {
     if (e.data && e.data.size) chunks.push(e.data);
   };
   const startedAt = Date.now();
+  let pausedAccumMs = 0;
+  let pauseStartedAt = 0;
+  const stopMeter = attachLevelMeter(stream, onLevel);
   // No timeslice: Safari often produces a corrupt/unplayable blob when start(ms) is used.
   recorder.start();
 
@@ -176,6 +278,7 @@ function startMediaRecorderSession(stream) {
         return;
       }
       stopped = true;
+      stopMeter();
       const done = () => {
         stopTracks(stream);
         if (!keep || !chunks.length) {
@@ -187,7 +290,15 @@ function startMediaRecorderSession(stream) {
           resolve(null);
           return;
         }
-        resolve({ file, durationMs: Date.now() - startedAt });
+        resolve({
+          file,
+          durationMs: recordingElapsedMs({
+            startedAt,
+            pausedAccumMs,
+            pauseStartedAt,
+            now: Date.now(),
+          }),
+        });
       };
       if (recorder.state === 'inactive') {
         done();
@@ -204,6 +315,25 @@ function startMediaRecorderSession(stream) {
   return {
     stop: () => finish(true),
     cancel: () => finish(false),
+    pause() {
+      if (pauseStartedAt) return;
+      pauseStartedAt = Date.now();
+      try {
+        if (recorder.state === 'recording') recorder.pause();
+      } catch {
+        /* ignore */
+      }
+    },
+    resume() {
+      if (!pauseStartedAt) return;
+      pausedAccumMs += Date.now() - pauseStartedAt;
+      pauseStartedAt = 0;
+      try {
+        if (recorder.state === 'paused') recorder.resume();
+      } catch {
+        /* ignore */
+      }
+    },
   };
 }
 
@@ -211,7 +341,7 @@ function startMediaRecorderSession(stream) {
  * Capture a voice note. Prefers WAV via Web Audio (plays on every phone).
  * Falls back to MediaRecorder without a timeslice.
  */
-export async function startVoiceCapture() {
+export async function startVoiceCapture({ onLevel } = {}) {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error('Voice notes aren’t supported in this browser.');
   }
@@ -239,7 +369,7 @@ export async function startVoiceCapture() {
   }
   if (ctx) {
     try {
-      return await startWavSession(stream, ctx);
+      return await startWavSession(stream, ctx, { onLevel });
     } catch {
       try {
         await ctx.close();
@@ -248,5 +378,5 @@ export async function startVoiceCapture() {
       }
     }
   }
-  return startMediaRecorderSession(stream);
+  return startMediaRecorderSession(stream, { onLevel });
 }

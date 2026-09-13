@@ -217,6 +217,7 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   const root = join(dirname(fileURLToPath(import.meta.url)), '..');
   const thread = readFileSync(join(root, 'components/ChatThread.jsx'), 'utf8');
   const composer = readFileSync(join(root, 'components/ChatComposer.jsx'), 'utf8');
+  const recordBar = readFileSync(join(root, 'components/VoiceRecordBar.jsx'), 'utf8');
   const page = readFileSync(join(root, 'pages/ChatThreadPage.jsx'), 'utf8');
   const shell = readFileSync(join(root, 'lib/appShell.js'), 'utf8');
   const sql = readFileSync(
@@ -243,6 +244,12 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   assert.match(composer, /Photo library/);
   assert.match(composer, /Attach file/);
   assert.match(composer, /startVoiceCapture/);
+  assert.match(composer, /VoiceRecordBar/);
+  assert.match(composer, /demoRecording/);
+  assert.match(recordBar, /Discard voice note/);
+  assert.match(recordBar, /Pause voice note/);
+  assert.match(recordBar, /Send voice note/);
+  assert.doesNotMatch(composer, /StopCircle/);
   assert.doesNotMatch(composer, /start\(200\)/);
   assert.match(thread, /ResizeObserver/);
   assert.match(composer, /fontSize: '16px'/);

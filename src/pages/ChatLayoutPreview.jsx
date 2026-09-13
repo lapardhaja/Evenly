@@ -42,6 +42,7 @@ export default function ChatLayoutPreview() {
       names: { [THEM]: 'Amanda Nicol' },
       likes: new Map([['m1', { count: 1, mine: false }]]),
       imageUrls: { 'preview/photo.jpg': PHOTO, 'preview/voice.wav': previewVoiceUrl() },
+      demoRecording: params.get('voice') === '1',
       messages: [
         {
           id: 'm0',
@@ -133,7 +134,7 @@ export default function ChatLayoutPreview() {
         },
       ],
     }),
-    [],
+    [params],
   );
 
   return (
