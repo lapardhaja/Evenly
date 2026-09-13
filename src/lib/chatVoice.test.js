@@ -2,11 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   audioFileFromChunks,
+  appendVoiceLevel,
   CHAT_AUDIO_MAX_MS,
   encodeWavPcm16,
   extensionForAudioMime,
   formatVoiceClock,
+  peakFromPcm,
   pickRecorderMimeType,
+  recordingElapsedMs,
   wavFileFromSamples,
 } from './chatVoice.js';
 
@@ -15,6 +18,30 @@ test('formatVoiceClock is m:ss', () => {
   assert.equal(formatVoiceClock(1500), '0:01');
   assert.equal(formatVoiceClock(65_000), '1:05');
   assert.equal(formatVoiceClock(CHAT_AUDIO_MAX_MS), '1:00');
+});
+
+test('peakFromPcm and appendVoiceLevel drive a scrolling waveform', () => {
+  const samples = new Float32Array([0, 0.5, -1, 0.25]);
+  assert.equal(peakFromPcm(samples), 1);
+  assert.equal(peakFromPcm(new Float32Array(0)), 0);
+  assert.deepEqual(appendVoiceLevel([0.1, 0.2], 0.9, 3), [0.1, 0.2, 0.9]);
+  assert.deepEqual(appendVoiceLevel([0.1, 0.2, 0.3], 0.9, 3), [0.2, 0.3, 0.9]);
+  assert.deepEqual(appendVoiceLevel([0.1], 2, 8), [0.1, 1]);
+});
+
+test('recordingElapsedMs excludes paused time', () => {
+  assert.equal(
+    recordingElapsedMs({ startedAt: 1000, pausedAccumMs: 0, pauseStartedAt: 0, now: 4000 }),
+    3000,
+  );
+  assert.equal(
+    recordingElapsedMs({ startedAt: 1000, pausedAccumMs: 500, pauseStartedAt: 0, now: 4000 }),
+    2500,
+  );
+  assert.equal(
+    recordingElapsedMs({ startedAt: 1000, pausedAccumMs: 0, pauseStartedAt: 3500, now: 4000 }),
+    2500,
+  );
 });
 
 test('extensionForAudioMime maps containers', () => {

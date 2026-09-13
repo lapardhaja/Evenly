@@ -767,6 +767,7 @@ export default function ChatThread({
         onPickFile={handlePickAttachment}
         onSendVoice={handleSendVoice}
         onError={setError}
+        demoRecording={Boolean(preview?.demoRecording)}
       />
       <AttachmentLightbox
         open={Boolean(lightbox)}
