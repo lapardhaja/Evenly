@@ -78,6 +78,18 @@ test('groups + SpeedDial offers Scan QR to join a group or add a friend', () => 
   assert.match(groups, /create one or scan a QR/);
 });
 
+test('scan review assigns people before create', () => {
+  const dlg = read('src/pages/ScanReceiptDialog.jsx');
+  assert.match(dlg, /Same as last receipt/);
+  assert.match(dlg, /Just me/);
+  assert.match(dlg, /Everyone/);
+  assert.match(dlg, /Paid by/);
+  assert.match(dlg, /sharesByIndex/);
+  const tab = read('src/pages/GroupReceiptsTab.jsx');
+  assert.match(tab, /sharesByIndex/);
+  assert.match(tab, /lastReceipt/);
+});
+
 test('subprocessors list dated FX hosts', () => {
   const src = read('src/lib/subprocessors.js');
   assert.match(src, /frankfurter\.dev/);

@@ -31,6 +31,7 @@ import ScanReceiptDialog from './ScanReceiptDialog.jsx';
 import { scanReceiptImage, readFileAsDataUrl } from '../lib/scanReceipt.js';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { useGroupsData } from '../context/GroupsDataContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { uploadAttachment } from '../lib/receiptAttachments.js';
 import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 import FabPortal from '../core/FabPortal.jsx';
@@ -72,6 +73,7 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     restoreReceipt,
   } = groupData;
   const { persistNow } = useGroupsData();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const cameraInputRef = useRef(null);
@@ -112,6 +114,22 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
     });
     return map;
   }, [people]);
+
+  const mePersonId = useMemo(
+    () => people.find((p) => p.linkedUserId && p.linkedUserId === user?.id)?.id || '',
+    [people, user?.id],
+  );
+
+  const lastReceipt = useMemo(() => {
+    if (!sorted.length) return null;
+    const newest = sorted[0];
+    return {
+      items: newest.items || {},
+      itemToPersonQuantityMap: newest.itemToPersonQuantityMap || {},
+      people,
+      paidById: newest.paidById || '',
+    };
+  }, [sorted, people]);
 
   const receiptIdsKey = useMemo(() => receipts.map((r) => r.id).join(','), [receipts]);
 
@@ -270,6 +288,8 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
       receiptDate: charges.receiptDate,
       currencyCode: charges.currencyCode || scannedCurrencyCode,
       taxBehavior,
+      paidById: charges.paidById || '',
+      sharesByIndex: charges.sharesByIndex || {},
     });
     if (!id) return;
     if (keepAttachment && isSupabaseConfigured()) {
@@ -576,6 +596,9 @@ export default function GroupReceiptsTab({ groupId, groupData }) {
         defaultTaxBehavior={scannedTaxBehavior}
         error={scanFlowError}
         keepPhotoAvailable={isSupabaseConfigured()}
+        people={people}
+        mePersonId={mePersonId}
+        lastReceipt={lastReceipt}
         onConfirm={handleScanConfirm}
       />
 

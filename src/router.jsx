@@ -72,6 +72,11 @@ export const router = createHashRouter([
               lazy: () =>
                 import('./pages/ChatLayoutPreview.jsx').then((m) => ({ Component: m.default })),
             },
+            {
+              path: 'dev/scan-assign',
+              lazy: () =>
+                import('./pages/ScanAssignPreview.jsx').then((m) => ({ Component: m.default })),
+            },
           ]
         : []),
       {
