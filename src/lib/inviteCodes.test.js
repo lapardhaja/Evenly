@@ -41,6 +41,10 @@ test('parseInviteFromText accepts camera-app URLs, hash paths, and raw tokens', 
   });
   assert.deepEqual(parseInviteFromText(`#/add/${TOKEN_F}`), { kind: 'friend', token: TOKEN_F });
   assert.deepEqual(parseInviteFromText(TOKEN_G.toUpperCase()), { kind: 'group', token: TOKEN_G });
+  assert.deepEqual(parseInviteFromText(`see ${TOKEN_G} thanks`), {
+    kind: 'group',
+    token: TOKEN_G,
+  });
   assert.equal(parseInviteFromText('not-a-code'), null);
   assert.equal(parseInvitePathname(`/join/${TOKEN_F}`), null);
   assert.equal(isInviteToken('g_short'), false);

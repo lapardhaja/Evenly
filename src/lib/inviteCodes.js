@@ -52,6 +52,11 @@ export function parseInviteFromText(raw) {
   if (hash) return parseInvitePathname(`/${hash[1]}/${hash[2]}`);
   const path = text.match(/(?:^|\/)(join|add)\/([A-Za-z0-9_-]+)/);
   if (path) return parseInvitePathname(`/${path[1]}/${path[2]}`);
+  const embedded = text.toLowerCase().match(/(?:^|[^a-z0-9])([gf]_[a-f0-9]{32})(?:[^a-z0-9]|$)/);
+  if (embedded) {
+    const token = embedded[1];
+    return { kind: token.startsWith('g_') ? 'group' : 'friend', token };
+  }
   const token = normalizeInviteToken(text);
   if (!isInviteToken(token)) return null;
   return { kind: token.startsWith('g_') ? 'group' : 'friend', token };
