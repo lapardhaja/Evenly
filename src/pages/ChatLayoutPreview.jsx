@@ -107,6 +107,20 @@ export default function ChatLayoutPreview() {
           payload: {},
         },
         {
+          id: 'm4b',
+          sender_id: ME,
+          type: 'text',
+          body: 'Hey team',
+          payload: {},
+        },
+        {
+          id: 'm4c',
+          sender_id: ME,
+          type: 'text',
+          body: 'This one should wrap at the bubble cap, not after every word like a shrink-to-fit column.',
+          payload: {},
+        },
+        {
           id: 'm5',
           sender_id: THEM,
           type: 'audio',

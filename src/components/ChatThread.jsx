@@ -531,6 +531,7 @@ export default function ChatThread({
                 sx={{
                   display: 'flex',
                   flexDirection: 'column',
+                  width: '100%',
                   alignItems: mine ? 'flex-end' : 'flex-start',
                   mb: lastInRun ? (showLikeChip ? 2.25 : 1.25) : 0.25,
                   mt: firstInRun && i > 0 ? 0.75 : 0,
@@ -551,7 +552,7 @@ export default function ChatThread({
                     display: 'flex',
                     alignItems: 'flex-end',
                     gap: `${CHAT_AVATAR_GAP_PX}px`,
-                    maxWidth: '100%',
+                    width: '100%',
                     flexDirection: mine ? 'row-reverse' : 'row',
                   }}
                 >
@@ -577,7 +578,7 @@ export default function ChatThread({
                     sx={{
                       ...chatBubbleMaxWidthSx,
                       position: 'relative',
-                      minWidth: 0,
+                      flexShrink: 0,
                       '@keyframes evenlyHeartPop': {
                         '0%': { transform: 'translate(-50%, -50%) scale(0.35)', opacity: 0 },
                         '35%': { transform: 'translate(-50%, -50%) scale(1.2)', opacity: 1 },
@@ -673,6 +674,8 @@ export default function ChatThread({
                       <Box
                         onPointerUp={handleBubblePointer(m)}
                         sx={{
+                          width: 'max-content',
+                          maxWidth: '100%',
                           px: 1.75,
                           py: 1,
                           ...radii,
@@ -686,7 +689,8 @@ export default function ChatThread({
                           variant="body2"
                           sx={{
                             whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            wordBreak: 'normal',
                             fontSize: '0.9375rem',
                             lineHeight: 1.4,
                           }}
