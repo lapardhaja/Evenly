@@ -43,7 +43,9 @@ Run `20260909140000_friend_requests_realtime.sql` to add **`friend_requests`** t
 Run `20260909160000_push_subscriptions.sql` for **`push_subscriptions`** (Web Push endpoints per user; RLS = own rows). Server fan-out uses the service role from `POST /api/chat-push`.  
 Run `20260910120000_chat_images_likes_friend_search.sql` for chat **`image`** messages, **`message_likes`**, private Storage bucket **`chat-attachments`**, name-aware **`search_profiles_by_username`**, and **`add_friend_to_group`** healing a missing owner `group_members` row.
 
-Run `20260912180000_account_delete_and_rate_limit.sql` so **`receipt_attachments.uploaded_by`** is `ON DELETE SET NULL` (Auth user delete no longer fails), **`api_rate_events`** + **`consume_rate_limit`** (service_role only), and in-app **`POST /api/delete-account`** can call `auth.admin.deleteUser`.
+Run `20260912233000_chat_voice_notes.sql` for chat **`audio`** messages.  
+Run `20260913010000_chat_voice_wav.sql` for extra WAV MIME types on **`chat-attachments`**.  
+Run `20260913020000_qr_invites.sql` for **`group_join_codes`**, **`friend_invite_codes`**, and RPCs **`ensure_group_join_code`**, **`rotate_group_join_code`**, **`join_group_by_code`** (no friendship required), **`ensure_friend_code`**, **`add_friend_by_code`**, **`peek_invite_code`**.
 
 | Table | Purpose |
 |--------|--------|
@@ -52,6 +54,8 @@ Run `20260912180000_account_delete_and_rate_limit.sql` so **`receipt_attachments
 | **`profiles`** | One row per `auth.users` row: `username`, `display_name`, optional `first_name` / `last_name`, optional `venmo_username` (pay-link handle), `email_lookup` (for friend search). |
 | **`friend_requests`** | Pending/accepted/declined friend requests between users. |
 | **`friendships`** | Accepted friendships (`user_a` &lt; `user_b`). |
+| **`group_join_codes`** | One QR/link token per group (`g_` + 32 hex). Members can SELECT their group’s row; mint/rotate via RPC. |
+| **`friend_invite_codes`** | One personal QR/link token per user (`f_` + 32 hex). You can SELECT only your own row. |
 | **`group_people`** | People in a group (`group_id` FK). Optional `linked_user_id` → friend’s `auth.users.id`. |
 | **`receipts`** | Receipts in a group; tax/tip/discount, `person_paid_map`, `currency_code` (default USD), etc. |
 | **`receipt_items`** | Line items on a receipt. |
@@ -64,7 +68,7 @@ Run `20260912180000_account_delete_and_rate_limit.sql` so **`receipt_attachments
 | **`message_likes`** | Heart on a message. PK `(message_id, user_id)`. Members of the conversation can read; you can insert/delete only your own row. Realtime. |
 | **`push_subscriptions`** | Web Push `endpoint` + keys per user. PK `(user_id, endpoint)`. Client upserts own rows; `POST /api/chat-push` reads targets via service role. |
 
-Group data access is **membership-based** via **`group_members`**, not `groups.user_id` alone. **`is_group_member(uuid)`** and **`is_group_owner(uuid)`** (security definer) power RLS on `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations`, `receipt_attachments`, and **`group_public_shares`**. Clients cannot insert/update `group_members` directly; owners are created on group insert, and friends are added via **`add_friend_to_group(p_group_id, p_friend_user_id)`** (caller must be a member; if the caller owns `groups.user_id` but is missing from `group_members`, the RPC inserts the owner row then continues; friend must be in `friendships`; creates a `member` row and a linked `group_people` row if missing). **`search_profiles_by_username`** matches username prefix plus first/last/display/full name.
+Group data access is **membership-based** via **`group_members`**, not `groups.user_id` alone. **`is_group_member(uuid)`** and **`is_group_owner(uuid)`** (security definer) power RLS on `groups`, `group_people`, `receipts`, `receipt_items`, `receipt_allocations`, `receipt_attachments`, and **`group_public_shares`**. Clients cannot insert/update `group_members` directly; owners are created on group insert, and friends are added via **`add_friend_to_group(p_group_id, p_friend_user_id)`** (caller must be a member; if the caller owns `groups.user_id` but is missing from `group_members`, the RPC inserts the owner row then continues; friend must be in `friendships`; creates a `member` row and a linked `group_people` row if missing). **`join_group_by_code(p_token)`** is the QR path: any signed-in user with the group token becomes a `member` and gets a linked people row — **no friendship check**. **`add_friend_by_code(p_token)`** inserts `friendships` (ordered `user_a < user_b`) and marks pending requests accepted. **`search_profiles_by_username`** matches username prefix plus first/last/display/full name.
 
 **Public group shares (Approach C):** Members call **`create_public_group_share(p_group_id, p_include_attachments default true)`** (returns share uuid) and **`revoke_public_group_share(p_share_id)`** (sets `revoked_at`). Those RPCs are granted to **`authenticated` only**. Clients have **SELECT/INSERT** on `group_public_shares` (no **UPDATE**; revoke is RPC-only). Anon **cannot SELECT** `group_public_shares` (or group/receipt tables). **`get_public_group_share(p_share_id)`** and **`get_public_share_attachment_url(p_share_id, p_attachment_id)`** are security definer and granted to **`anon` and `authenticated`**. They succeed only for **active** shares (`revoked_at` is null); missing and revoked both raise `share not found`.
 

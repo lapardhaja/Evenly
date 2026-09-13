@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
@@ -21,6 +22,7 @@ import Chip from '@mui/material/Chip';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { nameToInitials } from '../functions/utils.js';
 import useEditTextModal from '../components/useEditTextModal.jsx';
 import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
@@ -30,6 +32,7 @@ import { formatFullName, listFriends } from '../lib/friendsApi.js';
 import { addFriendToGroup } from '../lib/groupMembersApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { personRowCaption } from '../lib/defaultGroupPeople.js';
+import InviteQrDialog from '../components/InviteQrDialog.jsx';
 
 function friendLabel(f) {
   return formatFullName(f) || f.username || f.display_name || 'Friend';
@@ -39,10 +42,13 @@ export default function GroupPeopleTab({ groupData }) {
   const { group, people, addPerson, updatePerson, removePerson } = groupData;
   const { reloadFromServer } = useGroupsData();
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { EditTextModal, showEditTextModal } = useEditTextModal();
   const { ask, confirmDialog } = useConfirmDialog();
   const newPersonRef = useRef(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [friendsList, setFriendsList] = useState([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [friendFilter, setFriendFilter] = useState('');
@@ -68,6 +74,13 @@ export default function GroupPeopleTab({ groupData }) {
       loadFriends();
     }
   }, [inviteOpen, loadFriends]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    if (!location.state?.showJoinQr) return;
+    setQrOpen(true);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, location.pathname, navigate]);
 
   const linkedIds = new Set(people.map((p) => p.linkedUserId).filter(Boolean));
 
@@ -191,17 +204,27 @@ export default function GroupPeopleTab({ groupData }) {
           Add name
         </Button>
         {isSupabaseConfigured() ? (
-          <Button
-            variant="contained"
-            startIcon={<GroupAddIcon />}
-            onClick={() => {
-              setInviteError('');
-              setInviteOpen(true);
-            }}
-            sx={{ whiteSpace: 'nowrap', mt: 0.25 }}
-          >
-            Invite friend
-          </Button>
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<QrCode2Icon />}
+              onClick={() => setQrOpen(true)}
+              sx={{ whiteSpace: 'nowrap', mt: 0.25 }}
+            >
+              Group QR
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<GroupAddIcon />}
+              onClick={() => {
+                setInviteError('');
+                setInviteOpen(true);
+              }}
+              sx={{ whiteSpace: 'nowrap', mt: 0.25 }}
+            >
+              Invite friend
+            </Button>
+          </>
         ) : null}
       </Box>
 
@@ -278,6 +301,14 @@ export default function GroupPeopleTab({ groupData }) {
           <Button onClick={() => setInviteOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <InviteQrDialog
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        kind="group"
+        groupId={group.id}
+        title={`Join ${group.name}`}
+      />
 
       {EditTextModal}
       {confirmDialog}

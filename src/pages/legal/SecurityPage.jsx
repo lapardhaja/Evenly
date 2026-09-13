@@ -57,9 +57,12 @@ export default function SecurityPage() {
 
       <LegalSection id="authz" title="4. Authorization">
         <LegalP>
-          Group, receipt, chat, and friend tables are protected with row-level security.
-          Membership RPCs do not let you promote yourself to owner or add non-friends as a
-          backdoor. Last-write-wins sync is a product tradeoff, not an IDOR bypass.
+          Membership RPCs do not let you promote yourself to owner. <code>add_friend_to_group</code>{' '}
+          still requires an existing friendship. Group join codes
+          (<code>join_group_by_code</code>) add the signed-in user as a member without that check —
+          the secret is the QR/link token. Friend QR codes
+          (<code>add_friend_by_code</code>) insert a <code>friendships</code> row the same way
+          accepting a request does. Last-write-wins sync is a product tradeoff, not an IDOR bypass.
         </LegalP>
       </LegalSection>
 
@@ -82,7 +85,8 @@ export default function SecurityPage() {
           used to convert mixed-currency receipts; scripts are same-origin
           only — no <code>'unsafe-inline'</code> scripts),{' '}
           <code>Referrer-Policy: strict-origin-when-cross-origin</code>, and
-          a Permissions-Policy that disables camera, microphone, geolocation, Payment Request, USB,
+          a Permissions-Policy that allows camera and microphone on this origin (voice notes and
+          in-app QR scan) and disables geolocation, Payment Request, USB,
           and Topics. Cross-Origin-Opener-Policy is <code>same-origin-allow-popups</code> so Venmo
           pay popups still work. We do not set COEP, which would break fonts and signed images.
           The UI does not use <code>dangerouslySetInnerHTML</code>.

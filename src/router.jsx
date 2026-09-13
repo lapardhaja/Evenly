@@ -18,6 +18,8 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import ProfileSetupPage from './pages/ProfileSetupPage.jsx';
 import ChatInboxPage from './pages/ChatInboxPage.jsx';
 import ChatThreadPage from './pages/ChatThreadPage.jsx';
+import InviteRedeemPage from './pages/InviteRedeemPage.jsx';
+import ScanQrPage from './pages/ScanQrPage.jsx';
 
 export const router = createHashRouter([
   {
@@ -77,6 +79,30 @@ export const router = createHashRouter([
         element: (
           <RequireAuth>
             <ChatThreadPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'scan',
+        element: (
+          <RequireAuth>
+            <ScanQrPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'join/:token',
+        element: (
+          <RequireAuth>
+            <InviteRedeemPage kind="group" />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'add/:token',
+        element: (
+          <RequireAuth>
+            <InviteRedeemPage kind="friend" />
           </RequireAuth>
         ),
       },

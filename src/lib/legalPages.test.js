@@ -20,7 +20,7 @@ test('legal nav includes security and cookie notice key stays v1', () => {
     LEGAL_NAV.map((i) => i.to),
     ['/privacy', '/terms', '/cookies', '/copyright', '/security'],
   );
-  assert.equal(LEGAL_VERSION, '2026.09.12');
+  assert.equal(LEGAL_VERSION, '2026.09.13');
   assert.equal(SITE_ORIGIN, 'https://evenly.lapardhaja.com');
 });
 
@@ -32,6 +32,8 @@ test('privacy covers chat photos, likes, push, do-not-sell, and in-app delete', 
   assert.match(src, /does not sell personal information/i);
   assert.match(src, /under 13/i);
   assert.match(src, /from Profile \(type DELETE\)/);
+  assert.match(src, /join\/:token/);
+  assert.match(src, /add\/:token/);
 });
 
 test('terms use NY courts and do not force arbitration', () => {
@@ -77,6 +79,9 @@ test('router registers #/security as a public page', () => {
   const src = readFileSync(join(root, 'src/router.jsx'), 'utf8');
   assert.match(src, /path: 'security'/);
   assert.match(src, /SecurityPage/);
+  assert.match(src, /path: 'join\/:token'/);
+  assert.match(src, /path: 'add\/:token'/);
+  assert.match(src, /path: 'scan'/);
 });
 
 test('profile has delete-account confirm and migration is durable rate + FK fix', () => {

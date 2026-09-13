@@ -97,7 +97,7 @@ export default function GroupsPage() {
     const id = addGroup(name.trim(), {
       initialPeople: getDefaultPeopleMapForNewGroup(user, profile),
     });
-    if (id) navigate(`/groups/${id}/people`);
+    if (id) navigate(`/groups/${id}/people`, { state: { showJoinQr: true } });
   };
 
   const handleSwipeDeleteGroup = useCallback(

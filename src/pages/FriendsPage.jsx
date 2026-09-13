@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
@@ -16,6 +17,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 import {
   searchPeople,
   sendFriendRequest,
@@ -32,12 +34,14 @@ import {
 } from '../lib/friendsApi.js';
 import { friendSearchAction } from '../lib/friendInvite.js';
 import { nameToInitials } from '../functions/utils.js';
+import InviteQrDialog from '../components/InviteQrDialog.jsx';
 
 function personLabel(row) {
   return formatFullName(row) || row?.username || row?.display_name || 'Someone';
 }
 
 export default function FriendsPage() {
+  const location = useLocation();
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -47,6 +51,7 @@ export default function FriendsPage() {
   const [nameById, setNameById] = useState({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [qrOpen, setQrOpen] = useState(false);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState('');
 
@@ -89,6 +94,12 @@ export default function FriendsPage() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    const notice = location.state?.notice;
+    if (!notice) return;
+    setMessage(notice);
+  }, [location.state]);
 
   useEffect(() => {
     const onFriends = () => loadAll({ silent: true, skipNotify: true });
@@ -153,9 +164,18 @@ export default function FriendsPage() {
         Friends
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Find people by name, username, or email. After they accept, invite them into a group from
-        People.
+        Find people by name, username, or email. Scan someone’s personal QR to become friends
+        instantly. After you’re friends, invite them into a group from People — or share the group
+        QR so they can join without being friends.
       </Typography>
+      <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        <Button variant="contained" startIcon={<QrCode2Icon />} onClick={() => setQrOpen(true)}>
+          My QR
+        </Button>
+        <Button variant="outlined" component={RouterLink} to="/scan">
+          Scan QR
+        </Button>
+      </Box>
 
       {message ? (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage('')}>
@@ -381,6 +401,12 @@ export default function FriendsPage() {
           </List>
         )}
       </Paper>
+      <InviteQrDialog
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        kind="friend"
+        title="Your friend QR"
+      />
     </Container>
   );
 }
