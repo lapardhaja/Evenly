@@ -140,6 +140,10 @@ test('app shell splits Home and Groups with a tab bar', () => {
   assert.match(friendsPage, /Remove friend\?/);
   const profile = read('src/pages/ProfilePage.jsx');
   assert.match(profile, /navigate\('\/friends'\)/);
+  assert.match(profile, /color="error"/);
+  assert.doesNotMatch(profile, /Evenly can’t send Venmo/);
+  assert.doesNotMatch(profile, /Venmo app → Me/);
+  assert.doesNotMatch(profile, /How you show up when friends search/);
   assert.match(tabs, /value="messages"/);
   assert.doesNotMatch(tabs, /showChat \?/);
 });

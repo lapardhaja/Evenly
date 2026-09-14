@@ -177,18 +177,14 @@ export default function ProfilePage() {
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
+      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>
         Profile
       </Typography>
-      {configured ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          How you show up when friends search for you.
-        </Typography>
-      ) : (
+      {!configured ? (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Local-only build — no cloud username yet.
         </Typography>
-      )}
+      ) : null}
 
       {message ? (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage('')}>
@@ -241,18 +237,18 @@ export default function ProfilePage() {
               error={usernameStatus === 'taken'}
               helperText={
                 !usernameEdit.trim()
-                  ? '3–30 characters: letters, numbers, underscores'
+                  ? '3–30 letters, numbers, or _'
                   : !isValidUsername(usernameEdit.trim())
-                    ? 'Use 3–30 letters, numbers, or underscores.'
+                    ? '3–30 letters, numbers, or _'
                     : usernameStatus === 'checking'
                       ? 'Checking…'
                       : usernameStatus === 'available'
                         ? 'Available'
                         : usernameStatus === 'taken'
-                          ? 'Not available — try another'
+                          ? 'Taken'
                           : usernameStatus === 'error'
-                            ? 'Couldn’t check. Try again.'
-                            : '3–30 characters: letters, numbers, underscores'
+                            ? 'Couldn’t check'
+                            : ' '
               }
               FormHelperTextProps={{
                 sx: {
@@ -286,16 +282,12 @@ export default function ProfilePage() {
                 sx={{ flex: 1, minWidth: 140 }}
               />
             </Box>
-            <Alert severity="info" sx={{ borderRadius: 2 }}>
-              Evenly can’t send Venmo payments. Save a username so people can pay you from Settle.
-            </Alert>
             <TextField
               size="small"
               label="Venmo username"
               value={venmoEdit}
               onChange={(e) => setVenmoEdit(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
-              placeholder="your-venmo"
-              helperText="Venmo app → Me → the name under your photo, without @. Not your Evenly username."
+              placeholder="without @"
               fullWidth
             />
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -324,7 +316,7 @@ export default function ProfilePage() {
                     setError('Enter a Venmo username first.');
                     return;
                   }
-                  setMessage('If that’s your Venmo profile, tap Save. If not, fix the username.');
+                  setMessage('If that’s you, Save.');
                 }}
               >
                 Check in Venmo
@@ -353,7 +345,7 @@ export default function ProfilePage() {
             </Typography>
             {configured ? (
               <Button
-                color="inherit"
+                color="error"
                 onClick={() => {
                   signOut();
                   navigate('/login', { replace: true });
@@ -367,12 +359,7 @@ export default function ProfilePage() {
               <Typography variant="caption" color="text.secondary">
                 {notifyHint}
               </Typography>
-            ) : (
-              <Typography variant="caption" color="text.secondary">
-                iPhone: Share → Add to Home Screen, open from the icon, then Enable. A Safari tab
-                cannot send lock-screen banners.
-              </Typography>
-            )}
+            ) : null}
           </Box>
         )}
       </Paper>
