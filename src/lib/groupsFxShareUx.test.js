@@ -90,6 +90,18 @@ test('scan review assigns people before create', () => {
   assert.match(tab, /lastReceipt/);
 });
 
+test('groups home shows cross-group IOUs', () => {
+  const groups = read('src/pages/GroupsPage.jsx');
+  assert.match(groups, /HomeBalancesCard/);
+  assert.match(groups, /useHomeBalances/);
+  assert.match(groups, /you're owed/);
+  assert.match(groups, /\/groups\/\$\{id\}\/settle/);
+  const card = read('src/components/HomeBalancesCard.jsx');
+  assert.match(card, /You're owed/);
+  assert.match(card, /You owe/);
+  assert.match(card, /You're even/);
+});
+
 test('subprocessors list dated FX hosts', () => {
   const src = read('src/lib/subprocessors.js');
   assert.match(src, /frankfurter\.dev/);
