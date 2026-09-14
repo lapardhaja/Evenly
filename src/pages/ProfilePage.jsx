@@ -11,6 +11,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
 import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
 import { isValidVenmoUsername, normalizeVenmoUsername, openVenmoProfile } from '../lib/venmoLinks.js';
 import { chatAlertsEnableHint, enableChatNotifications } from '../lib/chatAlerts.js';
@@ -23,7 +24,8 @@ import { purgeCloudUserBrowserState } from '../lib/evenlyStorageKey.js';
 import InviteQrDialog from '../components/InviteQrDialog.jsx';
 
 export default function ProfilePage() {
-  const { user, session, refreshProfile, configured } = useAuth();
+  const { user, session, refreshProfile, configured, signOut } = useAuth();
+  const navigate = useNavigate();
   const [usernameEdit, setUsernameEdit] = useState('');
   const [firstNameEdit, setFirstNameEdit] = useState('');
   const [lastNameEdit, setLastNameEdit] = useState('');
@@ -166,9 +168,15 @@ export default function ProfilePage() {
       <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
         Profile
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        How you show up when friends search for you.
-      </Typography>
+      {configured ? (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          How you show up when friends search for you.
+        </Typography>
+      ) : (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Local-only build — no cloud username yet.
+        </Typography>
+      )}
 
       {message ? (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage('')}>
@@ -182,7 +190,12 @@ export default function ProfilePage() {
       ) : null}
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-        {loading ? (
+        {!configured ? (
+          <Typography color="text.secondary">
+            This install is local-only. Username, Venmo, friends, and sign-out show up here on a
+            cloud Evenly account.
+          </Typography>
+        ) : loading ? (
           <Typography color="text.secondary">Loading…</Typography>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -305,6 +318,18 @@ export default function ProfilePage() {
             <Typography variant="caption" color="text.secondary">
               Signed in as {user?.email || '…'}
             </Typography>
+            {configured ? (
+              <Button
+                color="inherit"
+                onClick={() => {
+                  signOut();
+                  navigate('/login', { replace: true });
+                }}
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                Sign out
+              </Button>
+            ) : null}
             {notifyHint ? (
               <Typography variant="caption" color="text.secondary">
                 {notifyHint}

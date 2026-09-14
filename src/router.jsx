@@ -1,6 +1,7 @@
 import { createHashRouter, Navigate } from 'react-router-dom';
 import Layout from './core/Layout.jsx';
 import RequireAuth from './core/RequireAuth.jsx';
+import HomePage from './pages/HomePage.jsx';
 import GroupsPage from './pages/GroupsPage.jsx';
 import GroupDetailPage from './pages/GroupDetailPage.jsx';
 import ReceiptInfoPage from './pages/ReceiptInfoPage.jsx';
@@ -13,7 +14,7 @@ import CopyrightPage from './pages/legal/CopyrightPage.jsx';
 import SecurityPage from './pages/legal/SecurityPage.jsx';
 import SharedSettlementPage from './pages/SharedSettlementPage.jsx';
 import PublicGroupSharePage from './pages/PublicGroupSharePage.jsx';
-import FriendsPage from './pages/FriendsPage.jsx';
+import SearchPage from './pages/SearchPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import ProfileSetupPage from './pages/ProfileSetupPage.jsx';
 import ChatInboxPage from './pages/ChatInboxPage.jsx';
@@ -50,12 +51,16 @@ export const router = createHashRouter([
         ),
       },
       {
-        path: 'friends',
+        path: 'search',
         element: (
           <RequireAuth>
-            <FriendsPage />
+            <SearchPage />
           </RequireAuth>
         ),
+      },
+      {
+        path: 'friends',
+        element: <Navigate to="/search" replace />,
       },
       {
         path: 'chat',
@@ -120,6 +125,14 @@ export const router = createHashRouter([
       { path: 'share/:shareId', element: <PublicGroupSharePage /> },
       {
         index: true,
+        element: (
+          <RequireAuth>
+            <HomePage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'groups',
         element: (
           <RequireAuth>
             <GroupsPage />

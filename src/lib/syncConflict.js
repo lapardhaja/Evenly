@@ -53,15 +53,11 @@ export function applyPersistResult(
 
 export function conflictSyncMessage({ skippedIds = [], reloaded = true } = {}) {
   if (!skippedIds.length) return '';
+  if (reloaded) return '';
   const many = skippedIds.length > 1;
-  if (!reloaded) {
-    return many
-      ? 'Some groups were updated on another device. Couldn’t reload the server copies. Your edits were not saved. Tap Retry.'
-      : 'This group was updated on another device. Couldn’t reload the server copy. Your edits were not saved. Tap Retry.';
-  }
   return many
-    ? 'Some groups were updated on another device. Reloaded the server copies so you don’t overwrite them.'
-    : 'This group was updated on another device. Reloaded the server copy so you don’t overwrite it.';
+    ? 'Couldn’t save some groups. Your latest edits were not saved. Tap Retry.'
+    : 'Couldn’t save this group. Your latest edits were not saved. Tap Retry.';
 }
 
 export function shouldApplySkipReload({ reloaded, persistGen, currentGen }) {

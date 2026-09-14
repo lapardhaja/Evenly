@@ -44,7 +44,6 @@ import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { fabFixedPlacementSx, fabScrollClearanceSx } from '../core/fabPlacement.js';
 import FabPortal from '../core/FabPortal.jsx';
 import SwipeableDeleteList from '../components/SwipeableDeleteList.jsx';
-import HomeBalancesCard from '../components/HomeBalancesCard.jsx';
 import { useHomeBalances } from '../hooks/useHomeBalances.js';
 import { groupNetDirection } from '../lib/homeBalances.js';
 import { formatMoneyWithCode } from '../lib/currencies.js';
@@ -60,10 +59,7 @@ export default function GroupsPage() {
   const [convertedTotals, setConvertedTotals] = useState({});
   const [totalsLoading, setTotalsLoading] = useState(true);
   const [actionError, setActionError] = useState('');
-  const { summary: homeSummary, fxFailed: homeFxFailed } = useHomeBalances(
-    data.groups,
-    user?.id,
-  );
+  const { summary: homeSummary } = useHomeBalances(data.groups, user?.id);
 
   useEffect(() => {
     let cancelled = false;
@@ -250,16 +246,6 @@ export default function GroupsPage() {
       <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>
         Groups
       </Typography>
-
-      <HomeBalancesCard
-        summary={homeSummary}
-        onOpenGroup={(id) => navigate(`/groups/${id}/settle`)}
-      />
-      {homeFxFailed && homeSummary?.visible ? (
-        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
-          Some IOUs couldn’t be converted — amounts may mix currencies.
-        </Alert>
-      ) : null}
 
       {fxFailed ? (
         <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>

@@ -129,17 +129,19 @@ describe('conflictSyncMessage', () => {
     assert.equal(conflictSyncMessage({ skippedIds: [] }), '');
   });
 
-  it('says the server copy was reloaded for one group', () => {
-    assert.match(
-      conflictSyncMessage({ skippedIds: ['g1'], reloaded: true }),
-      /Reloaded the server copy/,
-    );
+  it('stays quiet when the server copy was already reloaded', () => {
+    assert.equal(conflictSyncMessage({ skippedIds: ['g1'], reloaded: true }), '');
+    assert.equal(conflictSyncMessage({ skippedIds: ['g1', 'g2'], reloaded: true }), '');
   });
 
-  it('does not claim a reload when the fetch failed', () => {
+  it('asks to retry when the reload failed', () => {
     assert.match(
       conflictSyncMessage({ skippedIds: ['g1'], reloaded: false }),
-      /Couldn’t reload the server copy/,
+      /Couldn’t save this group/,
+    );
+    assert.match(
+      conflictSyncMessage({ skippedIds: ['g1', 'g2'], reloaded: false }),
+      /Couldn’t save some groups/,
     );
   });
 });

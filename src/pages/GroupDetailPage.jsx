@@ -70,7 +70,7 @@ export default function GroupDetailPage() {
       try {
         await leaveGroup(groupId);
         await reloadFromServer();
-        navigate('/');
+        navigate('/groups');
       } catch (error) {
         console.error('Could not leave group:', error);
         setActionError(error?.message || 'Could not leave the group.');
@@ -86,7 +86,7 @@ export default function GroupDetailPage() {
     });
     if (!ok) return;
     deleteGroup(groupId);
-    navigate('/');
+    navigate('/groups');
   };
   const isCloudMember =
     isSupabaseConfigured() && !canDeleteGroup(group.membershipRole);
@@ -101,7 +101,7 @@ export default function GroupDetailPage() {
       }
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexShrink: 0 }}>
-        <IconButton onClick={() => navigate('/')} size="small">
+        <IconButton onClick={() => navigate('/groups')} size="small" aria-label="Back to groups">
           <ArrowBackIcon />
         </IconButton>
         <Box sx={{ flex: 1, minWidth: 0 }}>

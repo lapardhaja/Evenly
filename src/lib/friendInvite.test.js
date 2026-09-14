@@ -9,7 +9,7 @@ import {
 test('friendlyFriendInviteError does not dump RPC jargon', () => {
   assert.match(friendlyFriendInviteError('not a group member'), /in this group/i);
   assert.equal(/not a group member/i.test(friendlyFriendInviteError('not a group member')), false);
-  assert.match(friendlyFriendInviteError({ message: 'not friends' }), /Friends/i);
+  assert.match(friendlyFriendInviteError({ message: 'not friends' }), /Search/i);
   assert.match(friendlyFriendInviteError('not authenticated'), /Sign in/i);
 });
 
