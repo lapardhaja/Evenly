@@ -12,6 +12,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Badge from '@mui/material/Badge';
 import Snackbar from '@mui/material/Snackbar';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { createTheme, CssBaseline, ThemeProvider } from '@mui/material';
 import { Link as RouterLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import Link from '@mui/material/Link';
@@ -51,6 +52,7 @@ import { visualViewportBottomGap } from '../lib/visualViewportBottom.js';
 import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 import CookieNotice from '../components/CookieNotice.jsx';
+import AppTabBar from '../components/AppTabBar.jsx';
 import { LEGAL_NAV } from '../pages/legal/legalNav.js';
 import { FAB_OVERLAY_ROOT_ID } from './FabPortal.jsx';
 import {
@@ -64,6 +66,9 @@ import {
   pullToRefreshScrollSx,
   shouldShowAppLegalFooter,
   shouldUsePullToRefreshLayout,
+  shouldShowAppTabBar,
+  appTabFromPath,
+  APP_TAB_BAR_HEIGHT_PX,
 } from '../lib/appShell.js';
 
 const lightTheme = createTheme({
@@ -332,6 +337,24 @@ export default function Layout() {
   const usesPullToRefreshLayout = shouldUsePullToRefreshLayout(onLoginRoute);
   const showAppLegalFooter = shouldShowAppLegalFooter(location.pathname);
   const hideAppBar = isChatComposerRoute(location.pathname);
+  const isCompactNav = useMediaQuery(lightTheme.breakpoints.down('md'));
+  const signedInShell = !onLoginRoute && (!supabaseConfigured || !!user);
+  const showTabBar = isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
+  const showHeaderTabs = !isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
+  const currentTab = appTabFromPath(location.pathname);
+  const showChatNav = Boolean(supabaseConfigured && user);
+
+  const goTab = useCallback(
+    (next) => {
+      if (next === 'home') navigate('/');
+      else if (next === 'groups') navigate('/groups');
+      else if (next === 'chat') {
+        requestChatNotificationPermission();
+        navigate('/chat');
+      } else if (next === 'friends') navigate('/friends');
+    },
+    [navigate],
+  );
 
   const handleRetrySync = useCallback(() => {
     reloadFromServer();
@@ -362,6 +385,7 @@ export default function Layout() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          '--evenly-tab-bar-offset': showTabBar ? `${APP_TAB_BAR_HEIGHT_PX}px` : '0px',
         }}
       >
         {hideAppBar ? null : (
@@ -391,6 +415,62 @@ export default function Layout() {
             >
               <EvenlyHeaderLockup />
             </Box>
+            {showHeaderTabs ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1.5, minWidth: 0 }}>
+                <Button
+                  color={currentTab === 'home' ? 'primary' : 'inherit'}
+                  onClick={() => goTab('home')}
+                  sx={{ fontWeight: currentTab === 'home' ? 700 : 500 }}
+                >
+                  Home
+                </Button>
+                <Button
+                  color={currentTab === 'groups' ? 'primary' : 'inherit'}
+                  onClick={() => goTab('groups')}
+                  sx={{ fontWeight: currentTab === 'groups' ? 700 : 500 }}
+                >
+                  Groups
+                </Button>
+                {showChatNav ? (
+                  <>
+                    <Button
+                      color={currentTab === 'chat' ? 'primary' : 'inherit'}
+                      onClick={() => goTab('chat')}
+                      sx={{ fontWeight: currentTab === 'chat' ? 700 : 500 }}
+                      aria-label={unreadChats > 0 ? `Chat, ${unreadChats} unread` : 'Chat'}
+                    >
+                      <Badge
+                        color="primary"
+                        badgeContent={unreadChats > 0 ? unreadChats : 0}
+                        max={99}
+                        invisible={unreadChats === 0}
+                      >
+                        Chat
+                      </Badge>
+                    </Button>
+                    <Button
+                      color={currentTab === 'friends' ? 'primary' : 'inherit'}
+                      onClick={() => goTab('friends')}
+                      sx={{ fontWeight: currentTab === 'friends' ? 700 : 500 }}
+                      aria-label={
+                        pendingFriendRequests > 0
+                          ? `Friends, ${pendingFriendRequests} pending requests`
+                          : 'Friends'
+                      }
+                    >
+                      <Badge
+                        color="warning"
+                        badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
+                        max={99}
+                        invisible={pendingFriendRequests === 0}
+                      >
+                        Friends
+                      </Badge>
+                    </Button>
+                  </>
+                ) : null}
+              </Box>
+            ) : null}
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
                 sx={{
@@ -403,6 +483,8 @@ export default function Layout() {
                 }}
               >
                 <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
+                {showTabBar || showHeaderTabs ? null : (
+                <>
                 <IconButton
                   color="inherit"
                   aria-label={unreadChats > 0 ? `Chat, ${unreadChats} unread` : 'Chat'}
@@ -438,6 +520,8 @@ export default function Layout() {
                     <PeopleIcon />
                   </Badge>
                 </IconButton>
+                </>
+                )}
                 <IconButton
                   id="account-menu-button"
                   color="inherit"
@@ -572,7 +656,7 @@ export default function Layout() {
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {supabaseConfigured && user && syncError && !onLoginRoute ? (
             <Alert
-              severity={syncError.includes('another device') ? 'warning' : 'error'}
+              severity="error"
               onClose={clearSyncError}
               action={
                 <Button color="inherit" size="small" onClick={handleRetrySync}>
@@ -612,6 +696,15 @@ export default function Layout() {
           )}
         </Box>
         <CookieNotice />
+        {showTabBar ? (
+          <AppTabBar
+            value={currentTab}
+            onChange={goTab}
+            showChat={showChatNav}
+            unreadChats={unreadChats}
+            pendingFriendRequests={pendingFriendRequests}
+          />
+        ) : null}
         <Snackbar
           open={Boolean(friendSnack)}
           autoHideDuration={6000}
