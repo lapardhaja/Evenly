@@ -22,6 +22,7 @@ import {
   appShellFooterPinMainSx,
   appTabFromPath,
   shouldShowAppTabBar,
+  shouldShowDesktopNav,
   APP_TABS,
 } from './appShell.js';
 import { scrollChatToBottom, isChatNearBottom, pinChatToLatestAfterLayout } from './chatScroll.js';
@@ -113,6 +114,7 @@ test('Layout pins the legal footer under a min-height 100% column', async () => 
   assert.match(src, /AppTabBar/);
   assert.match(src, /DesktopAppNav/);
   assert.match(src, /shouldShowAppTabBar/);
+  assert.match(src, /shouldShowDesktopNav/);
   assert.match(src, /evenly-tab-bar-offset/);
 });
 
@@ -304,4 +306,17 @@ test('shouldShowAppTabBar hides scan, composer, and legal', () => {
   assert.equal(shouldShowAppTabBar('/chat/abc'), false);
   assert.equal(shouldShowAppTabBar('/groups/g1/chat'), false);
   assert.equal(shouldShowAppTabBar('/dev/home-balances'), false);
+});
+
+test('shouldShowDesktopNav keeps the left rail on chat threads', () => {
+  assert.equal(shouldShowDesktopNav('/'), true);
+  assert.equal(shouldShowDesktopNav('/groups'), true);
+  assert.equal(shouldShowDesktopNav('/chat'), true);
+  assert.equal(shouldShowDesktopNav('/chat/abc'), true);
+  assert.equal(shouldShowDesktopNav('/groups/g1/chat'), true);
+  assert.equal(shouldShowDesktopNav('/friends'), true);
+  assert.equal(shouldShowDesktopNav('/login'), false);
+  assert.equal(shouldShowDesktopNav('/privacy'), false);
+  assert.equal(shouldShowDesktopNav('/scan'), false);
+  assert.equal(shouldShowDesktopNav('/dev/home-balances'), false);
 });

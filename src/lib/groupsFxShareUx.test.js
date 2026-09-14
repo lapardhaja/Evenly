@@ -120,7 +120,8 @@ test('app shell splits Home and Groups with a tab bar', () => {
   const layout = read('src/core/Layout.jsx');
   assert.match(layout, /AppTabBar/);
   assert.match(layout, /DesktopAppNav/);
-  assert.match(layout, /gridTemplateColumns: 'minmax\(0, 1fr\) auto minmax\(0, 1fr\)'/);
+  assert.match(layout, /flexDirection: 'row'/);
+  assert.match(layout, /shouldShowDesktopNav/);
   assert.match(layout, /goTab/);
   assert.doesNotMatch(layout, /another device/);
   assert.match(layout, /setProperty\(\s*'--evenly-tab-bar-offset'/);
@@ -137,6 +138,7 @@ test('app shell splits Home and Groups with a tab bar', () => {
   assert.match(desktopNav, /APP_TABS/);
   assert.match(desktopNav, /tab\.emoji/);
   assert.match(desktopNav, /aria-label="Primary"/);
+  assert.match(desktopNav, /flexDirection: 'column'/);
   const shell = read('src/lib/appShell.js');
   assert.match(shell, /emoji: '🏠'/);
   assert.match(shell, /emoji: '🔍'/);

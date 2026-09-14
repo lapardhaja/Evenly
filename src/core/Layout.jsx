@@ -69,6 +69,7 @@ import {
   shouldShowAppLegalFooter,
   shouldUsePullToRefreshLayout,
   shouldShowAppTabBar,
+  shouldShowDesktopNav,
   appTabFromPath,
   APP_TAB_BAR_HEIGHT_PX,
 } from '../lib/appShell.js';
@@ -340,11 +341,11 @@ export default function Layout() {
   const pullToRefreshDisabledForRoute = isPullToRefreshDisabledForRoute(location.pathname);
   const usesPullToRefreshLayout = shouldUsePullToRefreshLayout(onLoginRoute);
   const showAppLegalFooter = shouldShowAppLegalFooter(location.pathname);
-  const hideAppBar = isChatComposerRoute(location.pathname);
   const isCompactNav = useMediaQuery(lightTheme.breakpoints.down('md'));
+  const hideAppBar = isCompactNav && isChatComposerRoute(location.pathname);
   const signedInShell = !onLoginRoute && (!supabaseConfigured || !!user);
   const showTabBar = isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
-  const showHeaderTabs = !isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
+  const showDesktopNav = !isCompactNav && signedInShell && shouldShowDesktopNav(location.pathname);
   const currentTab = appTabFromPath(location.pathname);
 
   useEffect(() => {
@@ -416,12 +417,11 @@ export default function Layout() {
         >
           <Toolbar
             sx={{
-              position: 'relative',
               minHeight: { xs: 64, sm: 68, md: 72 },
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+              display: 'flex',
               alignItems: 'center',
-              columnGap: 1,
+              justifyContent: 'space-between',
+              gap: 1,
               px: { xs: 1, sm: 2 },
             }}
           >
@@ -435,26 +435,14 @@ export default function Layout() {
                 textDecoration: 'none',
                 color: 'primary.main',
                 minWidth: 0,
-                justifySelf: 'start',
                 '&:hover': { opacity: 0.92 },
               }}
             >
               <EvenlyHeaderLockup />
             </Box>
-            {showHeaderTabs ? (
-              <DesktopAppNav
-                value={currentTab}
-                onChange={goTab}
-                unreadChats={unreadChats}
-                pendingFriendRequests={pendingFriendRequests}
-              />
-            ) : (
-              <Box />
-            )}
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
                 sx={{
-                  justifySelf: 'end',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1.25,
@@ -463,7 +451,7 @@ export default function Layout() {
                 }}
               >
                 <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
-                {showTabBar || showHeaderTabs ? null : (
+                {showTabBar || showDesktopNav ? null : (
                 <>
                 <IconButton
                   color="inherit"
@@ -635,13 +623,22 @@ export default function Layout() {
                 </Menu>
               </Box>
             ) : (
-              <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{ justifySelf: 'end' }} />
+              <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
             )}
           </Toolbar>
         </AppBar>
         )}
 
-        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+          {showDesktopNav ? (
+            <DesktopAppNav
+              value={currentTab}
+              onChange={goTab}
+              unreadChats={unreadChats}
+              pendingFriendRequests={pendingFriendRequests}
+            />
+          ) : null}
+          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {supabaseConfigured && user && syncError && !onLoginRoute ? (
             <Alert
               severity="error"
@@ -682,6 +679,7 @@ export default function Layout() {
               <AppMainColumn showFooter={showAppLegalFooter} />
             </Box>
           )}
+          </Box>
         </Box>
         <CookieNotice />
         {showTabBar ? (

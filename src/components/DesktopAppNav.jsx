@@ -1,7 +1,6 @@
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Badge from '@mui/material/Badge';
-import Tooltip from '@mui/material/Tooltip';
 import { APP_TABS } from '../lib/appShell.js';
 
 function tabAriaLabel(tab, { unreadChats, pendingFriendRequests }) {
@@ -37,76 +36,74 @@ export default function DesktopAppNav({
       aria-label="Primary"
       sx={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        flexShrink: 0,
+        width: { md: 212, lg: 240 },
+        height: '100%',
+        overflow: 'auto',
+        px: 1.25,
+        py: 1.5,
         gap: 0.5,
-        px: 0.5,
-        py: 0.5,
-        borderRadius: 999,
-        bgcolor: 'action.hover',
+        borderRight: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
       }}
     >
       {APP_TABS.map((tab) => {
         const selected = value === tab.id;
         const badge = tabBadge(tab, counts);
         const label = tabAriaLabel(tab, counts);
-        const inner = (
+        const emoji = (
+          <Box
+            component="span"
+            aria-hidden
+            sx={{
+              fontSize: '1.25rem',
+              lineHeight: 1,
+              width: 28,
+              textAlign: 'center',
+              fontFamily:
+                '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif',
+            }}
+          >
+            {tab.emoji}
+          </Box>
+        );
+        return (
           <Button
+            key={tab.id}
             color={selected ? 'primary' : 'inherit'}
             onClick={() => onChange(tab.id)}
-            size="small"
             aria-label={label}
             aria-current={selected ? 'page' : undefined}
             sx={{
               minWidth: 0,
-              px: { md: 1.25, lg: 1.5 },
-              py: 0.75,
+              justifyContent: 'flex-start',
+              px: 1.5,
+              py: 1.1,
+              gap: 1.25,
               borderRadius: 999,
               textTransform: 'none',
               fontWeight: selected ? 700 : 600,
-              bgcolor: selected ? 'background.paper' : 'transparent',
-              boxShadow: selected ? 1 : 0,
+              fontSize: '0.95rem',
+              bgcolor: selected ? 'action.selected' : 'transparent',
               '&:hover': {
-                bgcolor: selected ? 'background.paper' : 'action.selected',
+                bgcolor: selected ? 'action.selected' : 'action.hover',
               },
             }}
           >
-            <Box
-              component="span"
-              aria-hidden
-              sx={{
-                fontSize: '1.15rem',
-                lineHeight: 1,
-                fontFamily:
-                  '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif',
-              }}
-            >
-              {tab.emoji}
-            </Box>
-            <Box
-              component="span"
-              sx={{
-                display: { xs: 'none', md: 'inline' },
-                ml: 0.75,
-                letterSpacing: 0.1,
-              }}
-            >
+            {badge ? (
+              <Badge color={badge.color} badgeContent={badge.count} max={99} overlap="circular">
+                {emoji}
+              </Badge>
+            ) : (
+              emoji
+            )}
+            <Box component="span" sx={{ letterSpacing: 0.1 }}>
               {tab.label}
             </Box>
           </Button>
-        );
-        return (
-          <Tooltip key={tab.id} title={tab.label} enterDelay={500}>
-            <Box component="span" sx={{ display: 'inline-flex' }}>
-              {badge ? (
-                <Badge color={badge.color} badgeContent={badge.count} max={99} overlap="circular">
-                  {inner}
-                </Badge>
-              ) : (
-                inner
-              )}
-            </Box>
-          </Tooltip>
         );
       })}
     </Box>
