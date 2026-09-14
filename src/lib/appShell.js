@@ -189,18 +189,19 @@ export const appLegalFooterSx = {
 
 export const APP_TAB_BAR_HEIGHT_PX = 56;
 
-/** Which primary tab a path belongs to. Empty = none (profile, legal, scan). */
+/** Which primary tab a path belongs to. Empty = none (legal, scan, invites). */
 export function appTabFromPath(pathname) {
   const p = pathname || '/';
   if (p === '/' || p === '') return 'home';
+  if (p.startsWith('/search') || p.startsWith('/friends')) return 'search';
   if (p.startsWith('/groups')) return 'groups';
-  if (p.startsWith('/chat')) return 'chat';
-  if (p.startsWith('/friends')) return 'friends';
+  if (p.startsWith('/chat')) return 'messages';
+  if (p.startsWith('/profile')) return 'profile';
   return '';
 }
 
 /**
- * Phone tab bar: Home / Groups / Chat / Friends.
+ * Phone tab bar: Home / Search / Groups / Messages / Profile (Instagram order).
  * Hidden on auth, legal, scan, invite, and chat composer so those stay full-bleed.
  */
 export function shouldShowAppTabBar(pathname) {

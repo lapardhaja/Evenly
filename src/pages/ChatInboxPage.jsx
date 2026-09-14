@@ -157,7 +157,7 @@ export default function ChatInboxPage() {
     <Container maxWidth={CHAT_CONTAINER_MAX_WIDTH} sx={{ py: { xs: 2, sm: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h5" fontWeight={700}>
-          Chat
+          Messages
         </Typography>
         <Button variant="contained" size="small" onClick={openPicker}>
           New message

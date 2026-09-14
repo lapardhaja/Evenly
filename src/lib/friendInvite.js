@@ -7,7 +7,7 @@ export function friendlyFriendInviteError(raw) {
     return 'You have to be in this group to add people. Open it from Groups and try again.';
   }
   if (lower.includes('not friends')) {
-    return 'You’re not friends yet. Send a request from Friends, wait until they accept, then add them here.';
+    return 'You’re not friends yet. Send a request from Search, wait until they accept, then add them here.';
   }
   if (lower.includes('not authenticated')) {
     return 'Sign in again, then try adding them.';

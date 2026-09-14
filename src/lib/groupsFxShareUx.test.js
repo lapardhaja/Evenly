@@ -108,13 +108,32 @@ test('groups home shows cross-group IOUs', () => {
 test('app shell splits Home and Groups with a tab bar', () => {
   const router = read('src/router.jsx');
   assert.match(router, /HomePage/);
+  assert.match(router, /SearchPage/);
   assert.match(router, /path: 'groups'/);
+  assert.match(router, /path: 'search'/);
+  assert.match(router, /path: 'friends'/);
+  assert.match(router, /Navigate to="\/search"/);
   const layout = read('src/core/Layout.jsx');
   assert.match(layout, /AppTabBar/);
   assert.match(layout, /goTab\('groups'\)/);
+  assert.match(layout, /goTab\('search'\)/);
+  assert.match(layout, /goTab\('messages'\)/);
+  assert.match(layout, /goTab\('profile'\)/);
   assert.doesNotMatch(layout, /another device/);
   const detail = read('src/pages/GroupDetailPage.jsx');
   assert.match(detail, /navigate\('\/groups'\)/);
+  const tabs = read('src/components/AppTabBar.jsx');
+  assert.match(tabs, /value="search"/);
+  assert.match(tabs, /value="messages"/);
+  assert.match(tabs, /value="profile"/);
+  const search = read('src/pages/SearchPage.jsx');
+  assert.match(search, /filterGroupsForSearch/);
+  assert.match(search, /filterReceiptsForSearch/);
+  assert.match(search, /searchPeople/);
+  assert.match(search, /Scan QR/);
+  assert.match(search, /filterGroupPeopleForSearch/);
+  const inbox = read('src/pages/ChatInboxPage.jsx');
+  assert.match(inbox, />\s*Messages\s*</);
 });
 
 test('subprocessors list dated FX hosts', () => {

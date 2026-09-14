@@ -248,7 +248,7 @@ export default function GroupPeopleTab({ groupData }) {
             <Typography color="text.secondary">Loading…</Typography>
           ) : friendsList.length === 0 ? (
             <Typography color="text.secondary">
-              No friends yet. Add them from Friends first.
+              No friends yet. Add them from Search first.
             </Typography>
           ) : filteredFriends.length === 0 ? (
             <Typography color="text.secondary">No friends match that filter.</Typography>

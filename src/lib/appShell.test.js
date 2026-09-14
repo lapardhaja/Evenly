@@ -266,14 +266,15 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   assert.match(page, /subtitle/);
 });
 
-test('appTabFromPath maps home, groups, chat, friends', () => {
+test('appTabFromPath maps Instagram tabs including legacy /friends', () => {
   assert.equal(appTabFromPath('/'), 'home');
   assert.equal(appTabFromPath('/groups'), 'groups');
   assert.equal(appTabFromPath('/groups/g1/settle'), 'groups');
-  assert.equal(appTabFromPath('/chat'), 'chat');
-  assert.equal(appTabFromPath('/chat/abc'), 'chat');
-  assert.equal(appTabFromPath('/friends'), 'friends');
-  assert.equal(appTabFromPath('/profile'), '');
+  assert.equal(appTabFromPath('/chat'), 'messages');
+  assert.equal(appTabFromPath('/chat/abc'), 'messages');
+  assert.equal(appTabFromPath('/friends'), 'search');
+  assert.equal(appTabFromPath('/search'), 'search');
+  assert.equal(appTabFromPath('/profile'), 'profile');
 });
 
 test('shouldShowAppTabBar hides scan, composer, and legal', () => {
@@ -281,6 +282,7 @@ test('shouldShowAppTabBar hides scan, composer, and legal', () => {
   assert.equal(shouldShowAppTabBar('/groups'), true);
   assert.equal(shouldShowAppTabBar('/chat'), true);
   assert.equal(shouldShowAppTabBar('/friends'), true);
+  assert.equal(shouldShowAppTabBar('/search'), true);
   assert.equal(shouldShowAppTabBar('/profile'), true);
   assert.equal(shouldShowAppTabBar('/login'), false);
   assert.equal(shouldShowAppTabBar('/privacy'), false);
