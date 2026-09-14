@@ -77,6 +77,11 @@ export const router = createHashRouter([
               lazy: () =>
                 import('./pages/ScanAssignPreview.jsx').then((m) => ({ Component: m.default })),
             },
+            {
+              path: 'dev/home-balances',
+              lazy: () =>
+                import('./pages/HomeBalancesPreview.jsx').then((m) => ({ Component: m.default })),
+            },
           ]
         : []),
       {
