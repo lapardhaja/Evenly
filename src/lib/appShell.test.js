@@ -210,6 +210,8 @@ test('chat pages use the desktop container maxWidth', async () => {
   assert.match(inbox, /CHAT_CONTAINER_MAX_WIDTH/);
   assert.match(group, /CHAT_CONTAINER_MAX_WIDTH/);
   assert.equal(thread.includes('maxWidth="sm"'), false);
+  assert.match(thread, /\[conversationId, user\?\.id\]/);
+  assert.match(thread, /\[meta, data\.groups\]/);
 });
 
 test('html/body/#root lock document scroll so chat cannot pan the page', async () => {

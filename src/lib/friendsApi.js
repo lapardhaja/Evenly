@@ -6,6 +6,7 @@ import { getSupabase } from './supabaseClient.js';
 import { friendlyFriendRequestError } from './friendInvite.js';
 import { subscribeToFriendRequests as subscribeFriendRequestRows } from './friendRequestEvents.js';
 import { isValidVenmoUsername, normalizeVenmoUsername } from './venmoLinks.js';
+import { buildFriendGraph } from './friendGraph.js';
 
 export {
   incomingFriendRequestSnackText,
@@ -83,7 +84,17 @@ export function formatFullName(profile) {
   return profile.display_name?.trim() || '';
 }
 
+let myProfileInflight = null;
+
 export async function fetchMyProfile() {
+  if (myProfileInflight) return myProfileInflight;
+  myProfileInflight = fetchMyProfileOnce().finally(() => {
+    myProfileInflight = null;
+  });
+  return myProfileInflight;
+}
+
+async function fetchMyProfileOnce() {
   const sb = getSupabase();
   if (!sb) return null;
   const {
@@ -263,7 +274,17 @@ export async function cancelFriendRequest(requestId) {
   if (error) throw error;
 }
 
+let listFriendsInflight = null;
+
 export async function listFriends() {
+  if (listFriendsInflight) return listFriendsInflight;
+  listFriendsInflight = listFriendsOnce().finally(() => {
+    listFriendsInflight = null;
+  });
+  return listFriendsInflight;
+}
+
+async function listFriendsOnce() {
   const sb = getSupabase();
   if (!sb) return [];
   const {
@@ -283,6 +304,29 @@ export async function listFriends() {
     .in('user_id', friendIds);
   if (pErr) throw pErr;
   return profs || [];
+}
+
+let friendGraphInflight = null;
+
+export async function fetchFriendGraph() {
+  if (friendGraphInflight) return friendGraphInflight;
+  friendGraphInflight = (async () => {
+    const [incoming, outgoing, friends] = await Promise.all([
+      listIncomingRequests(),
+      listOutgoingRequests(),
+      listFriends(),
+    ]);
+    const ids = [
+      ...incoming.map((x) => x.from_user_id),
+      ...outgoing.map((x) => x.to_user_id),
+    ].filter(Boolean);
+    const uniq = [...new Set(ids)];
+    const profs = uniq.length ? await getProfilesByIds(uniq) : [];
+    return buildFriendGraph(incoming, outgoing, friends, profs);
+  })().finally(() => {
+    friendGraphInflight = null;
+  });
+  return friendGraphInflight;
 }
 
 export async function removeFriend(otherUserId) {

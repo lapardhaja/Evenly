@@ -11,7 +11,6 @@ import { useAuth } from '../context/AuthContext.jsx';
 import {
   upsertMyProfile,
   isValidUsername,
-  fetchMyProfile,
   checkUsernameAvailability,
 } from '../lib/friendsApi.js';
 import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
@@ -19,7 +18,7 @@ import { muiTextFieldAutofillSx } from '../lib/muiAutofillSx.js';
 export default function ProfileSetupPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -30,22 +29,12 @@ export default function ProfileSetupPage() {
   const usernameDebounceRef = useRef(null);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const p = await fetchMyProfile();
-        if (cancelled || !p) return;
-        if (p.username) setUsername(String(p.username));
-        if (p.first_name) setFirstName(p.first_name);
-        if (p.last_name) setLastName(p.last_name);
-      } catch {
-        /* ignore */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const p = profile;
+    if (!p) return;
+    if (p.username) setUsername(String(p.username));
+    if (p.first_name) setFirstName(p.first_name);
+    if (p.last_name) setLastName(p.last_name);
+  }, [profile]);
 
   useEffect(() => {
     const u = username.trim();

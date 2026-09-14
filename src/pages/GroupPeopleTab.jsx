@@ -107,7 +107,8 @@ export default function GroupPeopleTab({ groupData }) {
     try {
       if (isSupabaseConfigured()) {
         await addFriendToGroup(group.id, f.user_id);
-        await reloadFromServer();
+        setInviteOpen(false);
+        void reloadFromServer();
       } else {
         addPerson(friendLabel(f), { linkedUserId: f.user_id });
       }

@@ -17,7 +17,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability, listFriends } from '../lib/friendsApi.js';
+import { upsertMyProfile, isValidUsername, checkUsernameAvailability, listFriends } from '../lib/friendsApi.js';
 import { isValidVenmoUsername, normalizeVenmoUsername, openVenmoProfile } from '../lib/venmoLinks.js';
 import { chatAlertsEnableHint, enableChatNotifications } from '../lib/chatAlerts.js';
 import {
@@ -29,13 +29,12 @@ import { purgeCloudUserBrowserState } from '../lib/evenlyStorageKey.js';
 import InviteQrDialog from '../components/InviteQrDialog.jsx';
 
 export default function ProfilePage() {
-  const { user, session, refreshProfile, configured, signOut } = useAuth();
+  const { user, session, profile, profileReady, refreshProfile, configured, signOut } = useAuth();
   const navigate = useNavigate();
   const [usernameEdit, setUsernameEdit] = useState('');
   const [firstNameEdit, setFirstNameEdit] = useState('');
   const [lastNameEdit, setLastNameEdit] = useState('');
   const [venmoEdit, setVenmoEdit] = useState('');
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -50,40 +49,43 @@ export default function ProfilePage() {
   const [qrOpen, setQrOpen] = useState(false);
   const [friendCount, setFriendCount] = useState(null);
 
-  const loadProfile = useCallback(async (opts = {}) => {
-    const silent = !!opts.silent;
-    if (!silent) setLoading(true);
-    setError('');
-    try {
-      const p = await fetchMyProfile();
-      const un = p?.username ? String(p.username) : '';
-      savedUsernameRef.current = un;
-      setUsernameEdit(un);
-      setFirstNameEdit(p?.first_name || '');
-      setLastNameEdit(p?.last_name || '');
-      setVenmoEdit(p?.venmo_username || '');
-      try {
-        const fr = await listFriends();
-        setFriendCount(fr.length);
-      } catch {
-        setFriendCount(null);
-      }
-    } catch {
-      setError('Couldn’t load your profile. Try again in a moment.');
-    } finally {
-      if (!silent) setLoading(false);
-    }
+  const applyProfile = useCallback((p) => {
+    if (!p) return;
+    const un = p.username ? String(p.username) : '';
+    savedUsernameRef.current = un;
+    setUsernameEdit(un);
+    setFirstNameEdit(p.first_name || '');
+    setLastNameEdit(p.last_name || '');
+    setVenmoEdit(p.venmo_username || '');
   }, []);
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    applyProfile(profile);
+  }, [applyProfile, profile]);
 
   useEffect(() => {
-    const onPull = () => loadProfile({ silent: true });
-    window.addEventListener('evenly-pull-to-refresh', onPull);
-    return () => window.removeEventListener('evenly-pull-to-refresh', onPull);
-  }, [loadProfile]);
+    if (!configured) return undefined;
+    let cancelled = false;
+    const loadCount = async () => {
+      try {
+        const fr = await listFriends();
+        if (!cancelled) setFriendCount(fr.length);
+      } catch {
+        if (!cancelled) setFriendCount(null);
+      }
+    };
+    void loadCount();
+    const onEvt = () => {
+      void loadCount();
+    };
+    window.addEventListener('evenly-pull-to-refresh', onEvt);
+    window.addEventListener('evenly-friend-requests-changed', onEvt);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('evenly-pull-to-refresh', onEvt);
+      window.removeEventListener('evenly-friend-requests-changed', onEvt);
+    };
+  }, [configured]);
 
   useEffect(() => {
     const u = usernameEdit.trim();
@@ -161,13 +163,8 @@ export default function ProfilePage() {
         venmoUsername: venmo,
       });
       setMessage('Profile saved.');
-      const p = (await refreshProfile()) || (await fetchMyProfile());
-      const un = p?.username ? String(p.username) : '';
-      savedUsernameRef.current = un;
-      setUsernameEdit(un);
-      setFirstNameEdit(p?.first_name || '');
-      setLastNameEdit(p?.last_name || '');
-      setVenmoEdit(p?.venmo_username || '');
+      const p = await refreshProfile();
+      applyProfile(p);
     } catch (e) {
       setError(e?.message?.includes('duplicate') ? 'That username is taken.' : 'Couldn’t save profile.');
     } finally {
@@ -224,7 +221,7 @@ export default function ProfilePage() {
             This install is local-only. Username, Venmo, friends, and sign-out show up here on a
             cloud Evenly account.
           </Typography>
-        ) : loading ? (
+        ) : configured && !profileReady ? (
           <Typography color="text.secondary">Loading…</Typography>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
