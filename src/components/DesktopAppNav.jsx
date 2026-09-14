@@ -1,27 +1,11 @@
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Badge from '@mui/material/Badge';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
 import { APP_TABS } from '../lib/appShell.js';
-
-function tabAriaLabel(tab, { unreadChats, pendingFriendRequests }) {
-  if (tab.id === 'search' && pendingFriendRequests > 0) {
-    return `Search, ${pendingFriendRequests} friend requests`;
-  }
-  if (tab.id === 'messages' && unreadChats > 0) {
-    return `Messages, ${unreadChats} unread`;
-  }
-  return tab.label;
-}
-
-function tabBadge(tab, { unreadChats, pendingFriendRequests }) {
-  if (tab.id === 'search' && pendingFriendRequests > 0) {
-    return { color: 'warning', count: pendingFriendRequests };
-  }
-  if (tab.id === 'messages' && unreadChats > 0) {
-    return { color: 'primary', count: unreadChats };
-  }
-  return null;
-}
+import AppTabIcon, { appTabAriaLabel, appTabBadge } from './AppTabIcon.jsx';
 
 export default function DesktopAppNav({
   value,
@@ -37,75 +21,65 @@ export default function DesktopAppNav({
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'stretch',
         flexShrink: 0,
-        width: { md: 212, lg: 240 },
+        width: { md: 200, lg: 220 },
         height: '100%',
         overflow: 'auto',
-        px: 1.25,
-        py: 1.5,
-        gap: 0.5,
         borderRight: '1px solid',
         borderColor: 'divider',
         bgcolor: 'background.paper',
+        py: 1,
+        px: 1,
       }}
     >
-      {APP_TABS.map((tab) => {
-        const selected = value === tab.id;
-        const badge = tabBadge(tab, counts);
-        const label = tabAriaLabel(tab, counts);
-        const emoji = (
-          <Box
-            component="span"
-            aria-hidden
-            sx={{
-              fontSize: '1.25rem',
-              lineHeight: 1,
-              width: 28,
-              textAlign: 'center',
-              fontFamily:
-                '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif',
-            }}
-          >
-            {tab.emoji}
-          </Box>
-        );
-        return (
-          <Button
-            key={tab.id}
-            color={selected ? 'primary' : 'inherit'}
-            onClick={() => onChange(tab.id)}
-            aria-label={label}
-            aria-current={selected ? 'page' : undefined}
-            sx={{
-              minWidth: 0,
-              justifyContent: 'flex-start',
-              px: 1.5,
-              py: 1.1,
-              gap: 1.25,
-              borderRadius: 999,
-              textTransform: 'none',
-              fontWeight: selected ? 700 : 600,
-              fontSize: '0.95rem',
-              bgcolor: selected ? 'action.selected' : 'transparent',
-              '&:hover': {
-                bgcolor: selected ? 'action.selected' : 'action.hover',
-              },
-            }}
-          >
-            {badge ? (
-              <Badge color={badge.color} badgeContent={badge.count} max={99} overlap="circular">
-                {emoji}
-              </Badge>
-            ) : (
-              emoji
-            )}
-            <Box component="span" sx={{ letterSpacing: 0.1 }}>
-              {tab.label}
-            </Box>
-          </Button>
-        );
-      })}
+      <List disablePadding dense>
+        {APP_TABS.map((tab) => {
+          const selected = value === tab.id;
+          const badge = appTabBadge(tab, counts);
+          const icon = <AppTabIcon id={tab.id} selected={selected} />;
+          return (
+            <ListItemButton
+              key={tab.id}
+              selected={selected}
+              onClick={() => onChange(tab.id)}
+              aria-label={appTabAriaLabel(tab, counts)}
+              aria-current={selected ? 'page' : undefined}
+              sx={{
+                mb: 0.25,
+                borderRadius: 1.5,
+                py: 1,
+                '&.Mui-selected': {
+                  bgcolor: 'action.selected',
+                  color: 'primary.main',
+                  '&:hover': { bgcolor: 'action.selected' },
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 40,
+                  color: selected ? 'primary.main' : 'text.secondary',
+                }}
+              >
+                {badge ? (
+                  <Badge color={badge.color} badgeContent={badge.count} max={99} overlap="circular">
+                    {icon}
+                  </Badge>
+                ) : (
+                  icon
+                )}
+              </ListItemIcon>
+              <ListItemText
+                primary={tab.label}
+                primaryTypographyProps={{
+                  variant: 'body2',
+                  fontWeight: selected ? 700 : 500,
+                }}
+              />
+            </ListItemButton>
+          );
+        })}
+      </List>
     </Box>
   );
 }
