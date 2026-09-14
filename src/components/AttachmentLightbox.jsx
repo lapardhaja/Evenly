@@ -1,16 +1,13 @@
+import { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
+import { canPreviewAttachmentInline } from '../lib/attachmentPreview.js';
 
-export function canPreviewAttachmentInline(mimeType) {
-  const mime = String(mimeType || '').toLowerCase();
-  if (!mime.startsWith('image/')) return false;
-  if (mime.includes('heic') || mime.includes('heif')) return false;
-  return true;
-}
+export { canPreviewAttachmentInline } from '../lib/attachmentPreview.js';
 
 function sanitizeFileName(name) {
   const base = String(name || 'attachment').replace(/^.*[/\\]/, '');
@@ -41,7 +38,11 @@ export default function AttachmentLightbox({ open, onClose, url, mimeType, fileN
   // (new function each render) was eating the history stack, so the header
   // back control did nothing or skipped the receipt page.
   const displayName = sanitizeFileName(fileName);
-  const inline = Boolean(url) && canPreviewAttachmentInline(mimeType);
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => {
+    setImgFailed(false);
+  }, [url]);
+  const inline = Boolean(url) && canPreviewAttachmentInline(mimeType) && !imgFailed;
 
   const handleOpen = () => {
     if (!url) return;
@@ -116,6 +117,8 @@ export default function AttachmentLightbox({ open, onClose, url, mimeType, fileN
             src={url}
             alt={displayName}
             draggable={false}
+            referrerPolicy="no-referrer"
+            onError={() => setImgFailed(true)}
             sx={{
               maxWidth: '100%',
               maxHeight: '100%',

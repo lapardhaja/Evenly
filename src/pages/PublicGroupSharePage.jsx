@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -36,6 +36,7 @@ import {
   publicShareTransfers,
 } from '../lib/publicGroupShare.js';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { SIGNED_URL_REFRESH_MS } from '../lib/receiptAttachments.js';
 
 function formatDate(ts) {
   if (!ts) return '';
@@ -69,68 +70,81 @@ function sanitizeFileName(name) {
   return base.replace(/[\u0000-\u001f]/g, '').trim() || 'attachment';
 }
 
+function SharedAttachmentThumb({ row, previewUrl, onOpen }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [previewUrl]);
+  const name = sanitizeFileName(row.file_name);
+  const inlineThumb = canPreviewAttachmentInline(row.mime_type) && !broken;
+  const isPdf = String(row.mime_type || '').toLowerCase() === 'application/pdf';
+  return (
+    <Box
+      sx={{
+        width: 80,
+        height: 80,
+        borderRadius: 1,
+        overflow: 'hidden',
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'action.hover',
+      }}
+    >
+      <ButtonBase
+        onClick={() => onOpen(row)}
+        aria-label={`Open ${name}`}
+        sx={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          px: 0.5,
+        }}
+      >
+        {inlineThumb && previewUrl ? (
+          <Box
+            component="img"
+            src={previewUrl}
+            alt={name}
+            referrerPolicy="no-referrer"
+            onError={() => setBroken(true)}
+            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <>
+            {isPdf ? (
+              <PictureAsPdfIcon color="action" />
+            ) : (
+              <InsertDriveFileOutlinedIcon color="action" />
+            )}
+            <Typography
+              variant="caption"
+              noWrap
+              sx={{ maxWidth: '100%', mt: 0.25, px: 0.25 }}
+            >
+              {name}
+            </Typography>
+          </>
+        )}
+      </ButtonBase>
+    </Box>
+  );
+}
+
 function SharedReceiptAttachments({ attachments, signedUrls, onOpen }) {
   if (!attachments?.length) return null;
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-      {attachments.map((row) => {
-        const name = sanitizeFileName(row.file_name);
-        const previewUrl = signedUrls[row.id];
-        const inlineThumb = canPreviewAttachmentInline(row.mime_type);
-        const isPdf = String(row.mime_type || '').toLowerCase() === 'application/pdf';
-        return (
-          <Box
-            key={row.id}
-            sx={{
-              width: 80,
-              height: 80,
-              borderRadius: 1,
-              overflow: 'hidden',
-              border: 1,
-              borderColor: 'divider',
-              bgcolor: 'action.hover',
-            }}
-          >
-            <ButtonBase
-              onClick={() => onOpen(row)}
-              aria-label={`Open ${name}`}
-              sx={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                px: 0.5,
-              }}
-            >
-              {inlineThumb && previewUrl ? (
-                <Box
-                  component="img"
-                  src={previewUrl}
-                  alt={name}
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <>
-                  {isPdf ? (
-                    <PictureAsPdfIcon color="action" />
-                  ) : (
-                    <InsertDriveFileOutlinedIcon color="action" />
-                  )}
-                  <Typography
-                    variant="caption"
-                    noWrap
-                    sx={{ maxWidth: '100%', mt: 0.25, px: 0.25 }}
-                  >
-                    {name}
-                  </Typography>
-                </>
-              )}
-            </ButtonBase>
-          </Box>
-        );
-      })}
+      {attachments.map((row) => (
+        <SharedAttachmentThumb
+          key={row.id}
+          row={row}
+          previewUrl={signedUrls[row.id]}
+          onOpen={onOpen}
+        />
+      ))}
     </Box>
   );
 }
@@ -144,6 +158,25 @@ export default function PublicGroupSharePage() {
   const [signedUrls, setSignedUrls] = useState({});
   const [lightbox, setLightbox] = useState(null);
   const [attachError, setAttachError] = useState('');
+  const signedUrlsRef = useRef(signedUrls);
+  signedUrlsRef.current = signedUrls;
+
+  useEffect(() => {
+    if (!shareId) return undefined;
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      Object.entries(signedUrlsRef.current).forEach(([attachmentId, url]) => {
+        if (!url) return;
+        fetchPublicAttachmentUrl(shareId, attachmentId)
+          .then((next) => {
+            setSignedUrls((prev) => ({ ...prev, [attachmentId]: next }));
+            setLightbox((cur) => (cur && cur.id === attachmentId ? { ...cur, url: next } : cur));
+          })
+          .catch(() => {});
+      });
+    }, SIGNED_URL_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [shareId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -244,6 +277,7 @@ export default function PublicGroupSharePage() {
         setSignedUrls((prev) => ({ ...prev, [row.id]: url }));
       }
       setLightbox({
+        id: row.id,
         url,
         mimeType: row.mime_type,
         fileName: row.file_name,

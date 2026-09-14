@@ -4,7 +4,10 @@ import {
   assertAttachmentFile,
   buildStoragePath,
   extensionForMime,
+  inferAttachmentMime,
   ATTACHMENT_MAX_BYTES,
+  SIGNED_URL_REFRESH_MS,
+  SIGNED_URL_TTL_SECONDS,
 } from './receiptAttachments.js';
 
 test('assertAttachmentFile accepts jpeg under cap', () => {
@@ -20,6 +23,24 @@ test('assertAttachmentFile rejects pdf oversize and bad mime', () => {
   assert.throws(() =>
     assertAttachmentFile({ type: 'text/plain', size: 10, name: 'a.txt' }),
   );
+});
+
+test('inferAttachmentMime uses extension when iOS sends octet-stream', () => {
+  assert.equal(inferAttachmentMime({ type: 'image/heic', name: 'IMG_1.HEIC' }), 'image/heic');
+  assert.equal(
+    inferAttachmentMime({ type: 'application/octet-stream', name: 'IMG_1.heic' }),
+    'image/heic',
+  );
+  assert.equal(inferAttachmentMime({ type: 'application/octet-stream', name: 'scan.PDF' }), 'application/pdf');
+  assert.doesNotThrow(() =>
+    assertAttachmentFile({ type: 'application/octet-stream', size: 1000, name: 'IMG_1.heic' }),
+  );
+});
+
+test('signed URL refresh is inside the TTL window', () => {
+  assert.equal(SIGNED_URL_TTL_SECONDS, 120);
+  assert.equal(SIGNED_URL_REFRESH_MS, 90_000);
+  assert.ok(SIGNED_URL_REFRESH_MS < SIGNED_URL_TTL_SECONDS * 1000);
 });
 
 test('buildStoragePath', () => {

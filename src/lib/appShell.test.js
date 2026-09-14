@@ -10,6 +10,7 @@ import {
   chatThreadRootSx,
   CHAT_CONTAINER_MAX_WIDTH,
   chatBubbleMaxWidthSx,
+  chatMediaBubbleSx,
   isChatComposerRoute,
   isPublicExemptRoute,
   isPullToRefreshDisabledForRoute,
@@ -119,6 +120,8 @@ test('chat column uses a desktop-width container, not the phone sm cap', () => {
   assert.notEqual(CHAT_CONTAINER_MAX_WIDTH, 'sm');
   assert.deepEqual(chatBubbleMaxWidthSx.maxWidth, { xs: '85%', md: 560, lg: 640 });
   assert.equal(chatBubbleMaxWidthSx.width, 'max-content');
+  assert.equal(chatMediaBubbleSx.width.xs, '75%');
+  assert.equal(chatMediaBubbleSx.width.sm, 280);
 });
 
 test('chat thread page is a bounded flex column; only the message pane scrolls', () => {
@@ -239,6 +242,7 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   assert.match(thread, /width: '100%'/);
   assert.match(shell, /width: 'max-content'/);
   assert.match(thread, /chatBubbleMaxWidthSx/);
+  assert.match(thread, /chatMediaBubbleSx/);
   assert.match(thread, /width: 'max-content'/);
   assert.match(thread, /overflowWrap: 'break-word'/);
   assert.doesNotMatch(thread, /wordBreak: 'break-word'/);

@@ -19,8 +19,8 @@ test('CSP allows self, fonts, supabase, MUI styles, and Venmo-safe COOP — no s
   assert.equal(CONTENT_SECURITY_POLICY.includes("'unsafe-inline'") && /script-src [^;]*unsafe-inline/.test(CONTENT_SECURITY_POLICY), false);
   assert.equal(/script-src 'self'/.test(CONTENT_SECURITY_POLICY) && !/script-src 'self' 'unsafe-inline'/.test(CONTENT_SECURITY_POLICY), true);
   assert.match(CONTENT_SECURITY_POLICY, /style-src 'self' 'unsafe-inline' https:\/\/fonts\.googleapis\.com/);
-  assert.match(CONTENT_SECURITY_POLICY, /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co https:\/\/open\.er-api\.com https:\/\/cdn\.jsdelivr\.net https:\/\/api\.frankfurter\.dev/);
-  assert.match(CONTENT_SECURITY_POLICY, /img-src 'self' data: blob: https:\/\/\*\.supabase\.co/);
+  assert.match(CONTENT_SECURITY_POLICY, /connect-src 'self' https:\/\/\*\.supabase\.co https:\/\/\*\.storage\.supabase\.co wss:\/\/\*\.supabase\.co https:\/\/open\.er-api\.com https:\/\/cdn\.jsdelivr\.net https:\/\/api\.frankfurter\.dev/);
+  assert.match(CONTENT_SECURITY_POLICY, /img-src 'self' data: blob: https:\/\/\*\.supabase\.co https:\/\/\*\.storage\.supabase\.co/);
   assert.equal(CONTENT_SECURITY_POLICY.includes('unsafe-eval'), false);
   assert.equal(
     VERCEL_SECURITY_HEADERS.find((h) => h.key === 'Cross-Origin-Opener-Policy')?.value,
@@ -34,7 +34,7 @@ test('CSP allows self, fonts, supabase, MUI styles, and Venmo-safe COOP — no s
   assert.match(PERMISSIONS_POLICY, /microphone=\(self\)/);
   assert.match(PERMISSIONS_POLICY, /geolocation=\(\)/);
   assert.match(PERMISSIONS_POLICY, /browsing-topics=\(\)/);
-  assert.match(CONTENT_SECURITY_POLICY, /media-src 'self' blob: mediastream: https:\/\/\*\.supabase\.co/);
+  assert.match(CONTENT_SECURITY_POLICY, /media-src 'self' blob: mediastream: https:\/\/\*\.supabase\.co https:\/\/\*\.storage\.supabase\.co/);
 });
 
 test('vercel.json headers match securityHeaders.js (no drift)', () => {

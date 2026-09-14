@@ -100,6 +100,7 @@ export default function ChatAudioBubble({ url, durationMs, mine, radii, onPointe
         src={url || undefined}
         preload="auto"
         playsInline
+        referrerPolicy="no-referrer"
         // iOS Safari needs the webkit attribute; React doesn't map it.
         {...{ 'webkit-playsinline': 'true' }}
       />

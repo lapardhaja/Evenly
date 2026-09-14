@@ -13,6 +13,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AttachmentLightbox, { canPreviewAttachmentInline } from './AttachmentLightbox.jsx';
 import {
   ATTACHMENT_MAX_PER_RECEIPT,
+  SIGNED_URL_REFRESH_MS,
   deleteAttachment,
   getAttachmentSignedUrl,
   listAttachments,
@@ -39,10 +40,18 @@ export default function ReceiptAttachments({ groupId, receiptId, enabled }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [lightbox, setLightbox] = useState(null);
+  const [brokenIds, setBrokenIds] = useState({});
 
   const refreshSignedUrl = useCallback(async (row) => {
     const url = await getAttachmentSignedUrl(row.storage_path);
     setSignedUrls((prev) => ({ ...prev, [row.id]: url }));
+    setLightbox((cur) => (cur && cur.id === row.id ? { ...cur, url } : cur));
+    setBrokenIds((prev) => {
+      if (!prev[row.id]) return prev;
+      const next = { ...prev };
+      delete next[row.id];
+      return next;
+    });
     return url;
   }, []);
 
@@ -63,6 +72,7 @@ export default function ReceiptAttachments({ groupId, receiptId, enabled }) {
         }),
       );
       setSignedUrls(nextUrls);
+      setBrokenIds({});
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -73,6 +83,18 @@ export default function ReceiptAttachments({ groupId, receiptId, enabled }) {
   useEffect(() => {
     loadAttachments();
   }, [loadAttachments]);
+
+  useEffect(() => {
+    if (!enabled || !rows.length) return undefined;
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      rows.forEach((row) => {
+        refreshSignedUrl(row).catch(() => {});
+      });
+    };
+    const id = setInterval(tick, SIGNED_URL_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [enabled, rows, refreshSignedUrl]);
 
   if (!enabled) return null;
 
@@ -101,6 +123,11 @@ export default function ReceiptAttachments({ groupId, receiptId, enabled }) {
         setRows(nextRows);
         try {
           await refreshSignedUrl(created);
+          setBrokenIds((prev) => {
+            const next = { ...prev };
+            delete next[created.id];
+            return next;
+          });
         } catch {
           setSignedUrls((prev) => ({ ...prev, [created.id]: null }));
         }
@@ -187,7 +214,7 @@ export default function ReceiptAttachments({ groupId, receiptId, enabled }) {
         {rows.map((row) => {
           const name = sanitizeFileName(row.file_name);
           const previewUrl = signedUrls[row.id];
-          const inlineThumb = canPreviewAttachmentInline(row.mime_type);
+          const inlineThumb = canPreviewAttachmentInline(row.mime_type) && !brokenIds[row.id];
           const isPdf = String(row.mime_type || '').toLowerCase() === 'application/pdf';
           return (
             <Box
@@ -221,6 +248,8 @@ export default function ReceiptAttachments({ groupId, receiptId, enabled }) {
                     component="img"
                     src={previewUrl}
                     alt={name}
+                    referrerPolicy="no-referrer"
+                    onError={() => setBrokenIds((prev) => ({ ...prev, [row.id]: true }))}
                     sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (
