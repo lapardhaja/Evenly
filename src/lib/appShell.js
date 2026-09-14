@@ -189,6 +189,15 @@ export const appLegalFooterSx = {
 
 export const APP_TAB_BAR_HEIGHT_PX = 56;
 
+/** Instagram order. Phone uses MUI icons; desktop header uses emoji + label. */
+export const APP_TABS = [
+  { id: 'home', label: 'Home', emoji: '🏠' },
+  { id: 'search', label: 'Search', emoji: '🔍' },
+  { id: 'groups', label: 'Groups', emoji: '👥' },
+  { id: 'messages', label: 'Messages', emoji: '💬' },
+  { id: 'profile', label: 'Profile', emoji: '👤' },
+];
+
 /** Which primary tab a path belongs to. Empty = none (legal, scan, invites). */
 export function appTabFromPath(pathname) {
   const p = pathname || '/';

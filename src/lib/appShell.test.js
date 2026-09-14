@@ -22,6 +22,7 @@ import {
   appShellFooterPinMainSx,
   appTabFromPath,
   shouldShowAppTabBar,
+  APP_TABS,
 } from './appShell.js';
 import { scrollChatToBottom, isChatNearBottom, pinChatToLatestAfterLayout } from './chatScroll.js';
 
@@ -110,6 +111,7 @@ test('Layout pins the legal footer under a min-height 100% column', async () => 
   assert.match(src, /hideAppBar/);
   assert.match(src, /isChatComposerRoute/);
   assert.match(src, /AppTabBar/);
+  assert.match(src, /DesktopAppNav/);
   assert.match(src, /shouldShowAppTabBar/);
   assert.match(src, /evenly-tab-bar-offset/);
 });
@@ -275,6 +277,18 @@ test('appTabFromPath maps Instagram tabs; friends live under profile', () => {
   assert.equal(appTabFromPath('/friends'), '');
   assert.equal(appTabFromPath('/search'), 'search');
   assert.equal(appTabFromPath('/profile'), 'profile');
+});
+
+test('APP_TABS is Home Search Groups Messages Profile with emojis', () => {
+  assert.deepEqual(
+    APP_TABS.map((t) => t.id),
+    ['home', 'search', 'groups', 'messages', 'profile'],
+  );
+  assert.equal(APP_TABS[0].emoji, '🏠');
+  assert.equal(APP_TABS[1].emoji, '🔍');
+  assert.equal(APP_TABS[2].emoji, '👥');
+  assert.equal(APP_TABS[3].emoji, '💬');
+  assert.equal(APP_TABS[4].emoji, '👤');
 });
 
 test('shouldShowAppTabBar hides scan, composer, and legal', () => {

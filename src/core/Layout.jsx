@@ -54,6 +54,7 @@ import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 import CookieNotice from '../components/CookieNotice.jsx';
 import AppTabBar from '../components/AppTabBar.jsx';
+import DesktopAppNav from '../components/DesktopAppNav.jsx';
 import { LEGAL_NAV } from '../pages/legal/legalNav.js';
 import { FAB_OVERLAY_ROOT_ID } from './FabPortal.jsx';
 import {
@@ -413,7 +414,17 @@ export default function Layout() {
             borderColor: 'divider',
           }}
         >
-          <Toolbar sx={{ minHeight: { xs: 64, sm: 68 } }}>
+          <Toolbar
+            sx={{
+              position: 'relative',
+              minHeight: { xs: 64, sm: 68, md: 72 },
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+              alignItems: 'center',
+              columnGap: 1,
+              px: { xs: 1, sm: 2 },
+            }}
+          >
             <Box
               component={RouterLink}
               to="/"
@@ -424,79 +435,26 @@ export default function Layout() {
                 textDecoration: 'none',
                 color: 'primary.main',
                 minWidth: 0,
+                justifySelf: 'start',
                 '&:hover': { opacity: 0.92 },
               }}
             >
               <EvenlyHeaderLockup />
             </Box>
             {showHeaderTabs ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1.5, minWidth: 0 }}>
-                <Button
-                  color={currentTab === 'home' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('home')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'home' ? 700 : 500, minWidth: 0, px: 1 }}
-                >
-                  Home
-                </Button>
-                <Button
-                  color={currentTab === 'search' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('search')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'search' ? 700 : 500, minWidth: 0, px: 1 }}
-                  aria-label={
-                    pendingFriendRequests > 0
-                      ? `Search, ${pendingFriendRequests} friend requests`
-                      : 'Search'
-                  }
-                >
-                  <Badge
-                    color="warning"
-                    badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
-                    max={99}
-                    invisible={pendingFriendRequests === 0}
-                  >
-                    Search
-                  </Badge>
-                </Button>
-                <Button
-                  color={currentTab === 'groups' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('groups')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'groups' ? 700 : 500, minWidth: 0, px: 1 }}
-                >
-                  Groups
-                </Button>
-                <Button
-                  color={currentTab === 'messages' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('messages')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'messages' ? 700 : 500, minWidth: 0, px: 1 }}
-                  aria-label={unreadChats > 0 ? `Messages, ${unreadChats} unread` : 'Messages'}
-                >
-                  <Badge
-                    color="primary"
-                    badgeContent={unreadChats > 0 ? unreadChats : 0}
-                    max={99}
-                    invisible={unreadChats === 0}
-                  >
-                    Messages
-                  </Badge>
-                </Button>
-                <Button
-                  color={currentTab === 'profile' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('profile')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'profile' ? 700 : 500, minWidth: 0, px: 1 }}
-                >
-                  Profile
-                </Button>
-              </Box>
-            ) : null}
+              <DesktopAppNav
+                value={currentTab}
+                onChange={goTab}
+                unreadChats={unreadChats}
+                pendingFriendRequests={pendingFriendRequests}
+              />
+            ) : (
+              <Box />
+            )}
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
                 sx={{
-                  ml: 'auto',
+                  justifySelf: 'end',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1.25,
@@ -556,12 +514,6 @@ export default function Layout() {
                 >
                   <AccountCircleIcon />
                 </IconButton>
-              </Box>
-            ) : (
-              <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{ ml: 'auto' }} />
-            )}
-            {supabaseConfigured && user && !onLoginRoute ? (
-              <>
                 <Menu
                   anchorEl={accountAnchor}
                   open={Boolean(accountAnchor)}
@@ -681,8 +633,10 @@ export default function Layout() {
                     Sign out
                   </MenuItem>
                 </Menu>
-              </>
-            ) : null}
+              </Box>
+            ) : (
+              <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{ justifySelf: 'end' }} />
+            )}
           </Toolbar>
         </AppBar>
         )}
