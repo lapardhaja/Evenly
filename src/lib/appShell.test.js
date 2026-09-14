@@ -281,16 +281,18 @@ test('appTabFromPath maps Instagram tabs; friends live under profile', () => {
   assert.equal(appTabFromPath('/profile'), 'profile');
 });
 
-test('APP_TABS is Home Search Groups Messages Profile with emojis', () => {
+test('APP_TABS is Home Search Groups Messages Profile', () => {
   assert.deepEqual(
     APP_TABS.map((t) => t.id),
     ['home', 'search', 'groups', 'messages', 'profile'],
   );
-  assert.equal(APP_TABS[0].emoji, '🏠');
-  assert.equal(APP_TABS[1].emoji, '🔍');
-  assert.equal(APP_TABS[2].emoji, '👥');
-  assert.equal(APP_TABS[3].emoji, '💬');
-  assert.equal(APP_TABS[4].emoji, '👤');
+  assert.deepEqual(
+    APP_TABS.map((t) => t.label),
+    ['Home', 'Search', 'Groups', 'Messages', 'Profile'],
+  );
+  APP_TABS.forEach((tab) => {
+    assert.equal(tab.emoji, undefined);
+  });
 });
 
 test('shouldShowAppTabBar hides scan, composer, and legal', () => {
