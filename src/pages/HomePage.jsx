@@ -29,7 +29,7 @@ export default function HomePage() {
 
       {homeFxFailed && homeSummary?.visible ? (
         <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
-          Some IOUs couldn’t be converted — amounts may mix currencies.
+          Some amounts couldn’t be converted, so they may mix currencies.
         </Alert>
       ) : null}
 
@@ -45,12 +45,12 @@ export default function HomePage() {
           variant="outlined"
         >
           <Typography fontWeight={700} sx={{ mb: 1 }}>
-            {groups.length === 0 ? 'No groups yet' : "You're even"}
+            {groups.length === 0 ? 'No groups yet' : 'All settled'}
           </Typography>
           <Typography color="text.secondary">
             {groups.length === 0
               ? 'Create a group or scan a QR to start splitting.'
-              : 'No open IOUs across your groups.'}
+              : 'Nobody owes anyone right now.'}
           </Typography>
         </Paper>
       )}

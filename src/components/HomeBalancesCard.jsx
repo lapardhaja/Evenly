@@ -23,9 +23,9 @@ export default function HomeBalancesCard({ summary, onOpenGroup }) {
     <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mb: 2 }}>
       {even ? (
         <Box sx={{ px: 2, py: 2 }}>
-          <Typography fontWeight={700}>{"You're even"}</Typography>
+          <Typography fontWeight={700}>All settled</Typography>
           <Typography variant="body2" color="text.secondary">
-            No open IOUs across your groups.
+            Nobody owes anyone right now.
           </Typography>
         </Box>
       ) : (
