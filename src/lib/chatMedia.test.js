@@ -21,10 +21,13 @@ import {
   applyLikeRealtime,
   CHAT_IMAGE_MAX_BYTES,
   CHAT_SIGNED_URL_TTL_SECONDS,
+  CHAT_SIGNED_URL_REFRESH_MS,
 } from './chatMedia.js';
 
 test('chat photo signed URLs expire in 10 minutes', () => {
   assert.equal(CHAT_SIGNED_URL_TTL_SECONDS, 600);
+  assert.equal(CHAT_SIGNED_URL_REFRESH_MS, 480_000);
+  assert.ok(CHAT_SIGNED_URL_REFRESH_MS < CHAT_SIGNED_URL_TTL_SECONDS * 1000);
 });
 
 test('buildChatImageStoragePath is conversation/message.ext', () => {
@@ -36,6 +39,9 @@ test('buildChatImageStoragePath is conversation/message.ext', () => {
 
 test('assertChatImageFile rejects non-images and oversize', () => {
   assert.doesNotThrow(() => assertChatImageFile({ type: 'image/jpeg', size: 1000 }));
+  assert.doesNotThrow(() =>
+    assertChatImageFile({ type: 'application/octet-stream', size: 1000, name: 'IMG_2.heic' }),
+  );
   assert.throws(() => assertChatImageFile({ type: 'application/pdf', size: 10 }));
   assert.throws(() =>
     assertChatImageFile({ type: 'image/jpeg', size: CHAT_IMAGE_MAX_BYTES + 1 }),
@@ -62,6 +68,7 @@ test('voice notes are classified as audio and do not collide with images', () =>
 test('documents are classified as file attachments', () => {
   assert.equal(classifyChatAttachment({ type: 'application/pdf', name: 'a.pdf', size: 10 }), 'file');
   assert.equal(classifyChatAttachment({ type: 'image/png', name: 'a.png', size: 10 }), 'image');
+  assert.equal(classifyChatAttachment({ type: 'image/heic', name: 'IMG.HEIC', size: 10 }), 'image');
   assert.equal(inferChatFileMime({ type: '', name: 'notes.docx' }), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   assert.doesNotThrow(() => assertChatFile({ type: 'application/pdf', name: 'a.pdf', size: 20 }));
   assert.throws(() => assertChatFile({ type: 'image/jpeg', name: 'a.jpg', size: 20 }));

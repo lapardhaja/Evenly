@@ -89,6 +89,12 @@ export const chatBubbleMaxWidthSx = {
   width: 'max-content',
 };
 
+/** Photos need a definite width. `width: 100%` inside max-content collapses on iOS. */
+export const chatMediaBubbleSx = {
+  maxWidth: { xs: '75%', md: 420, lg: 480 },
+  width: { xs: '75%', sm: 280 },
+};
+
 export const chatThreadRootSx = {
   display: 'flex',
   flexDirection: 'column',

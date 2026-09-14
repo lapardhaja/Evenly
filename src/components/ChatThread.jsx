@@ -28,6 +28,7 @@ import {
 import { clipMessageBody, parsePaymentPayload } from '../lib/chatPayment.js';
 import {
   applyLikeRealtime,
+  CHAT_SIGNED_URL_REFRESH_MS,
   formatChatByteSize,
   isAudioMessage,
   isFileMessage,
@@ -45,7 +46,7 @@ import ChatComposer from './ChatComposer.jsx';
 import ChatAudioBubble from './ChatAudioBubble.jsx';
 import { nameToInitials } from '../functions/utils.js';
 import Avatar from '@mui/material/Avatar';
-import { chatMessagesSx, chatThreadRootSx, chatBubbleMaxWidthSx } from '../lib/appShell.js';
+import { chatMessagesSx, chatThreadRootSx, chatBubbleMaxWidthSx, chatMediaBubbleSx } from '../lib/appShell.js';
 import { isChatNearBottom, pinChatToLatestAfterLayout, scrollChatToBottom } from '../lib/chatScroll.js';
 import {
   CHAT_AVATAR_GAP_PX,
@@ -100,6 +101,8 @@ export default function ChatThread({
   const nearBottomRef = useRef(true);
   const pinnedForConversationRef = useRef(null);
   const urlCacheRef = useRef(new Map());
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   const lastTapRef = useRef({ id: '', t: 0 });
   const messageIdsRef = useRef(new Set());
   const burstTimerRef = useRef(0);
@@ -117,11 +120,11 @@ export default function ChatThread({
       if (!path || urlCacheRef.current.has(path)) continue;
       try {
         const url = await signedChatImageUrl(path);
-        if (!url) continue;
-        urlCacheRef.current.set(path, url);
-        updates[path] = url;
+        urlCacheRef.current.set(path, url || '');
+        updates[path] = url || '';
       } catch {
-        /* signed URL can fail if the object is gone; bubble stays empty */
+        urlCacheRef.current.set(path, '');
+        updates[path] = '';
       }
     }
     if (Object.keys(updates).length) {
@@ -180,6 +183,16 @@ export default function ChatThread({
     load();
     return undefined;
   }, [load, previewMode]);
+
+  useEffect(() => {
+    if (previewMode || !conversationId) return undefined;
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      urlCacheRef.current = new Map();
+      void ensureImageUrls(messagesRef.current);
+    }, CHAT_SIGNED_URL_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [conversationId, ensureImageUrls, previewMode]);
 
   useEffect(() => {
     if (previewMode) return undefined;
@@ -508,9 +521,11 @@ export default function ChatThread({
             const file = isFileMessage(m) ? parseFilePayload(m.payload) : null;
             const audio = isAudioMessage(m) ? parseAudioPayload(m.payload) : null;
             const attachmentPath = image?.storage_path || file?.storage_path || audio?.storage_path || '';
-            const attachmentUrl = attachmentPath
-              ? imageUrls[attachmentPath] || urlCacheRef.current.get(attachmentPath) || ''
-              : '';
+            const cachedUrl = attachmentPath
+              ? imageUrls[attachmentPath] ?? urlCacheRef.current.get(attachmentPath)
+              : undefined;
+            const attachmentResolved = Boolean(attachmentPath) && cachedUrl !== undefined;
+            const attachmentUrl = cachedUrl || '';
             const openAttachment = attachmentUrl && !audio
               ? () =>
                   setLightbox({
@@ -576,7 +591,7 @@ export default function ChatThread({
                   <Box
                     className="evenly-chat-bubble"
                     sx={{
-                      ...chatBubbleMaxWidthSx,
+                      ...(image ? chatMediaBubbleSx : chatBubbleMaxWidthSx),
                       position: 'relative',
                       flexShrink: 0,
                       '@keyframes evenlyHeartPop': {
@@ -615,16 +630,29 @@ export default function ChatThread({
                             src={attachmentUrl}
                             alt="Photo"
                             draggable={false}
+                            referrerPolicy="no-referrer"
+                            onError={() => {
+                              if (!attachmentPath) return;
+                              urlCacheRef.current.set(attachmentPath, '');
+                              setImageUrls((prev) => ({ ...prev, [attachmentPath]: '' }));
+                            }}
                             onLoad={() => {
                               if (nearBottomRef.current) scrollChatToBottom(listRef.current);
                             }}
                             sx={{
                               display: 'block',
                               width: '100%',
+                              height: 'auto',
                               maxHeight: { xs: 280, md: 400 },
                               objectFit: 'cover',
                             }}
                           />
+                        ) : attachmentResolved ? (
+                          <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                              Couldn’t load photo
+                            </Typography>
+                          </Box>
                         ) : (
                           <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
                             <CircularProgress size={22} />

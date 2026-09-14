@@ -5,12 +5,15 @@ export const CHAT_FILE_MAX_BYTES = 10 * 1024 * 1024;
 export const CHAT_IMAGE_BUCKET = 'chat-attachments';
 /** Short-lived object URLs for chat photos (private bucket). Refresh on view. */
 export const CHAT_SIGNED_URL_TTL_SECONDS = 600;
+export const CHAT_SIGNED_URL_REFRESH_MS = 480_000;
 
 export const ALLOWED_CHAT_IMAGE_MIME = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/gif',
+  'image/heic',
+  'image/heif',
 ]);
 
 export const ALLOWED_CHAT_FILE_MIME = new Set([
@@ -34,6 +37,8 @@ const MIME_TO_EXT = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
   'application/pdf': 'pdf',
   'text/plain': 'txt',
   'text/csv': 'csv',
@@ -64,6 +69,8 @@ const EXT_TO_MIME = {
   png: 'image/png',
   webp: 'image/webp',
   gif: 'image/gif',
+  heic: 'image/heic',
+  heif: 'image/heif',
   pdf: 'application/pdf',
   txt: 'text/plain',
   csv: 'text/csv',
@@ -95,7 +102,7 @@ export const ALLOWED_CHAT_AUDIO_MIME = new Set([
   'audio/x-m4a',
 ]);
 
-export const CHAT_IMAGE_GALLERY_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
+export const CHAT_IMAGE_GALLERY_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif';
 export const CHAT_CAMERA_ACCEPT = 'image/*';
 
 export const CHAT_ATTACHMENT_ACCEPT = [
@@ -103,6 +110,8 @@ export const CHAT_ATTACHMENT_ACCEPT = [
   'image/png',
   'image/webp',
   'image/gif',
+  'image/heic',
+  'image/heif',
   'application/pdf',
   '.doc',
   '.docx',
@@ -153,7 +162,7 @@ export function assertChatImageFile(file) {
   }
   const mime = inferChatFileMime(file);
   if (!ALLOWED_CHAT_IMAGE_MIME.has(mime)) {
-    throw new Error('Send a JPEG, PNG, WebP, or GIF.');
+    throw new Error('Send a JPEG, PNG, WebP, GIF, or HEIC.');
   }
   if (file.size <= 0) throw new Error('That photo is empty.');
   if (file.size > CHAT_IMAGE_MAX_BYTES) {

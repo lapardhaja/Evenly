@@ -10,6 +10,9 @@
  * - `connect-src` also allows FX: `open.er-api.com`, `cdn.jsdelivr.net`, `api.frankfurter.dev` (`currencies.js`).
  * - `Cross-Origin-Opener-Policy: same-origin-allow-popups` so Venmo `window.open` still works.
  * - `media-src` allows chat voice notes (`<audio>` from Supabase signed URLs + blob/WAV) and QR camera preview.
+ * - img/media/connect also allow `https://*.storage.supabase.co`. supabase-js can rewrite
+ *   `project.supabase.co` → `project.storage.supabase.co` (`useNewHostname`). CSP `*` is one
+ *   DNS label, so `*.supabase.co` does not match that host on older WebKit.
  * - Permissions-Policy: camera + mic are `(self)` for voice notes and in-app QR scan. Geo/payment/USB/topics stay off.
  * - No COEP: would break Google Fonts and Supabase signed image URLs.
  */
@@ -24,9 +27,9 @@ export const CONTENT_SECURITY_POLICY = [
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob: https://*.supabase.co",
-  "media-src 'self' blob: mediastream: https://*.supabase.co",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://open.er-api.com https://cdn.jsdelivr.net https://api.frankfurter.dev",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.storage.supabase.co",
+  "media-src 'self' blob: mediastream: https://*.supabase.co https://*.storage.supabase.co",
+  "connect-src 'self' https://*.supabase.co https://*.storage.supabase.co wss://*.supabase.co https://open.er-api.com https://cdn.jsdelivr.net https://api.frankfurter.dev",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   'upgrade-insecure-requests',
