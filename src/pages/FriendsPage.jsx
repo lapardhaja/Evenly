@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
@@ -23,17 +23,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   searchPeople,
   sendFriendRequest,
-  listIncomingRequests,
-  listOutgoingRequests,
-  listFriends,
   acceptFriendRequest,
   declineFriendRequest,
   cancelFriendRequest,
   removeFriend,
-  getProfilesByIds,
-  notifyFriendRequestsChanged,
   formatFullName,
 } from '../lib/friendsApi.js';
+import { useFriendGraph } from '../hooks/useFriendGraph.js';
 import { friendSearchAction } from '../lib/friendInvite.js';
 import { nameToInitials } from '../functions/utils.js';
 import InviteQrDialog from '../components/InviteQrDialog.jsx';
@@ -48,74 +44,33 @@ export default function FriendsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { ask, confirmDialog } = useConfirmDialog();
+  const cloud = isSupabaseConfigured();
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [incoming, setIncoming] = useState([]);
-  const [outgoing, setOutgoing] = useState([]);
-  const [friends, setFriends] = useState([]);
-  const [nameById, setNameById] = useState({});
-  const [loading, setLoading] = useState(true);
+  const {
+    incoming,
+    setIncoming,
+    outgoing,
+    setOutgoing,
+    friends,
+    setFriends,
+    nameById,
+    loading,
+    error,
+    setError,
+    notifyAndReload,
+    load: reloadGraph,
+  } = useFriendGraph(cloud);
   const [message, setMessage] = useState('');
   const [qrOpen, setQrOpen] = useState(false);
-  const [error, setError] = useState('');
   const [busyId, setBusyId] = useState('');
-
-  const loadAll = useCallback(async (opts = {}) => {
-    const silent = !!opts.silent;
-    if (!silent) setLoading(true);
-    setError('');
-    try {
-      const [inc, out, fr] = await Promise.all([
-        listIncomingRequests(),
-        listOutgoingRequests(),
-        listFriends(),
-      ]);
-      setIncoming(inc);
-      setOutgoing(out);
-      setFriends(fr);
-      const ids = [
-        ...inc.map((x) => x.from_user_id),
-        ...out.map((x) => x.to_user_id),
-      ];
-      const uniq = [...new Set(ids)];
-      if (uniq.length) {
-        const profs = await getProfilesByIds(uniq);
-        const m = {};
-        profs.forEach((pr) => {
-          m[pr.user_id] = formatFullName(pr) || pr.username || pr.display_name || pr.user_id;
-        });
-        setNameById(m);
-      } else {
-        setNameById({});
-      }
-    } catch (e) {
-      setError('Couldn’t load friends. Try again in a moment.');
-    } finally {
-      if (!silent) setLoading(false);
-      if (!opts.skipNotify) notifyFriendRequestsChanged();
-    }
-  }, []);
-
-  useEffect(() => {
-    loadAll();
-  }, [loadAll]);
 
   useEffect(() => {
     const notice = location.state?.notice;
     if (!notice) return;
     setMessage(notice);
   }, [location.state]);
-
-  useEffect(() => {
-    const onFriends = () => loadAll({ silent: true, skipNotify: true });
-    window.addEventListener('evenly-pull-to-refresh', onFriends);
-    window.addEventListener('evenly-friend-requests-changed', onFriends);
-    return () => {
-      window.removeEventListener('evenly-pull-to-refresh', onFriends);
-      window.removeEventListener('evenly-friend-requests-changed', onFriends);
-    };
-  }, [loadAll]);
 
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -148,15 +103,17 @@ export default function FriendsPage() {
 
   const displayName = (userId) => nameById[userId] || userId;
 
-  const run = async (id, fn, ok) => {
+  const run = async (id, fn, ok, optimistic) => {
     setBusyId(id);
     setError('');
+    optimistic?.();
     try {
       await fn();
       if (ok) setMessage(ok);
-      await loadAll();
+      notifyAndReload();
     } catch (e) {
       setError(e?.message || 'Couldn’t do that.');
+      await reloadGraph({ silent: true });
     } finally {
       setBusyId('');
     }
@@ -177,7 +134,7 @@ export default function FriendsPage() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Search by name, username, or email. Scan a QR to add someone.
       </Typography>
-      {isSupabaseConfigured() ? (
+      {cloud ? (
         <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
           <Button variant="contained" startIcon={<QrCode2Icon />} onClick={() => setQrOpen(true)}>
             My QR
@@ -253,7 +210,17 @@ export default function FriendsPage() {
                           variant="contained"
                           disabled={busyId === row.user_id}
                           onClick={() =>
-                            run(row.user_id, () => acceptFriendRequest(action.requestId), 'You’re now friends.')
+                            run(
+                              row.user_id,
+                              () => acceptFriendRequest(action.requestId),
+                              'You’re now friends.',
+                              () => {
+                                setIncoming((cur) => cur.filter((x) => x.id !== action.requestId));
+                                setFriends((cur) =>
+                                  cur.some((x) => x.user_id === row.user_id) ? cur : [...cur, row],
+                                );
+                              },
+                            )
                           }
                         >
                           Accept
@@ -265,7 +232,18 @@ export default function FriendsPage() {
                           startIcon={<PersonAddIcon />}
                           disabled={busyId === row.user_id}
                           onClick={() =>
-                            run(row.user_id, () => sendFriendRequest(row.user_id), 'Request sent.')
+                            run(
+                              row.user_id,
+                              () => sendFriendRequest(row.user_id),
+                              'Request sent.',
+                              () => {
+                                setOutgoing((cur) =>
+                                  cur.some((x) => x.to_user_id === row.user_id)
+                                    ? cur
+                                    : [...cur, { id: `tmp-${row.user_id}`, to_user_id: row.user_id }],
+                                );
+                              },
+                            )
                           }
                         >
                           Add friend
@@ -305,7 +283,11 @@ export default function FriendsPage() {
                         size="small"
                         color="error"
                         disabled={busyId === r.id}
-                        onClick={() => run(r.id, () => declineFriendRequest(r.id))}
+                        onClick={() =>
+                          run(r.id, () => declineFriendRequest(r.id), '', () => {
+                            setIncoming((cur) => cur.filter((x) => x.id !== r.id));
+                          })
+                        }
                       >
                         Decline
                       </Button>
@@ -314,7 +296,14 @@ export default function FriendsPage() {
                         variant="contained"
                         disabled={busyId === r.id}
                         onClick={() =>
-                          run(r.id, () => acceptFriendRequest(r.id), 'You’re now friends.')
+                          run(
+                            r.id,
+                            () => acceptFriendRequest(r.id),
+                            'You’re now friends.',
+                            () => {
+                              setIncoming((cur) => cur.filter((x) => x.id !== r.id));
+                            },
+                          )
                         }
                       >
                         Accept
@@ -349,7 +338,11 @@ export default function FriendsPage() {
                     <Button
                       size="small"
                       disabled={busyId === r.id}
-                      onClick={() => run(r.id, () => cancelFriendRequest(r.id))}
+                      onClick={() =>
+                        run(r.id, () => cancelFriendRequest(r.id), '', () => {
+                          setOutgoing((cur) => cur.filter((x) => x.id !== r.id));
+                        })
+                      }
                     >
                       Cancel
                     </Button>
@@ -400,7 +393,9 @@ export default function FriendsPage() {
                             destructive: true,
                           });
                           if (!ok) return;
-                          run(f.user_id, () => removeFriend(f.user_id));
+                          run(f.user_id, () => removeFriend(f.user_id), '', () => {
+                            setFriends((cur) => cur.filter((x) => x.user_id !== f.user_id));
+                          });
                         }}
                       >
                         Remove

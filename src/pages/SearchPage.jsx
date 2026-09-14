@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
@@ -30,15 +30,11 @@ import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import {
   searchPeople,
   sendFriendRequest,
-  listIncomingRequests,
-  listOutgoingRequests,
-  listFriends,
   acceptFriendRequest,
   declineFriendRequest,
-  getProfilesByIds,
-  notifyFriendRequestsChanged,
   formatFullName,
 } from '../lib/friendsApi.js';
+import { useFriendGraph } from '../hooks/useFriendGraph.js';
 import { friendSearchAction } from '../lib/friendInvite.js';
 import { getOrCreateDm } from '../lib/chatApi.js';
 import { nameToInitials } from '../functions/utils.js';
@@ -58,11 +54,19 @@ export default function SearchPage() {
   const [q, setQ] = useState('');
   const [people, setPeople] = useState([]);
   const [searchingPeople, setSearchingPeople] = useState(false);
-  const [incoming, setIncoming] = useState([]);
-  const [outgoing, setOutgoing] = useState([]);
-  const [friends, setFriends] = useState([]);
-  const [nameById, setNameById] = useState({});
-  const [error, setError] = useState('');
+  const {
+    incoming,
+    setIncoming,
+    outgoing,
+    setOutgoing,
+    friends,
+    setFriends,
+    nameById,
+    error,
+    setError,
+    notifyAndReload,
+    load: reloadGraph,
+  } = useFriendGraph(cloud);
   const [notice, setNotice] = useState('');
   const [qrOpen, setQrOpen] = useState(false);
   const [busyId, setBusyId] = useState('');
@@ -85,54 +89,11 @@ export default function SearchPage() {
     return m;
   }, [incoming]);
 
-  const loadSocial = useCallback(async () => {
-    if (!cloud) return;
-    try {
-      const [inc, out, fr] = await Promise.all([
-        listIncomingRequests(),
-        listOutgoingRequests(),
-        listFriends(),
-      ]);
-      setIncoming(inc);
-      setOutgoing(out);
-      setFriends(fr);
-      const ids = [...inc.map((x) => x.from_user_id), ...out.map((x) => x.to_user_id)];
-      const uniq = [...new Set(ids)];
-      if (uniq.length) {
-        const profs = await getProfilesByIds(uniq);
-        const m = {};
-        profs.forEach((pr) => {
-          if (pr?.user_id) m[pr.user_id] = personLabel(pr);
-        });
-        setNameById(m);
-      } else {
-        setNameById({});
-      }
-    } catch (e) {
-      setError(e?.message || 'Couldn’t load people.');
-    }
-  }, [cloud]);
-
-  useEffect(() => {
-    loadSocial();
-  }, [loadSocial]);
-
   useEffect(() => {
     const text = location.state?.notice;
     if (!text) return;
     setNotice(text);
   }, [location.state]);
-
-  useEffect(() => {
-    if (!cloud) return undefined;
-    const onEvt = () => loadSocial();
-    window.addEventListener('evenly-pull-to-refresh', onEvt);
-    window.addEventListener('evenly-friend-requests-changed', onEvt);
-    return () => {
-      window.removeEventListener('evenly-pull-to-refresh', onEvt);
-      window.removeEventListener('evenly-friend-requests-changed', onEvt);
-    };
-  }, [cloud, loadSocial]);
 
   useEffect(() => {
     if (!cloud) {
@@ -163,15 +124,16 @@ export default function SearchPage() {
     };
   }, [q, cloud]);
 
-  const run = async (id, fn) => {
+  const run = async (id, fn, optimistic) => {
     setBusyId(id);
     setError('');
+    optimistic?.();
     try {
       await fn();
-      notifyFriendRequestsChanged();
-      await loadSocial();
+      notifyAndReload();
     } catch (e) {
       setError(e?.message || 'Couldn’t update.');
+      await reloadGraph({ silent: true });
     } finally {
       setBusyId('');
     }
@@ -381,7 +343,13 @@ export default function SearchPage() {
                             disabled={busyId === row.user_id}
                             onClick={(e) => {
                               e.stopPropagation();
-                              run(row.user_id, () => sendFriendRequest(row.user_id));
+                              run(row.user_id, () => sendFriendRequest(row.user_id), () => {
+                                setOutgoing((cur) =>
+                                  cur.some((x) => x.to_user_id === row.user_id)
+                                    ? cur
+                                    : [...cur, { id: `tmp-${row.user_id}`, to_user_id: row.user_id }],
+                                );
+                              });
                             }}
                           >
                             Add
@@ -394,7 +362,16 @@ export default function SearchPage() {
                             disabled={busyId === row.user_id}
                             onClick={(e) => {
                               e.stopPropagation();
-                              run(row.user_id, () => acceptFriendRequest(action.requestId));
+                              run(
+                                row.user_id,
+                                () => acceptFriendRequest(action.requestId),
+                                () => {
+                                  setIncoming((cur) => cur.filter((x) => x.id !== action.requestId));
+                                  setFriends((cur) =>
+                                    cur.some((x) => x.user_id === row.user_id) ? cur : [...cur, row],
+                                  );
+                                },
+                              );
                             }}
                           >
                             Accept
@@ -427,7 +404,9 @@ export default function SearchPage() {
                       disabled={busyId === r.id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        run(r.id, () => declineFriendRequest(r.id));
+                        run(r.id, () => declineFriendRequest(r.id), () => {
+                          setIncoming((cur) => cur.filter((x) => x.id !== r.id));
+                        });
                       }}
                     >
                       Decline
@@ -438,7 +417,9 @@ export default function SearchPage() {
                       disabled={busyId === r.id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        run(r.id, () => acceptFriendRequest(r.id));
+                        run(r.id, () => acceptFriendRequest(r.id), () => {
+                          setIncoming((cur) => cur.filter((x) => x.id !== r.id));
+                        });
                       }}
                     >
                       Accept

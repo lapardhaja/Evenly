@@ -157,6 +157,7 @@ test('app shell splits Home and Groups with a tab bar', () => {
   const friendsPage = read('src/pages/FriendsPage.jsx');
   assert.match(friendsPage, /removeFriend/);
   assert.match(friendsPage, /Remove friend\?/);
+  assert.match(friendsPage, /useFriendGraph/);
   const profile = read('src/pages/ProfilePage.jsx');
   assert.match(profile, /navigate\('\/friends'\)/);
   assert.match(profile, /color="error"/);

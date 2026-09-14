@@ -39,9 +39,6 @@ export default function ChatThreadPage() {
         if (cancelled) return;
         setMeta(c);
         if (c?.kind === 'group' && c.group_id) {
-          const g = data.groups?.[c.group_id];
-          setGroupName(g?.name || 'Group');
-          setTitle(g?.name || 'Group');
           setSubtitle('');
         } else {
           const members = await fetchConversationMembers(conversationId);
@@ -68,7 +65,16 @@ export default function ChatThreadPage() {
     return () => {
       cancelled = true;
     };
-  }, [conversationId, data.groups, user?.id]);
+  }, [conversationId, user?.id]);
+
+  useEffect(() => {
+    if (meta?.kind === 'group' && meta.group_id) {
+      const g = data.groups?.[meta.group_id];
+      setGroupName(g?.name || 'Group');
+      setTitle(g?.name || 'Group');
+      setSubtitle('');
+    }
+  }, [meta, data.groups]);
 
   const onPaymentSettled = ({ groupId, transferKey }) => {
     if (!groupId || !transferKey) return;

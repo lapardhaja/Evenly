@@ -19,6 +19,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(!!client);
   const [profile, setProfile] = useState(null);
+  const [profileReady, setProfileReady] = useState(() => !client);
 
   useEffect(() => {
     if (!client) {
@@ -58,15 +59,20 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!client || !session?.user?.id) {
       setProfile(null);
+      setProfileReady(true);
       return undefined;
     }
     let cancelled = false;
+    setProfileReady(false);
     fetchMyProfile()
       .then((p) => {
         if (!cancelled) setProfile(p);
       })
       .catch(() => {
         if (!cancelled) setProfile(null);
+      })
+      .finally(() => {
+        if (!cancelled) setProfileReady(true);
       });
     return () => {
       cancelled = true;
@@ -152,6 +158,7 @@ export function AuthProvider({ children }) {
       user: session?.user ?? null,
       session,
       profile,
+      profileReady,
       refreshProfile,
       loading,
       signIn,
@@ -164,6 +171,7 @@ export function AuthProvider({ children }) {
     [
       session,
       profile,
+      profileReady,
       refreshProfile,
       loading,
       signIn,
