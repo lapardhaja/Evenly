@@ -6,13 +6,18 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import PeopleIcon from '@mui/icons-material/People';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
+import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability, listFriends } from '../lib/friendsApi.js';
 import { isValidVenmoUsername, normalizeVenmoUsername, openVenmoProfile } from '../lib/venmoLinks.js';
 import { chatAlertsEnableHint, enableChatNotifications } from '../lib/chatAlerts.js';
 import {
@@ -43,6 +48,7 @@ export default function ProfilePage() {
   const [deleteTyped, setDeleteTyped] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [friendCount, setFriendCount] = useState(null);
 
   const loadProfile = useCallback(async (opts = {}) => {
     const silent = !!opts.silent;
@@ -56,6 +62,12 @@ export default function ProfilePage() {
       setFirstNameEdit(p?.first_name || '');
       setLastNameEdit(p?.last_name || '');
       setVenmoEdit(p?.venmo_username || '');
+      try {
+        const fr = await listFriends();
+        setFriendCount(fr.length);
+      } catch {
+        setFriendCount(null);
+      }
     } catch {
       setError('Couldn’t load your profile. Try again in a moment.');
     } finally {
@@ -187,6 +199,27 @@ export default function ProfilePage() {
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}
         </Alert>
+      ) : null}
+
+      {configured ? (
+        <Paper variant="outlined" sx={{ mb: 2, borderRadius: 2, overflow: 'hidden' }}>
+          <ListItemButton onClick={() => navigate('/friends')}>
+            <ListItemIcon>
+              <PeopleIcon />
+            </ListItemIcon>
+            <ListItemText
+              primary="Friends"
+              secondary={
+                friendCount == null
+                  ? 'Requests, remove, QR'
+                  : friendCount === 1
+                    ? '1 friend'
+                    : `${friendCount} friends`
+              }
+            />
+            <ChevronRightIcon color="action" />
+          </ListItemButton>
+        </Paper>
       ) : null}
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>

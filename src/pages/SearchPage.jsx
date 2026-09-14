@@ -451,32 +451,48 @@ export default function SearchPage() {
         </>
       ) : null}
 
-      {cloud && !typing && friends.length > 0 ? (
+      {cloud && !typing ? (
         <>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-            Friends
-          </Typography>
-          <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
-            <List disablePadding>
-              {friends.map((f, i) => {
-                const full = personLabel(f);
-                return (
-                  <Box key={f.user_id}>
-                    {i > 0 ? <Divider /> : null}
-                    <ListItemButton onClick={() => openDm(f.user_id)} disabled={busyId === f.user_id}>
-                      <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: 'primary.main' }}>{nameToInitials(full)}</Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={full}
-                        secondary={f.username && full !== f.username ? `@${f.username}` : 'Message'}
-                      />
-                    </ListItemButton>
-                  </Box>
-                );
-              })}
-            </List>
-          </Paper>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="subtitle2" fontWeight={700}>
+              Friends
+            </Typography>
+            <Button size="small" onClick={() => navigate('/friends')}>
+              Manage
+            </Button>
+          </Box>
+          {friends.length > 0 ? (
+            <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', mb: 2 }}>
+              <List disablePadding>
+                {friends.map((f, i) => {
+                  const full = personLabel(f);
+                  return (
+                    <Box key={f.user_id}>
+                      {i > 0 ? <Divider /> : null}
+                      <ListItemButton
+                        onClick={() => openDm(f.user_id)}
+                        disabled={busyId === f.user_id}
+                      >
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'primary.main' }}>{nameToInitials(full)}</Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={full}
+                          secondary={
+                            f.username && full !== f.username ? `@${f.username}` : 'Message'
+                          }
+                        />
+                      </ListItemButton>
+                    </Box>
+                  );
+                })}
+              </List>
+            </Paper>
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Remove friends, cancel requests, and scan QR from Friends.
+            </Typography>
+          )}
         </>
       ) : null}
 

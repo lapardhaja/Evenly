@@ -16,7 +16,6 @@ import { APP_TAB_BAR_HEIGHT_PX } from '../lib/appShell.js';
 export default function AppTabBar({
   value,
   onChange,
-  showChat = false,
   unreadChats = 0,
   pendingFriendRequests = 0,
 }) {
@@ -73,22 +72,20 @@ export default function AppTabBar({
           icon={selected === 'groups' ? <FolderSharedIcon /> : <FolderSharedOutlinedIcon />}
           aria-label="Groups"
         />
-        {showChat ? (
-          <BottomNavigationAction
-            value="messages"
-            aria-label={unreadChats > 0 ? `Messages, ${unreadChats} unread` : 'Messages'}
-            icon={
-              <Badge
-                color="primary"
-                badgeContent={unreadChats > 0 ? unreadChats : 0}
-                max={99}
-                invisible={unreadChats === 0}
-              >
-                {selected === 'messages' ? <SendIcon /> : <SendOutlinedIcon />}
-              </Badge>
-            }
-          />
-        ) : null}
+        <BottomNavigationAction
+          value="messages"
+          aria-label={unreadChats > 0 ? `Messages, ${unreadChats} unread` : 'Messages'}
+          icon={
+            <Badge
+              color="primary"
+              badgeContent={unreadChats > 0 ? unreadChats : 0}
+              max={99}
+              invisible={unreadChats === 0}
+            >
+              {selected === 'messages' ? <SendIcon /> : <SendOutlinedIcon />}
+            </Badge>
+          }
+        />
         <BottomNavigationAction
           value="profile"
           icon={selected === 'profile' ? <PersonIcon /> : <PersonOutlineIcon />}
