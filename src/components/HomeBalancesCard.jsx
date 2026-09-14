@@ -35,7 +35,11 @@ export default function HomeBalancesCard({ summary, onOpenGroup }) {
               <Typography variant="caption" color="text.secondary">
                 {"You're owed"}
               </Typography>
-              <Typography variant="h6" fontWeight={700} color="success.main">
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                color={summary.owedToMe > 0.005 ? 'success.main' : 'text.secondary'}
+              >
                 {formatMoneyWithCode(summary.owedToMe, code)}
               </Typography>
             </Box>
@@ -43,7 +47,11 @@ export default function HomeBalancesCard({ summary, onOpenGroup }) {
               <Typography variant="caption" color="text.secondary">
                 You owe
               </Typography>
-              <Typography variant="h6" fontWeight={700} color="error.main">
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                color={summary.iOwe > 0.005 ? 'error.main' : 'text.secondary'}
+              >
                 {formatMoneyWithCode(summary.iOwe, code)}
               </Typography>
             </Box>
@@ -84,7 +92,8 @@ export default function HomeBalancesCard({ summary, onOpenGroup }) {
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
-                      primary={<Typography fontWeight={600}>{primary}</Typography>}
+                      primary={primary}
+                      primaryTypographyProps={{ fontWeight: 600 }}
                       secondary={
                         multi ? `${row.groups.length} groups` : row.groups[0]?.groupName
                       }
