@@ -272,7 +272,7 @@ test('appTabFromPath maps Instagram tabs; friends live under profile', () => {
   assert.equal(appTabFromPath('/groups/g1/settle'), 'groups');
   assert.equal(appTabFromPath('/chat'), 'messages');
   assert.equal(appTabFromPath('/chat/abc'), 'messages');
-  assert.equal(appTabFromPath('/friends'), 'profile');
+  assert.equal(appTabFromPath('/friends'), '');
   assert.equal(appTabFromPath('/search'), 'search');
   assert.equal(appTabFromPath('/profile'), 'profile');
 });

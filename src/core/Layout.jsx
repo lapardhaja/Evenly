@@ -346,6 +346,17 @@ export default function Layout() {
   const showHeaderTabs = !isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
   const currentTab = appTabFromPath(location.pathname);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty(
+      '--evenly-tab-bar-offset',
+      showTabBar ? `${APP_TAB_BAR_HEIGHT_PX}px` : '0px',
+    );
+    return () => {
+      root.style.setProperty('--evenly-tab-bar-offset', '0px');
+    };
+  }, [showTabBar]);
+
   const goTab = useCallback(
     (next) => {
       if (next === 'home') navigate('/');
@@ -578,7 +589,7 @@ export default function Layout() {
                       setAccountAnchor(null);
                       navigate('/profile');
                     }}
-                    selected={location.pathname === '/profile' || location.pathname === '/friends'}
+                    selected={location.pathname === '/profile'}
                   >
                     <ListItemIcon>
                       <PersonIcon fontSize="small" />

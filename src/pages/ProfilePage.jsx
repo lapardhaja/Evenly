@@ -346,6 +346,7 @@ export default function ProfilePage() {
             {configured ? (
               <Button
                 color="error"
+                variant="outlined"
                 onClick={() => {
                   signOut();
                   navigate('/login', { replace: true });
