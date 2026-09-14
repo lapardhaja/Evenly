@@ -175,9 +175,7 @@ export default function FriendsPage() {
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Find people by name, username, or email. Scan someone’s personal QR to become friends
-        instantly. After you’re friends, invite them into a group from People — or share the group
-        QR so they can join without being friends.
+        Search by name, username, or email. Scan a QR to add someone.
       </Typography>
       {isSupabaseConfigured() ? (
         <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
@@ -220,7 +218,7 @@ export default function FriendsPage() {
             ? 'Type at least 2 characters.'
             : q.length >= 2 && !searching && searchResults.length === 0
               ? 'No account matches that. Try their Evenly username or the email they signed up with.'
-              : 'They need an Evenly account. Guest names on a receipt are not friends.'
+              : 'They need an Evenly account.'
         }
       />
 

@@ -196,7 +196,7 @@ export function appTabFromPath(pathname) {
   if (p.startsWith('/search')) return 'search';
   if (p.startsWith('/groups')) return 'groups';
   if (p.startsWith('/chat')) return 'messages';
-  if (p.startsWith('/profile') || p.startsWith('/friends')) return 'profile';
+  if (p.startsWith('/profile')) return 'profile';
   return '';
 }
 

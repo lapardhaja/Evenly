@@ -102,7 +102,10 @@ test('groups home shows cross-group IOUs', () => {
   const card = read('src/components/HomeBalancesCard.jsx');
   assert.match(card, /You're owed/);
   assert.match(card, /You owe/);
-  assert.match(card, /You're even/);
+  assert.match(card, /All settled/);
+  assert.match(card, /Nobody owes anyone right now/);
+  assert.doesNotMatch(card, /IOU/);
+  assert.doesNotMatch(home, /IOU/);
 });
 
 test('app shell splits Home and Groups with a tab bar', () => {
@@ -121,6 +124,10 @@ test('app shell splits Home and Groups with a tab bar', () => {
   assert.match(layout, /goTab\('messages'\)/);
   assert.match(layout, /goTab\('profile'\)/);
   assert.doesNotMatch(layout, /another device/);
+  assert.match(layout, /setProperty\(\s*'--evenly-tab-bar-offset'/);
+  assert.doesNotMatch(layout, /pathname === '\/profile' \|\| location.pathname === '\/friends'/);
+  const fab = read('src/core/fabPlacement.js');
+  assert.match(fab, /max\(56px/);
   const detail = read('src/pages/GroupDetailPage.jsx');
   assert.match(detail, /navigate\('\/groups'\)/);
   const tabs = read('src/components/AppTabBar.jsx');
@@ -141,6 +148,7 @@ test('app shell splits Home and Groups with a tab bar', () => {
   const profile = read('src/pages/ProfilePage.jsx');
   assert.match(profile, /navigate\('\/friends'\)/);
   assert.match(profile, /color="error"/);
+  assert.match(profile, /signOut\(\)/);
   assert.doesNotMatch(profile, /Evenly can’t send Venmo/);
   assert.doesNotMatch(profile, /Venmo app → Me/);
   assert.doesNotMatch(profile, /How you show up when friends search/);
