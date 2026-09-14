@@ -23,6 +23,8 @@ import {
   appShellFooterPinMainSx,
   appTabFromPath,
   shouldShowAppTabBar,
+  shouldShowDesktopNav,
+  APP_TABS,
 } from './appShell.js';
 import { scrollChatToBottom, isChatNearBottom, pinChatToLatestAfterLayout } from './chatScroll.js';
 
@@ -111,7 +113,9 @@ test('Layout pins the legal footer under a min-height 100% column', async () => 
   assert.match(src, /hideAppBar/);
   assert.match(src, /isChatComposerRoute/);
   assert.match(src, /AppTabBar/);
+  assert.match(src, /DesktopAppNav/);
   assert.match(src, /shouldShowAppTabBar/);
+  assert.match(src, /shouldShowDesktopNav/);
   assert.match(src, /evenly-tab-bar-offset/);
 });
 
@@ -281,6 +285,18 @@ test('appTabFromPath maps Instagram tabs; friends live under profile', () => {
   assert.equal(appTabFromPath('/profile'), 'profile');
 });
 
+test('APP_TABS is Home Search Groups Messages Profile with emojis', () => {
+  assert.deepEqual(
+    APP_TABS.map((t) => t.id),
+    ['home', 'search', 'groups', 'messages', 'profile'],
+  );
+  assert.equal(APP_TABS[0].emoji, '🏠');
+  assert.equal(APP_TABS[1].emoji, '🔍');
+  assert.equal(APP_TABS[2].emoji, '👥');
+  assert.equal(APP_TABS[3].emoji, '💬');
+  assert.equal(APP_TABS[4].emoji, '👤');
+});
+
 test('shouldShowAppTabBar hides scan, composer, and legal', () => {
   assert.equal(shouldShowAppTabBar('/'), true);
   assert.equal(shouldShowAppTabBar('/groups'), true);
@@ -294,4 +310,17 @@ test('shouldShowAppTabBar hides scan, composer, and legal', () => {
   assert.equal(shouldShowAppTabBar('/chat/abc'), false);
   assert.equal(shouldShowAppTabBar('/groups/g1/chat'), false);
   assert.equal(shouldShowAppTabBar('/dev/home-balances'), false);
+});
+
+test('shouldShowDesktopNav keeps the left rail on chat threads', () => {
+  assert.equal(shouldShowDesktopNav('/'), true);
+  assert.equal(shouldShowDesktopNav('/groups'), true);
+  assert.equal(shouldShowDesktopNav('/chat'), true);
+  assert.equal(shouldShowDesktopNav('/chat/abc'), true);
+  assert.equal(shouldShowDesktopNav('/groups/g1/chat'), true);
+  assert.equal(shouldShowDesktopNav('/friends'), true);
+  assert.equal(shouldShowDesktopNav('/login'), false);
+  assert.equal(shouldShowDesktopNav('/privacy'), false);
+  assert.equal(shouldShowDesktopNav('/scan'), false);
+  assert.equal(shouldShowDesktopNav('/dev/home-balances'), false);
 });

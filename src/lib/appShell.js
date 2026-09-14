@@ -195,6 +195,15 @@ export const appLegalFooterSx = {
 
 export const APP_TAB_BAR_HEIGHT_PX = 56;
 
+/** Instagram order. Phone uses MUI icons; desktop uses a left emoji rail. */
+export const APP_TABS = [
+  { id: 'home', label: 'Home', emoji: '🏠' },
+  { id: 'search', label: 'Search', emoji: '🔍' },
+  { id: 'groups', label: 'Groups', emoji: '👥' },
+  { id: 'messages', label: 'Messages', emoji: '💬' },
+  { id: 'profile', label: 'Profile', emoji: '👤' },
+];
+
 /** Which primary tab a path belongs to. Empty = none (legal, scan, invites). */
 export function appTabFromPath(pathname) {
   const p = pathname || '/';
@@ -206,15 +215,28 @@ export function appTabFromPath(pathname) {
   return '';
 }
 
+function isAppChromeExemptPath(pathname) {
+  if (isPublicExemptRoute(pathname)) return true;
+  if (pathname.startsWith('/scan')) return true;
+  if (pathname.startsWith('/join') || pathname.startsWith('/add')) return true;
+  if (pathname.startsWith('/dev/')) return true;
+  return false;
+}
+
 /**
  * Phone tab bar: Home / Search / Groups / Messages / Profile (Instagram order).
  * Hidden on auth, legal, scan, invite, and chat composer so those stay full-bleed.
  */
 export function shouldShowAppTabBar(pathname) {
-  if (isPublicExemptRoute(pathname)) return false;
+  if (isAppChromeExemptPath(pathname)) return false;
   if (isChatComposerRoute(pathname)) return false;
-  if (pathname.startsWith('/scan')) return false;
-  if (pathname.startsWith('/join') || pathname.startsWith('/add')) return false;
-  if (pathname.startsWith('/dev/')) return false;
   return true;
+}
+
+/**
+ * Desktop left rail. Same destinations as the phone bar, kept on chat threads
+ * so computer users can leave a DM without losing primary nav.
+ */
+export function shouldShowDesktopNav(pathname) {
+  return !isAppChromeExemptPath(pathname);
 }

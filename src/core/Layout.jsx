@@ -54,6 +54,7 @@ import PullToRefreshLayout from '../components/PullToRefreshLayout.jsx';
 import EvenlyHeaderLockup from '../components/EvenlyHeaderLockup.jsx';
 import CookieNotice from '../components/CookieNotice.jsx';
 import AppTabBar from '../components/AppTabBar.jsx';
+import DesktopAppNav from '../components/DesktopAppNav.jsx';
 import { LEGAL_NAV } from '../pages/legal/legalNav.js';
 import { FAB_OVERLAY_ROOT_ID } from './FabPortal.jsx';
 import {
@@ -68,6 +69,7 @@ import {
   shouldShowAppLegalFooter,
   shouldUsePullToRefreshLayout,
   shouldShowAppTabBar,
+  shouldShowDesktopNav,
   appTabFromPath,
   APP_TAB_BAR_HEIGHT_PX,
 } from '../lib/appShell.js';
@@ -339,11 +341,11 @@ export default function Layout() {
   const pullToRefreshDisabledForRoute = isPullToRefreshDisabledForRoute(location.pathname);
   const usesPullToRefreshLayout = shouldUsePullToRefreshLayout(onLoginRoute);
   const showAppLegalFooter = shouldShowAppLegalFooter(location.pathname);
-  const hideAppBar = isChatComposerRoute(location.pathname);
   const isCompactNav = useMediaQuery(lightTheme.breakpoints.down('md'));
+  const hideAppBar = isCompactNav && isChatComposerRoute(location.pathname);
   const signedInShell = !onLoginRoute && (!supabaseConfigured || !!user);
   const showTabBar = isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
-  const showHeaderTabs = !isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
+  const showDesktopNav = !isCompactNav && signedInShell && shouldShowDesktopNav(location.pathname);
   const currentTab = appTabFromPath(location.pathname);
 
   useEffect(() => {
@@ -413,7 +415,16 @@ export default function Layout() {
             borderColor: 'divider',
           }}
         >
-          <Toolbar sx={{ minHeight: { xs: 64, sm: 68 } }}>
+          <Toolbar
+            sx={{
+              minHeight: { xs: 64, sm: 68, md: 72 },
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1,
+              px: { xs: 1, sm: 2 },
+            }}
+          >
             <Box
               component={RouterLink}
               to="/"
@@ -429,74 +440,9 @@ export default function Layout() {
             >
               <EvenlyHeaderLockup />
             </Box>
-            {showHeaderTabs ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 1.5, minWidth: 0 }}>
-                <Button
-                  color={currentTab === 'home' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('home')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'home' ? 700 : 500, minWidth: 0, px: 1 }}
-                >
-                  Home
-                </Button>
-                <Button
-                  color={currentTab === 'search' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('search')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'search' ? 700 : 500, minWidth: 0, px: 1 }}
-                  aria-label={
-                    pendingFriendRequests > 0
-                      ? `Search, ${pendingFriendRequests} friend requests`
-                      : 'Search'
-                  }
-                >
-                  <Badge
-                    color="warning"
-                    badgeContent={pendingFriendRequests > 0 ? pendingFriendRequests : 0}
-                    max={99}
-                    invisible={pendingFriendRequests === 0}
-                  >
-                    Search
-                  </Badge>
-                </Button>
-                <Button
-                  color={currentTab === 'groups' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('groups')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'groups' ? 700 : 500, minWidth: 0, px: 1 }}
-                >
-                  Groups
-                </Button>
-                <Button
-                  color={currentTab === 'messages' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('messages')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'messages' ? 700 : 500, minWidth: 0, px: 1 }}
-                  aria-label={unreadChats > 0 ? `Messages, ${unreadChats} unread` : 'Messages'}
-                >
-                  <Badge
-                    color="primary"
-                    badgeContent={unreadChats > 0 ? unreadChats : 0}
-                    max={99}
-                    invisible={unreadChats === 0}
-                  >
-                    Messages
-                  </Badge>
-                </Button>
-                <Button
-                  color={currentTab === 'profile' ? 'primary' : 'inherit'}
-                  onClick={() => goTab('profile')}
-                  size="small"
-                  sx={{ fontWeight: currentTab === 'profile' ? 700 : 500, minWidth: 0, px: 1 }}
-                >
-                  Profile
-                </Button>
-              </Box>
-            ) : null}
             {supabaseConfigured && user && !onLoginRoute ? (
               <Box
                 sx={{
-                  ml: 'auto',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1.25,
@@ -505,7 +451,7 @@ export default function Layout() {
                 }}
               >
                 <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
-                {showTabBar || showHeaderTabs ? null : (
+                {showTabBar || showDesktopNav ? null : (
                 <>
                 <IconButton
                   color="inherit"
@@ -556,12 +502,6 @@ export default function Layout() {
                 >
                   <AccountCircleIcon />
                 </IconButton>
-              </Box>
-            ) : (
-              <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{ ml: 'auto' }} />
-            )}
-            {supabaseConfigured && user && !onLoginRoute ? (
-              <>
                 <Menu
                   anchorEl={accountAnchor}
                   open={Boolean(accountAnchor)}
@@ -681,13 +621,24 @@ export default function Layout() {
                     Sign out
                   </MenuItem>
                 </Menu>
-              </>
-            ) : null}
+              </Box>
+            ) : (
+              <ThemeModeMenu themeMode={themeMode} onChange={setThemeMode} iconButtonSx={{}} />
+            )}
           </Toolbar>
         </AppBar>
         )}
 
-        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+          {showDesktopNav ? (
+            <DesktopAppNav
+              value={currentTab}
+              onChange={goTab}
+              unreadChats={unreadChats}
+              pendingFriendRequests={pendingFriendRequests}
+            />
+          ) : null}
+          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {supabaseConfigured && user && syncError && !onLoginRoute ? (
             <Alert
               severity="error"
@@ -728,6 +679,7 @@ export default function Layout() {
               <AppMainColumn showFooter={showAppLegalFooter} />
             </Box>
           )}
+          </Box>
         </Box>
         <CookieNotice />
         {showTabBar ? (
