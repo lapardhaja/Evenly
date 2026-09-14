@@ -20,6 +20,8 @@ import {
   appLegalFooterSx,
   appShellFooterPinSx,
   appShellFooterPinMainSx,
+  appTabFromPath,
+  shouldShowAppTabBar,
 } from './appShell.js';
 import { scrollChatToBottom, isChatNearBottom, pinChatToLatestAfterLayout } from './chatScroll.js';
 
@@ -90,6 +92,7 @@ test('legal footer pin column fills the scrollport so a short desktop page still
 
 test('legal footer keeps fat mobile clearance and only a small desktop pad plus cookie offset', () => {
   assert.match(appLegalFooterSx.pb.xs, /88px/);
+  assert.match(appLegalFooterSx.pb.xs, /evenly-tab-bar-offset/);
   assert.match(appLegalFooterSx.pb.sm, /24px/);
   assert.equal(appLegalFooterSx.pb.sm.includes('88px'), false);
   assert.match(appLegalFooterSx.pb.sm, /evenly-cookie-banner-offset/);
@@ -106,6 +109,9 @@ test('Layout pins the legal footer under a min-height 100% column', async () => 
   assert.match(src, /appLegalFooterSx/);
   assert.match(src, /hideAppBar/);
   assert.match(src, /isChatComposerRoute/);
+  assert.match(src, /AppTabBar/);
+  assert.match(src, /shouldShowAppTabBar/);
+  assert.match(src, /evenly-tab-bar-offset/);
 });
 
 test('chat column uses a desktop-width container, not the phone sm cap', () => {
@@ -258,4 +264,28 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   assert.match(sql, /'audio'/);
   assert.match(sql, /audio\/webm/);
   assert.match(page, /subtitle/);
+});
+
+test('appTabFromPath maps home, groups, chat, friends', () => {
+  assert.equal(appTabFromPath('/'), 'home');
+  assert.equal(appTabFromPath('/groups'), 'groups');
+  assert.equal(appTabFromPath('/groups/g1/settle'), 'groups');
+  assert.equal(appTabFromPath('/chat'), 'chat');
+  assert.equal(appTabFromPath('/chat/abc'), 'chat');
+  assert.equal(appTabFromPath('/friends'), 'friends');
+  assert.equal(appTabFromPath('/profile'), '');
+});
+
+test('shouldShowAppTabBar hides scan, composer, and legal', () => {
+  assert.equal(shouldShowAppTabBar('/'), true);
+  assert.equal(shouldShowAppTabBar('/groups'), true);
+  assert.equal(shouldShowAppTabBar('/chat'), true);
+  assert.equal(shouldShowAppTabBar('/friends'), true);
+  assert.equal(shouldShowAppTabBar('/profile'), true);
+  assert.equal(shouldShowAppTabBar('/login'), false);
+  assert.equal(shouldShowAppTabBar('/privacy'), false);
+  assert.equal(shouldShowAppTabBar('/scan'), false);
+  assert.equal(shouldShowAppTabBar('/chat/abc'), false);
+  assert.equal(shouldShowAppTabBar('/groups/g1/chat'), false);
+  assert.equal(shouldShowAppTabBar('/dev/home-balances'), false);
 });

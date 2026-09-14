@@ -1,6 +1,7 @@
 import { createHashRouter, Navigate } from 'react-router-dom';
 import Layout from './core/Layout.jsx';
 import RequireAuth from './core/RequireAuth.jsx';
+import HomePage from './pages/HomePage.jsx';
 import GroupsPage from './pages/GroupsPage.jsx';
 import GroupDetailPage from './pages/GroupDetailPage.jsx';
 import ReceiptInfoPage from './pages/ReceiptInfoPage.jsx';
@@ -120,6 +121,14 @@ export const router = createHashRouter([
       { path: 'share/:shareId', element: <PublicGroupSharePage /> },
       {
         index: true,
+        element: (
+          <RequireAuth>
+            <HomePage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'groups',
         element: (
           <RequireAuth>
             <GroupsPage />

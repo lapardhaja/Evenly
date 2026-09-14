@@ -91,15 +91,30 @@ test('scan review assigns people before create', () => {
 });
 
 test('groups home shows cross-group IOUs', () => {
+  const home = read('src/pages/HomePage.jsx');
+  assert.match(home, /HomeBalancesCard/);
+  assert.match(home, /useHomeBalances/);
+  assert.match(home, /\/groups\/\$\{id\}\/settle/);
+  assert.match(home, /Your groups/);
   const groups = read('src/pages/GroupsPage.jsx');
-  assert.match(groups, /HomeBalancesCard/);
-  assert.match(groups, /useHomeBalances/);
   assert.match(groups, /you're owed/);
-  assert.match(groups, /\/groups\/\$\{id\}\/settle/);
+  assert.doesNotMatch(groups, /HomeBalancesCard/);
   const card = read('src/components/HomeBalancesCard.jsx');
   assert.match(card, /You're owed/);
   assert.match(card, /You owe/);
   assert.match(card, /You're even/);
+});
+
+test('app shell splits Home and Groups with a tab bar', () => {
+  const router = read('src/router.jsx');
+  assert.match(router, /HomePage/);
+  assert.match(router, /path: 'groups'/);
+  const layout = read('src/core/Layout.jsx');
+  assert.match(layout, /AppTabBar/);
+  assert.match(layout, /goTab\('groups'\)/);
+  assert.doesNotMatch(layout, /another device/);
+  const detail = read('src/pages/GroupDetailPage.jsx');
+  assert.match(detail, /navigate\('\/groups'\)/);
 });
 
 test('subprocessors list dated FX hosts', () => {

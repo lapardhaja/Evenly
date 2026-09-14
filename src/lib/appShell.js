@@ -177,7 +177,7 @@ export const appLegalFooterSx = {
   py: 2,
   px: 2,
   pb: {
-    xs: 'calc(88px + env(safe-area-inset-bottom, 0px) + var(--evenly-cookie-banner-offset, 0px))',
+    xs: 'calc(88px + var(--evenly-tab-bar-offset, 0px) + env(safe-area-inset-bottom, 0px) + var(--evenly-cookie-banner-offset, 0px))',
     sm: 'calc(24px + var(--evenly-cookie-banner-offset, 0px))',
   },
   textAlign: 'center',
@@ -186,3 +186,28 @@ export const appLegalFooterSx = {
   flexShrink: 0,
   mt: 'auto',
 };
+
+export const APP_TAB_BAR_HEIGHT_PX = 56;
+
+/** Which primary tab a path belongs to. Empty = none (profile, legal, scan). */
+export function appTabFromPath(pathname) {
+  const p = pathname || '/';
+  if (p === '/' || p === '') return 'home';
+  if (p.startsWith('/groups')) return 'groups';
+  if (p.startsWith('/chat')) return 'chat';
+  if (p.startsWith('/friends')) return 'friends';
+  return '';
+}
+
+/**
+ * Phone tab bar: Home / Groups / Chat / Friends.
+ * Hidden on auth, legal, scan, invite, and chat composer so those stay full-bleed.
+ */
+export function shouldShowAppTabBar(pathname) {
+  if (isPublicExemptRoute(pathname)) return false;
+  if (isChatComposerRoute(pathname)) return false;
+  if (pathname.startsWith('/scan')) return false;
+  if (pathname.startsWith('/join') || pathname.startsWith('/add')) return false;
+  if (pathname.startsWith('/dev/')) return false;
+  return true;
+}
