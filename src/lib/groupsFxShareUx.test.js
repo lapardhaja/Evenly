@@ -112,7 +112,8 @@ test('app shell splits Home and Groups with a tab bar', () => {
   assert.match(router, /path: 'groups'/);
   assert.match(router, /path: 'search'/);
   assert.match(router, /path: 'friends'/);
-  assert.match(router, /Navigate to="\/search"/);
+  assert.match(router, /FriendsPage/);
+  assert.doesNotMatch(router, /Navigate to="\/search"/);
   const layout = read('src/core/Layout.jsx');
   assert.match(layout, /AppTabBar/);
   assert.match(layout, /goTab\('groups'\)/);
@@ -134,6 +135,17 @@ test('app shell splits Home and Groups with a tab bar', () => {
   assert.match(search, /filterGroupPeopleForSearch/);
   const inbox = read('src/pages/ChatInboxPage.jsx');
   assert.match(inbox, />\s*Messages\s*</);
+  const friendsPage = read('src/pages/FriendsPage.jsx');
+  assert.match(friendsPage, /removeFriend/);
+  assert.match(friendsPage, /Remove friend\?/);
+  const profile = read('src/pages/ProfilePage.jsx');
+  assert.match(profile, /navigate\('\/friends'\)/);
+  assert.match(profile, /color="error"/);
+  assert.doesNotMatch(profile, /Evenly can’t send Venmo/);
+  assert.doesNotMatch(profile, /Venmo app → Me/);
+  assert.doesNotMatch(profile, /How you show up when friends search/);
+  assert.match(tabs, /value="messages"/);
+  assert.doesNotMatch(tabs, /showChat \?/);
 });
 
 test('subprocessors list dated FX hosts', () => {

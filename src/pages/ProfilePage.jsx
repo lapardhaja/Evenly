@@ -6,13 +6,18 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import PeopleIcon from '@mui/icons-material/People';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability } from '../lib/friendsApi.js';
+import { fetchMyProfile, upsertMyProfile, isValidUsername, checkUsernameAvailability, listFriends } from '../lib/friendsApi.js';
 import { isValidVenmoUsername, normalizeVenmoUsername, openVenmoProfile } from '../lib/venmoLinks.js';
 import { chatAlertsEnableHint, enableChatNotifications } from '../lib/chatAlerts.js';
 import {
@@ -43,6 +48,7 @@ export default function ProfilePage() {
   const [deleteTyped, setDeleteTyped] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [friendCount, setFriendCount] = useState(null);
 
   const loadProfile = useCallback(async (opts = {}) => {
     const silent = !!opts.silent;
@@ -56,6 +62,12 @@ export default function ProfilePage() {
       setFirstNameEdit(p?.first_name || '');
       setLastNameEdit(p?.last_name || '');
       setVenmoEdit(p?.venmo_username || '');
+      try {
+        const fr = await listFriends();
+        setFriendCount(fr.length);
+      } catch {
+        setFriendCount(null);
+      }
     } catch {
       setError('Couldn’t load your profile. Try again in a moment.');
     } finally {
@@ -165,18 +177,14 @@ export default function ProfilePage() {
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
+      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>
         Profile
       </Typography>
-      {configured ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          How you show up when friends search for you.
-        </Typography>
-      ) : (
+      {!configured ? (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Local-only build — no cloud username yet.
         </Typography>
-      )}
+      ) : null}
 
       {message ? (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage('')}>
@@ -187,6 +195,27 @@ export default function ProfilePage() {
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}
         </Alert>
+      ) : null}
+
+      {configured ? (
+        <Paper variant="outlined" sx={{ mb: 2, borderRadius: 2, overflow: 'hidden' }}>
+          <ListItemButton onClick={() => navigate('/friends')}>
+            <ListItemIcon>
+              <PeopleIcon />
+            </ListItemIcon>
+            <ListItemText
+              primary="Friends"
+              secondary={
+                friendCount == null
+                  ? 'Requests, remove, QR'
+                  : friendCount === 1
+                    ? '1 friend'
+                    : `${friendCount} friends`
+              }
+            />
+            <ChevronRightIcon color="action" />
+          </ListItemButton>
+        </Paper>
       ) : null}
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -208,18 +237,18 @@ export default function ProfilePage() {
               error={usernameStatus === 'taken'}
               helperText={
                 !usernameEdit.trim()
-                  ? '3–30 characters: letters, numbers, underscores'
+                  ? '3–30 letters, numbers, or _'
                   : !isValidUsername(usernameEdit.trim())
-                    ? 'Use 3–30 letters, numbers, or underscores.'
+                    ? '3–30 letters, numbers, or _'
                     : usernameStatus === 'checking'
                       ? 'Checking…'
                       : usernameStatus === 'available'
                         ? 'Available'
                         : usernameStatus === 'taken'
-                          ? 'Not available — try another'
+                          ? 'Taken'
                           : usernameStatus === 'error'
-                            ? 'Couldn’t check. Try again.'
-                            : '3–30 characters: letters, numbers, underscores'
+                            ? 'Couldn’t check'
+                            : ' '
               }
               FormHelperTextProps={{
                 sx: {
@@ -253,16 +282,12 @@ export default function ProfilePage() {
                 sx={{ flex: 1, minWidth: 140 }}
               />
             </Box>
-            <Alert severity="info" sx={{ borderRadius: 2 }}>
-              Evenly can’t send Venmo payments. Save a username so people can pay you from Settle.
-            </Alert>
             <TextField
               size="small"
               label="Venmo username"
               value={venmoEdit}
               onChange={(e) => setVenmoEdit(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
-              placeholder="your-venmo"
-              helperText="Venmo app → Me → the name under your photo, without @. Not your Evenly username."
+              placeholder="without @"
               fullWidth
             />
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -291,7 +316,7 @@ export default function ProfilePage() {
                     setError('Enter a Venmo username first.');
                     return;
                   }
-                  setMessage('If that’s your Venmo profile, tap Save. If not, fix the username.');
+                  setMessage('If that’s you, Save.');
                 }}
               >
                 Check in Venmo
@@ -320,7 +345,7 @@ export default function ProfilePage() {
             </Typography>
             {configured ? (
               <Button
-                color="inherit"
+                color="error"
                 onClick={() => {
                   signOut();
                   navigate('/login', { replace: true });
@@ -334,12 +359,7 @@ export default function ProfilePage() {
               <Typography variant="caption" color="text.secondary">
                 {notifyHint}
               </Typography>
-            ) : (
-              <Typography variant="caption" color="text.secondary">
-                iPhone: Share → Add to Home Screen, open from the icon, then Enable. A Safari tab
-                cannot send lock-screen banners.
-              </Typography>
-            )}
+            ) : null}
           </Box>
         )}
       </Paper>

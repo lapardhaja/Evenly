@@ -193,10 +193,10 @@ export const APP_TAB_BAR_HEIGHT_PX = 56;
 export function appTabFromPath(pathname) {
   const p = pathname || '/';
   if (p === '/' || p === '') return 'home';
-  if (p.startsWith('/search') || p.startsWith('/friends')) return 'search';
+  if (p.startsWith('/search')) return 'search';
   if (p.startsWith('/groups')) return 'groups';
   if (p.startsWith('/chat')) return 'messages';
-  if (p.startsWith('/profile')) return 'profile';
+  if (p.startsWith('/profile') || p.startsWith('/friends')) return 'profile';
   return '';
 }
 

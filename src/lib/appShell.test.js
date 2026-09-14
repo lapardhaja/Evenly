@@ -266,13 +266,13 @@ test('chat thread is Instagram-style with voice notes and a pill composer', asyn
   assert.match(page, /subtitle/);
 });
 
-test('appTabFromPath maps Instagram tabs including legacy /friends', () => {
+test('appTabFromPath maps Instagram tabs; friends live under profile', () => {
   assert.equal(appTabFromPath('/'), 'home');
   assert.equal(appTabFromPath('/groups'), 'groups');
   assert.equal(appTabFromPath('/groups/g1/settle'), 'groups');
   assert.equal(appTabFromPath('/chat'), 'messages');
   assert.equal(appTabFromPath('/chat/abc'), 'messages');
-  assert.equal(appTabFromPath('/friends'), 'search');
+  assert.equal(appTabFromPath('/friends'), 'profile');
   assert.equal(appTabFromPath('/search'), 'search');
   assert.equal(appTabFromPath('/profile'), 'profile');
 });

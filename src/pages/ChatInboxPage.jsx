@@ -148,7 +148,9 @@ export default function ChatInboxPage() {
   if (!isSupabaseConfigured()) {
     return (
       <Container maxWidth={CHAT_CONTAINER_MAX_WIDTH} sx={{ py: 4 }}>
-        <Typography color="text.secondary">Chat needs a signed-in cloud account.</Typography>
+        <Typography color="text.secondary">
+          Messages need a signed-in cloud account.
+        </Typography>
       </Container>
     );
   }

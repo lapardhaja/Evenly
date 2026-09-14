@@ -15,6 +15,7 @@ import SecurityPage from './pages/legal/SecurityPage.jsx';
 import SharedSettlementPage from './pages/SharedSettlementPage.jsx';
 import PublicGroupSharePage from './pages/PublicGroupSharePage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
+import FriendsPage from './pages/FriendsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import ProfileSetupPage from './pages/ProfileSetupPage.jsx';
 import ChatInboxPage from './pages/ChatInboxPage.jsx';
@@ -60,7 +61,11 @@ export const router = createHashRouter([
       },
       {
         path: 'friends',
-        element: <Navigate to="/search" replace />,
+        element: (
+          <RequireAuth>
+            <FriendsPage />
+          </RequireAuth>
+        ),
       },
       {
         path: 'chat',
