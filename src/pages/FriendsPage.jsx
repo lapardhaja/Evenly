@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
@@ -14,10 +14,12 @@ import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   searchPeople,
   sendFriendRequest,
@@ -36,6 +38,7 @@ import { friendSearchAction } from '../lib/friendInvite.js';
 import { nameToInitials } from '../functions/utils.js';
 import InviteQrDialog from '../components/InviteQrDialog.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { useConfirmDialog } from '../components/useConfirmDialog.jsx';
 
 function personLabel(row) {
   return formatFullName(row) || row?.username || row?.display_name || 'Someone';
@@ -43,6 +46,8 @@ function personLabel(row) {
 
 export default function FriendsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { ask, confirmDialog } = useConfirmDialog();
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -161,9 +166,14 @@ export default function FriendsPage() {
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
-        Friends
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+        <IconButton aria-label="Back to profile" onClick={() => navigate('/profile')}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h5" fontWeight={700}>
+          Friends
+        </Typography>
+      </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Find people by name, username, or email. Scan someone’s personal QR to become friends
         instantly. After you’re friends, invite them into a group from People — or share the group
@@ -384,7 +394,16 @@ export default function FriendsPage() {
                         color="inherit"
                         startIcon={<PersonRemoveIcon />}
                         disabled={busyId === f.user_id}
-                        onClick={() => run(f.user_id, () => removeFriend(f.user_id))}
+                        onClick={async () => {
+                          const ok = await ask({
+                            title: 'Remove friend?',
+                            message: `Remove ${full}? You can add them again later.`,
+                            confirmText: 'Remove',
+                            destructive: true,
+                          });
+                          if (!ok) return;
+                          run(f.user_id, () => removeFriend(f.user_id));
+                        }}
                       >
                         Remove
                       </Button>
@@ -410,6 +429,7 @@ export default function FriendsPage() {
         kind="friend"
         title="Your friend QR"
       />
+      {confirmDialog}
     </Container>
   );
 }

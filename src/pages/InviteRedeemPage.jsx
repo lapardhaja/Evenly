@@ -62,7 +62,7 @@ export default function InviteRedeemPage({ kind }) {
         notifyFriendRequestsChanged();
         if (cancelled) return;
         const name = result?.name || peek?.name || 'them';
-        navigate('/search', {
+        navigate('/friends', {
           replace: true,
           state: {
             notice: result?.already_friends

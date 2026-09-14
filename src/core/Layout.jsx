@@ -19,6 +19,7 @@ import Link from '@mui/material/Link';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
+import SearchIcon from '@mui/icons-material/Search';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
@@ -344,7 +345,6 @@ export default function Layout() {
   const showTabBar = isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
   const showHeaderTabs = !isCompactNav && signedInShell && shouldShowAppTabBar(location.pathname);
   const currentTab = appTabFromPath(location.pathname);
-  const showChatNav = Boolean(supabaseConfigured && user);
 
   const goTab = useCallback(
     (next) => {
@@ -456,24 +456,22 @@ export default function Layout() {
                 >
                   Groups
                 </Button>
-                {showChatNav ? (
-                  <Button
-                    color={currentTab === 'messages' ? 'primary' : 'inherit'}
-                    onClick={() => goTab('messages')}
-                    size="small"
-                    sx={{ fontWeight: currentTab === 'messages' ? 700 : 500, minWidth: 0, px: 1 }}
-                    aria-label={unreadChats > 0 ? `Messages, ${unreadChats} unread` : 'Messages'}
+                <Button
+                  color={currentTab === 'messages' ? 'primary' : 'inherit'}
+                  onClick={() => goTab('messages')}
+                  size="small"
+                  sx={{ fontWeight: currentTab === 'messages' ? 700 : 500, minWidth: 0, px: 1 }}
+                  aria-label={unreadChats > 0 ? `Messages, ${unreadChats} unread` : 'Messages'}
+                >
+                  <Badge
+                    color="primary"
+                    badgeContent={unreadChats > 0 ? unreadChats : 0}
+                    max={99}
+                    invisible={unreadChats === 0}
                   >
-                    <Badge
-                      color="primary"
-                      badgeContent={unreadChats > 0 ? unreadChats : 0}
-                      max={99}
-                      invisible={unreadChats === 0}
-                    >
-                      Messages
-                    </Badge>
-                  </Button>
-                ) : null}
+                    Messages
+                  </Badge>
+                </Button>
                 <Button
                   color={currentTab === 'profile' ? 'primary' : 'inherit'}
                   onClick={() => goTab('profile')}
@@ -522,7 +520,7 @@ export default function Layout() {
                       ? `Friends, ${pendingFriendRequests} pending requests`
                       : 'Friends'
                   }
-                  onClick={() => navigate('/search')}
+                  onClick={() => navigate('/friends')}
                 >
                   <Badge
                     color="warning"
@@ -580,7 +578,7 @@ export default function Layout() {
                       setAccountAnchor(null);
                       navigate('/profile');
                     }}
-                    selected={location.pathname === '/profile'}
+                    selected={location.pathname === '/profile' || location.pathname === '/friends'}
                   >
                     <ListItemIcon>
                       <PersonIcon fontSize="small" />
@@ -611,9 +609,9 @@ export default function Layout() {
                   <MenuItem
                     onClick={() => {
                       setAccountAnchor(null);
-                      navigate('/search');
+                      navigate('/friends');
                     }}
-                    selected={location.pathname === '/search' || location.pathname === '/friends'}
+                    selected={location.pathname === '/friends'}
                     aria-label={
                       pendingFriendRequests > 0
                         ? `Friends, ${pendingFriendRequests} pending requests`
@@ -639,7 +637,7 @@ export default function Layout() {
                       </Badge>
                     </ListItemIcon>
                     <ListItemText
-                      primary="Search"
+                      primary="Friends"
                       secondary={
                         pendingFriendRequests > 0 ? `${pendingFriendRequests} pending` : null
                       }
@@ -648,6 +646,18 @@ export default function Layout() {
                         color: 'warning.main',
                       }}
                     />
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setAccountAnchor(null);
+                      navigate('/search');
+                    }}
+                    selected={location.pathname === '/search'}
+                  >
+                    <ListItemIcon>
+                      <SearchIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary="Search" />
                   </MenuItem>
                   <Divider />
                   <MenuItem
@@ -713,7 +723,6 @@ export default function Layout() {
           <AppTabBar
             value={currentTab}
             onChange={goTab}
-            showChat={showChatNav}
             unreadChats={unreadChats}
             pendingFriendRequests={pendingFriendRequests}
           />
@@ -730,7 +739,7 @@ export default function Layout() {
               size="small"
               onClick={() => {
                 setFriendSnack('');
-                navigate('/search');
+                navigate('/friends');
               }}
             >
               View
